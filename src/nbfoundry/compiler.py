@@ -26,47 +26,108 @@ from nbfoundry.schema import (
 _logger = logging.getLogger("nbfoundry.compiler")
 
 
+def _validate(
+    yaml_path: Path,
+    base_dir: Path,
+    *,
+    allow_large_assets: bool,
+) -> tuple[RawExerciseModel | None, Path | None, list[ExerciseError]]:
+    """Shared validation pipeline.
+
+    Returns `(model, yaml_full, errors)`. `model` is `None` iff the YAML or
+    Pydantic stage failed (no further checks possible). `yaml_full` is the
+    resolved YAML path when available (used by callers that need it).
+    Errors past the schema stage are accumulated, not raised, so callers can
+    choose first-error or collect-all semantics.
+    """
+    errors: list[ExerciseError] = []
+
+    try:
+        yaml_full = paths.resolve_under(base_dir, yaml_path)
+    except ExerciseError as e:
+        return None, None, [e]
+
+    try:
+        with yaml_full.open("rb") as f:
+            raw = yaml.safe_load(f)
+    except yaml.YAMLError as e:
+        return None, yaml_full, [ExerciseError(yaml_full, f"YAML parse error: {e}")]
+    except OSError as e:
+        return None, yaml_full, [ExerciseError(yaml_full, f"could not read YAML: {e}")]
+
+    if not isinstance(raw, dict):
+        return None, yaml_full, [
+            ExerciseError(yaml_full, "exercise YAML must be a mapping at the top level"),
+        ]
+
+    try:
+        model = RawExerciseModel.model_validate(raw)
+    except ValidationError as e:
+        return None, yaml_full, from_pydantic(yaml_full, e)
+
+    cfg = load_config(base_dir)
+
+    # Path-escape checks for code_file references (no inlining here).
+    for i, section in enumerate(model.sections):
+        if section.code_file is None:
+            continue
+        try:
+            paths.resolve_under(base_dir, section.code_file)
+        except ExerciseError as e:
+            errors.append(
+                ExerciseError(
+                    file_path=yaml_full,
+                    message=f"sections[{i}].code_file: {e.message}",
+                )
+            )
+
+    # Build an output-shape preview just for asset enumeration; this avoids
+    # markdown rendering (FR-4: validation must not render).
+    preview_outputs: list[dict[str, Any]] = []
+    for o in model.expected_outputs:
+        if o.type == "image" and o.path is not None:
+            preview_outputs.append({"type": "image", "path": o.path.as_posix()})
+
+    asset_paths = assets.enumerate(preview_outputs)
+
+    try:
+        assets.check_existence(base_dir, asset_paths)
+    except ExerciseError as e:
+        errors.append(ExerciseError(yaml_full, e.message))
+
+    try:
+        assets.check_size(
+            base_dir,
+            [p for p in asset_paths if (base_dir / p).is_file()],
+            warn_mb=cfg.assets.warn_single_asset_mb,
+            max_mb=cfg.assets.max_single_asset_mb,
+            allow_large=allow_large_assets or cfg.assets.allow_large_assets,
+        )
+    except ExerciseError as e:
+        errors.append(ExerciseError(yaml_full, e.message))
+
+    return model, yaml_full, errors
+
+
 def compile_exercise(
     yaml_path: Path,
     base_dir: Path,
     *,
     allow_large_assets: bool = False,
 ) -> dict[str, Any]:
+    model, yaml_full, errors = _validate(
+        yaml_path, base_dir, allow_large_assets=allow_large_assets
+    )
+    if errors:
+        raise errors[0]
+    assert model is not None and yaml_full is not None  # no errors → both present
+
     cfg = load_config(base_dir)
     flavor = cfg.exercise.markdown_flavor
 
-    yaml_full = paths.resolve_under(base_dir, yaml_path)
-
-    try:
-        with yaml_full.open("rb") as f:
-            raw = yaml.safe_load(f)
-    except yaml.YAMLError as e:
-        raise ExerciseError(file_path=yaml_full, message=f"YAML parse error: {e}") from e
-
-    if not isinstance(raw, dict):
-        raise ExerciseError(
-            file_path=yaml_full,
-            message="exercise YAML must be a mapping at the top level",
-        )
-
-    try:
-        model = RawExerciseModel.model_validate(raw)
-    except ValidationError as e:
-        first = from_pydantic(yaml_full, e)[0]
-        raise first from e
-
     sections = [_compile_section(s, yaml_full, base_dir, flavor) for s in model.sections]
     expected_outputs = [_compile_expected_output(o) for o in model.expected_outputs]
-
     asset_paths = assets.enumerate(expected_outputs)
-    assets.check_existence(base_dir, asset_paths)
-    assets.check_size(
-        base_dir,
-        asset_paths,
-        warn_mb=cfg.assets.warn_single_asset_mb,
-        max_mb=cfg.assets.max_single_asset_mb,
-        allow_large=allow_large_assets or cfg.assets.allow_large_assets,
-    )
 
     return {
         "type": "exercise",
@@ -82,6 +143,11 @@ def compile_exercise(
         "submission": _compile_submission(model.submission),
         "environment": _compile_environment(model.environment),
     }
+
+
+def validate_exercise(yaml_path: Path, base_dir: Path) -> list[str]:
+    _, _, errors = _validate(yaml_path, base_dir, allow_large_assets=False)
+    return [str(e) for e in errors]
 
 
 def _compile_section(

@@ -179,17 +179,17 @@ Wire schema + primitives into the production compile/validate pipeline and the s
 - [x] Update CHANGELOG.md
 - [x] Verify: `from nbfoundry import compile_exercise` works; a minimal hand-written YAML produces a dict with `type=="exercise"`, `source=="nbfoundry"`, `status=="ready"`, `assets==[]`
 
-### Story C.b: v0.13.0 Validator core [Planned]
+### Story C.b: v0.13.0 Validator core [Done]
 
 `validate_exercise()` — FR-4 collect-all-errors mode sharing the C.a pipeline.
 
-- [ ] Refactor C.a's pipeline into a private `_validate(...) -> tuple[Model | None, list[ExerciseError]]` core
-- [ ] `compile_exercise` raises on first; `validate_exercise(yaml_path, base_dir) -> list[str]` formats and returns the full list
-- [ ] YAML parse failure or missing file short-circuits to a single-element list
-- [ ] Re-export `validate_exercise` from `nbfoundry/__init__.py`
-- [ ] Bump version to v0.13.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: a YAML with three independent rejections returns three error strings, each with file path
+- [x] Refactor C.a's pipeline into a private `_validate(...) -> tuple[Model | None, list[ExerciseError]]` core
+- [x] `compile_exercise` raises on first; `validate_exercise(yaml_path, base_dir) -> list[str]` formats and returns the full list
+- [x] YAML parse failure or missing file short-circuits to a single-element list
+- [x] Re-export `validate_exercise` from `nbfoundry/__init__.py`
+- [x] Bump version to v0.13.0
+- [x] Update CHANGELOG.md
+- [x] Verify: a YAML with three independent rejections returns three error strings, each with file path
 
 ### Story C.c: v0.14.0 Submission / BR-4 validation [Planned]
 

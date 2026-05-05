@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from nbfoundry._version import __version__
-from nbfoundry.compiler import compile_exercise
+from nbfoundry.compiler import compile_exercise, validate_exercise
 from nbfoundry.errors import ExerciseError
 
-__all__ = ["ExerciseError", "__version__", "compile_exercise"]
+__all__ = ["ExerciseError", "__version__", "compile_exercise", "validate_exercise"]
