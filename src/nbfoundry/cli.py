@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import shutil
 import sys
+import tempfile
 from importlib.resources import as_file, files
 from importlib.resources.abc import Traversable
 from pathlib import Path
@@ -145,8 +147,20 @@ def cmd_compile_exercise(
     )
     if out is None:
         typer.echo(rendered)
-    else:
-        out.write_text(rendered + "\n", encoding="utf-8")
+        return
+    _atomic_write_text(out, rendered + "\n")
+
+
+def _atomic_write_text(out: Path, text: str) -> None:
+    out.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=out.parent, prefix=out.name + ".", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+        os.replace(tmp, out)
+    except Exception:
+        Path(tmp).unlink(missing_ok=True)
+        raise
 
 
 @app.command("validate")

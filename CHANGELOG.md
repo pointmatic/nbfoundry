@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-05-05
+
+### Changed
+- `nbfoundry compile-exercise --out <path>` now writes atomically: serialize to a sibling temp file via `tempfile.mkstemp(dir=out.parent)`, then `os.replace` into `out`. Partial output is never visible (OR-5). The default cwd-relative behavior, `--base-dir` defaulting to the YAML's parent, and the deterministic `json.dumps` settings (`sort_keys=False`, `ensure_ascii=False`, `separators=(",", ": ")`, `indent=2`) carry over from D.a.
+
 ## [0.19.0] - 2026-05-05
 
 ### Changed

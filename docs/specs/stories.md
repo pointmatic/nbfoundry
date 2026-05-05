@@ -270,17 +270,17 @@ FR-2 wire-up of `standalone.compile` to the CLI.
 - [x] Update CHANGELOG.md
 - [x] Verify: `pyve run nbfoundry compile demo/notebook.py` writes to `dist/` and prints the path
 
-### Story D.d: v0.20.0 `nbfoundry compile-exercise` subcommand [Planned]
+### Story D.d: v0.20.0 'nbfoundry compile-exercise' subcommand [Done]
 
 FR-3 CLI: writes JSON to `--out` if given, else stdout.
 
-- [ ] `compile-exercise <yaml-path> [--base-dir <path>] [--out <path>] [--allow-large-assets]` Typer command
-- [ ] Default `--base-dir` to YAML's parent directory
-- [ ] Serialize via `json.dumps(d, sort_keys=False, ensure_ascii=False, separators=(",", ": "), indent=2)` for OR-5 stability
-- [ ] Atomic write when `--out` is given
-- [ ] Bump version to v0.20.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: piping output of a fixture run into `python -c "import json,sys;json.load(sys.stdin)"` succeeds
+- [x] `compile-exercise <yaml-path> [--base-dir <path>] [--out <path>] [--allow-large-assets]` Typer command
+- [x] Default `--base-dir` to YAML's parent directory
+- [x] Serialize via `json.dumps(d, sort_keys=False, ensure_ascii=False, separators=(",", ": "), indent=2)` for OR-5 stability
+- [x] Atomic write when `--out` is given
+- [x] Bump version to v0.20.0
+- [x] Update CHANGELOG.md
+- [x] Verify: piping output of a fixture run into `python -c "import json,sys;json.load(sys.stdin)"` succeeds
 
 ### Story D.e: v0.21.0 `nbfoundry validate` subcommand [Planned]
 
