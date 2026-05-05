@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-05-05
+
+### Changed
+- Replaced the [data_exploration template placeholder](src/nbfoundry/templates/data_exploration/notebook.py) with a real reactive Marimo notebook covering load → describe → visualize: synthetic-data load via numpy/pandas, `DataFrame.describe()` summary, class-balance markdown, and a per-class matplotlib scatter. Pure scientific-Python imports — modelfoundry primitives (only relevant in later-stage templates) are reached through `nbfoundry._modelfoundry.get_adapter()` per FR-7 / AC-10.
+- `[tool.ruff] extend-exclude` now skips `src/nbfoundry/templates`. Marimo cells idiomatically use bare expressions as display directives (B018), and templates ship verbatim to user projects — they aren't first-party code to lint.
+
 ## [0.23.0] - 2026-05-05
 
 ### Added

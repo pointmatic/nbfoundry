@@ -321,16 +321,16 @@ CR-10 / AC-5 — verified Pyve + micromamba environment with Metal-compatible Py
 - [x] Update CHANGELOG.md
 - [ ] Verify: on a clean Apple Silicon machine, `pyve` + micromamba install reproduces the env; `pyve run python scripts/metal_smoke.py` reports MPS device used for each framework — **deferred to developer hardware**
 
-### Story E.b: v0.24.0 `data_exploration` lifecycle template [Planned]
+### Story E.b: v0.24.0 'data_exploration' lifecycle template [Done]
 
 First real five-stage template; replaces the Phase-D placeholder.
 
-- [ ] `src/nbfoundry/templates/data_exploration/notebook.py` Marimo notebook with reactive cells covering load → describe → visualize
-- [ ] Imports modelfoundry primitives only via `_modelfoundry.get_adapter()`
-- [ ] Apache-2.0 / Pointmatic header
-- [ ] Bump version to v0.24.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: `pyve run nbfoundry init demo --template data_exploration && pyve run nbfoundry compile demo/notebook.py` produces a runnable artifact
+- [x] `src/nbfoundry/templates/data_exploration/notebook.py` Marimo notebook with reactive cells covering load → describe → visualize
+- [x] Imports modelfoundry primitives only via `_modelfoundry.get_adapter()`
+- [x] Apache-2.0 / Pointmatic header
+- [x] Bump version to v0.24.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `pyve run nbfoundry init demo --template data_exploration && pyve run nbfoundry compile demo/notebook.py` produces a runnable artifact
 
 ### Story E.c: v0.25.0 `data_preparation` lifecycle template [Planned]
 

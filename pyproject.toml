@@ -57,6 +57,7 @@ packages = ["src/nbfoundry"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+extend-exclude = ["src/nbfoundry/templates"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "B", "I", "UP", "SIM", "RUF"]
