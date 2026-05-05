@@ -5,7 +5,10 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
 import sys
+from importlib.resources import as_file, files
+from importlib.resources.abc import Traversable
 from pathlib import Path
 from typing import Annotated
 
@@ -18,6 +21,9 @@ from nbfoundry.config import merge_cli
 from nbfoundry.errors import ExerciseError
 from nbfoundry.logging_setup import configure as configure_logging
 from nbfoundry.standalone import compile as compile_standalone
+
+_TEMPLATES_PACKAGE = "nbfoundry.templates"
+_TEMPLATE_SKIP = {"__init__.py", "__pycache__"}
 
 app = typer.Typer(
     name="nbfoundry",
@@ -68,9 +74,38 @@ def cmd_init(
         typer.Option("--template", help="Five-stage template name."),
     ] = "data_exploration",
 ) -> None:
-    """Scaffold a new exercise project from a template (Story D.b)."""
-    typer.echo(f"`nbfoundry init` is not yet implemented (Story D.b). args: {name=}, {template=}")
-    raise typer.Exit(code=2)
+    """Scaffold a new exercise project from a template."""
+    target = Path.cwd() / name
+    if target.exists():
+        raise ExerciseError(target, f"output path already exists: {target}")
+
+    template_root = files(_TEMPLATES_PACKAGE).joinpath(template)
+    if not template_root.is_dir():
+        available = sorted(
+            t.name for t in files(_TEMPLATES_PACKAGE).iterdir()
+            if t.is_dir() and t.name not in _TEMPLATE_SKIP
+        )
+        raise ExerciseError(
+            target,
+            f"unknown template '{template}'. Available: {', '.join(available) or '(none)'}",
+        )
+
+    target.mkdir(parents=True)
+    _copy_template_tree(template_root, target)
+    typer.echo(str(target))
+
+
+def _copy_template_tree(src: Traversable, dst: Path) -> None:
+    for entry in src.iterdir():
+        if entry.name in _TEMPLATE_SKIP:
+            continue
+        if entry.is_dir():
+            sub = dst / entry.name
+            sub.mkdir()
+            _copy_template_tree(entry, sub)
+        else:
+            with as_file(entry) as p:
+                shutil.copy2(p, dst / entry.name)
 
 
 @app.command("compile")

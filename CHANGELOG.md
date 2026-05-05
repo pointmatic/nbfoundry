@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-05-05
+
+### Added
+- `nbfoundry init <name> [--template <stage>]` subcommand (FR-1): scaffolds a new project directory from `nbfoundry.templates.<stage>` via `importlib.resources`. Default template is `data_exploration`. Rejects existing `<name>` and unknown stages (with the available list in the error). Prints the created path on stdout.
+- Placeholder `src/nbfoundry/templates/data_exploration/notebook.py` so `init` has a template to copy. Real five-stage content arrives in Story E.b.
+
 ## [0.17.0] - 2026-05-05
 
 ### Added

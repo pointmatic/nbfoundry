@@ -244,20 +244,20 @@ Typer app shell with shared flags wired to logging and config.
 - [x] Update CHANGELOG.md
 - [x] Verify: `pyve run nbfoundry --help` lists all four subcommand names; `--version` still prints
 
-### Story D.b: v0.18.0 `nbfoundry init` subcommand [Planned]
+### Story D.b: v0.18.0 'nbfoundry init' subcommand [Done]
 
 FR-1 scaffold from five-stage templates (templates themselves arrive in Phase E; this story validates the wiring against a placeholder template).
 
-- [ ] `init <name> [--template <stage>]` Typer command in `cli.py`
-- [ ] Default `--template` to `data_exploration`
-- [ ] Use `importlib.resources.files("nbfoundry.templates")` to read template directory
-- [ ] Copy template files into `<name>/` under cwd; preserve Apache-2.0 / Pointmatic header
-- [ ] Reject existing `<name>` (no overwrite); reject unknown stage
-- [ ] Print created path on stdout
-- [ ] Add a placeholder `src/nbfoundry/templates/data_exploration/notebook.py` (real five-stage content lands in Phase E)
-- [ ] Bump version to v0.18.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: `pyve run nbfoundry init demo` creates `demo/` with the template file; rerunning errors
+- [x] `init <name> [--template <stage>]` Typer command in `cli.py`
+- [x] Default `--template` to `data_exploration`
+- [x] Use `importlib.resources.files("nbfoundry.templates")` to read template directory
+- [x] Copy template files into `<name>/` under cwd; preserve Apache-2.0 / Pointmatic header
+- [x] Reject existing `<name>` (no overwrite); reject unknown stage
+- [x] Print created path on stdout
+- [x] Add a placeholder `src/nbfoundry/templates/data_exploration/notebook.py` (real five-stage content lands in Phase E)
+- [x] Bump version to v0.18.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `pyve run nbfoundry init demo` creates `demo/` with the template file; rerunning errors
 
 ### Story D.c: v0.19.0 `nbfoundry compile` subcommand [Planned]
 
