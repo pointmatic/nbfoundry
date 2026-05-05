@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-05-05
+
+### Added
+- CLI scaffold ([src/nbfoundry/cli.py](src/nbfoundry/cli.py)): four subcommands registered (`init`, `compile`, `compile-exercise`, `validate`); `--verbose` / `--quiet` map to `logging_setup.configure(...)` (DEBUG / ERROR; default WARNING); `compile`, `compile-exercise`, `validate` are now thin wrappers over the library functions; `init` is a stub until Story D.b lands. Per-base-dir `nbfoundry.toml` is loaded via `config.load(base_dir)` and merged with parsed flags via `config.merge_cli`. `ExerciseError` raised by library calls maps to exit code 1 with the message on stderr.
+
+### Changed
+- `ExerciseError` is no longer `frozen=True` (kept `slots=True`). The CPython combination of `frozen=True`, `slots=True`, and `Exception` inheritance breaks Click's traceback assignment (`super(type, obj): obj must be an instance or subtype of type` from the dataclass-generated `__setattr__`), preventing clean error mapping in the CLI. Spec mismatch noted; semantics unchanged in code that doesn't mutate the exception.
+
 ## [0.16.0] - 2026-05-05
 
 ### Added

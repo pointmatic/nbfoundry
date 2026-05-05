@@ -28,7 +28,7 @@ class ErrorDetail:
         return ", ".join(parts) if parts else "ErrorDetail()"
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class ExerciseError(Exception):
     file_path: Path
     message: str

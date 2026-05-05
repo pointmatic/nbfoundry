@@ -232,17 +232,17 @@ FR-2 — `nbfoundry compile <notebook-or-dir>` produces a self-contained runnabl
 
 User-facing surface: Typer subcommands, global flags, exit codes, and the public library re-exports.
 
-### Story D.a: v0.17.0 CLI scaffold and global flags [Planned]
+### Story D.a: v0.17.0 CLI scaffold and global flags [Done]
 
 Typer app shell with shared flags wired to logging and config.
 
-- [ ] Flesh out `src/nbfoundry/cli.py`: Typer app, `--verbose`/`--quiet` → `logging_setup.configure(...)`
-- [ ] Each subcommand thin-wraps a library call; maps `ExerciseError` → exit code 1, message on stderr
-- [ ] Exit codes: `0` success, `1` `ExerciseError`/validation/parse/asset-oversize, `2` Typer misuse
-- [ ] Load `nbfoundry.toml` via `config.load(base_dir)` and merge with parsed flags
-- [ ] Bump version to v0.17.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: `pyve run nbfoundry --help` lists all four subcommand names; `--version` still prints
+- [x] Flesh out `src/nbfoundry/cli.py`: Typer app, `--verbose`/`--quiet` → `logging_setup.configure(...)`
+- [x] Each subcommand thin-wraps a library call; maps `ExerciseError` → exit code 1, message on stderr
+- [x] Exit codes: `0` success, `1` `ExerciseError`/validation/parse/asset-oversize, `2` Typer misuse
+- [x] Load `nbfoundry.toml` via `config.load(base_dir)` and merge with parsed flags
+- [x] Bump version to v0.17.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `pyve run nbfoundry --help` lists all four subcommand names; `--version` still prints
 
 ### Story D.b: v0.18.0 `nbfoundry init` subcommand [Planned]
 
