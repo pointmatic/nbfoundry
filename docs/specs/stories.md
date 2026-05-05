@@ -47,18 +47,18 @@ Throwaway script (in `scripts/`, not the package) that wires the critical YAML �
 - [x] Document in script docstring: "throwaway; superseded by `nbfoundry.compiler` in Phase C"
 - [x] Verify: `pyve run python scripts/spike_compile_exercise.py` prints valid JSON matching the BR-1 contract from `learningfoundry-dependency-spec.md`
 
-### Story A.d: v0.3.0 ExerciseError and ErrorDetail [Planned]
+### Story A.d: v0.3.0 ExerciseError and ErrorDetail [Done]
 
 Typed error contract per features.md BR-3; foundation for all later validation paths.
 
-- [ ] `src/nbfoundry/errors.py` — `ExerciseError` frozen dataclass (file_path, message, detail) inheriting `Exception`
-- [ ] `ErrorDetail` frozen dataclass (section_index, field_name, yaml_pointer)
-- [ ] `__str__` formatting per tech-spec
-- [ ] Helper `from_pydantic(yaml_path, ValidationError) -> list[ExerciseError]` walking `loc` tuples into `yaml_pointer` strings
-- [ ] Re-export `ExerciseError` from `nbfoundry/__init__.py`
-- [ ] Bump version to v0.3.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: import path `from nbfoundry import ExerciseError` works; `str(ExerciseError(Path("x.yaml"), "bad"))` matches expected format
+- [x] `src/nbfoundry/errors.py` — `ExerciseError` frozen dataclass (file_path, message, detail) inheriting `Exception`
+- [x] `ErrorDetail` frozen dataclass (section_index, field_name, yaml_pointer)
+- [x] `__str__` formatting per tech-spec
+- [x] Helper `from_pydantic(yaml_path, ValidationError) -> list[ExerciseError]` walking `loc` tuples into `yaml_pointer` strings
+- [x] Re-export `ExerciseError` from `nbfoundry/__init__.py`
+- [x] Bump version to v0.3.0
+- [x] Update CHANGELOG.md
+- [x] Verify: import path `from nbfoundry import ExerciseError` works; `str(ExerciseError(Path("x.yaml"), "bad"))` matches expected format
 
 ### Story A.e: v0.4.0 Logging setup [Planned]
 
