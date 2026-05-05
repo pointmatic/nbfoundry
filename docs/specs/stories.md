@@ -191,15 +191,15 @@ Wire schema + primitives into the production compile/validate pipeline and the s
 - [x] Update CHANGELOG.md
 - [x] Verify: a YAML with three independent rejections returns three error strings, each with file path
 
-### Story C.c: v0.14.0 Submission / BR-4 validation [Planned]
+### Story C.c: v0.14.0 Submission / BR-4 validation [Done]
 
 FR-5 enforcement of every §BR-4 validator requirement.
 
-- [ ] Pydantic-driven enforcement of: `pass_threshold ∈ [0.0, 1.0]`, non-empty `fields`, rule/type compat, `weight > 0`, unique `name`, required keys per rule
-- [ ] Each rejection produces a human-readable string with the offending field name and value
-- [ ] Bump version to v0.14.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: a fixture exercising each BR-4 rejection returns a distinct, recognizable error message
+- [x] Pydantic-driven enforcement of: `pass_threshold ∈ [0.0, 1.0]`, non-empty `fields`, rule/type compat, `weight > 0`, unique `name`, required keys per rule
+- [x] Each rejection produces a human-readable string with the offending field name and value
+- [x] Bump version to v0.14.0
+- [x] Update CHANGELOG.md
+- [x] Verify: a fixture exercising each BR-4 rejection returns a distinct, recognizable error message
 
 ### Story C.d: v0.15.0 Aggregate tree compilation [Planned]
 

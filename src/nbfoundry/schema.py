@@ -94,16 +94,25 @@ class SubmissionFieldModel(_StrictModel):
     def rule_type_compat(self) -> Self:
         rule = self.expected.type
         ftype = self.type
+        name = self.name
         if rule == "range" and ftype != "number":
-            raise ValueError(f"`range` rule requires field type `number`, got `{ftype}`")
+            raise ValueError(
+                f"field {name!r}: `range` rule requires field type `number`, got `{ftype}`"
+            )
         if rule == "contains_all" and ftype != "text":
-            raise ValueError(f"`contains_all` rule requires field type `text`, got `{ftype}`")
+            raise ValueError(
+                f"field {name!r}: `contains_all` rule requires field type `text`, got `{ftype}`"
+            )
         if rule == "equals":
             value = self.expected.value
             if ftype == "number" and not isinstance(value, int | float):
-                raise ValueError("`equals` on a `number` field requires a numeric `value`")
+                raise ValueError(
+                    f"field {name!r}: `equals` on a `number` field requires a numeric `value`"
+                )
             if ftype == "text" and not isinstance(value, str):
-                raise ValueError("`equals` on a `text` field requires a string `value`")
+                raise ValueError(
+                    f"field {name!r}: `equals` on a `text` field requires a string `value`"
+                )
         return self
 
 

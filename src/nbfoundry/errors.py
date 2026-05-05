@@ -60,10 +60,17 @@ def from_pydantic(yaml_path: Path, error: ValidationError) -> list[ExerciseError
     out: list[ExerciseError] = []
     for entry in error.errors():
         loc: tuple[str | int, ...] = tuple(entry.get("loc", ()))
-        message = str(entry.get("msg", "validation error"))
+        msg = str(entry.get("msg", "validation error"))
+        message = _augment_with_input(msg, entry.get("input"))
         detail = ErrorDetail(
             section_index=_section_index_from_loc(loc),
             yaml_pointer=_loc_to_pointer(loc) if loc else None,
         )
         out.append(ExerciseError(file_path=yaml_path, message=message, detail=detail))
     return out
+
+
+def _augment_with_input(msg: str, value: object) -> str:
+    if isinstance(value, str | int | float | bool) and not isinstance(value, list | dict):
+        return f"{msg} (got {value!r})"
+    return msg

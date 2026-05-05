@@ -1,4 +1,4 @@
 # Copyright (c) 2026 Pointmatic
 # SPDX-License-Identifier: Apache-2.0
 
-__version__ = "0.13.0"
+__version__ = "0.14.0"
