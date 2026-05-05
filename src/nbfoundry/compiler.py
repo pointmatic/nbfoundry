@@ -10,7 +10,7 @@ from typing import Any
 import yaml
 from pydantic import ValidationError
 
-from nbfoundry import assets, paths
+from nbfoundry import assets, notebooks, paths
 from nbfoundry.config import load as load_config
 from nbfoundry.errors import ExerciseError, from_pydantic
 from nbfoundry.markdown import render as render_markdown
@@ -67,12 +67,12 @@ def _validate(
 
     cfg = load_config(base_dir)
 
-    # Path-escape checks for code_file references (no inlining here).
+    # Path-escape + parseability checks for code_file references (no inlining here).
     for i, section in enumerate(model.sections):
         if section.code_file is None:
             continue
         try:
-            paths.resolve_under(base_dir, section.code_file)
+            code_path = paths.resolve_under(base_dir, section.code_file)
         except ExerciseError as e:
             errors.append(
                 ExerciseError(
@@ -80,6 +80,18 @@ def _validate(
                     message=f"sections[{i}].code_file: {e.message}",
                 )
             )
+            continue
+
+        if code_path.suffix == ".py":
+            try:
+                notebooks.parse_all(code_path)
+            except ExerciseError as e:
+                errors.append(
+                    ExerciseError(
+                        file_path=yaml_full,
+                        message=f"sections[{i}].code_file: {e.message}",
+                    )
+                )
 
     # Build an output-shape preview just for asset enumeration; this avoids
     # markdown rendering (FR-4: validation must not render).

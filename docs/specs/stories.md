@@ -201,17 +201,17 @@ FR-5 enforcement of every §BR-4 validator requirement.
 - [x] Update CHANGELOG.md
 - [x] Verify: a fixture exercising each BR-4 rejection returns a distinct, recognizable error message
 
-### Story C.d: v0.15.0 Aggregate tree compilation [Planned]
+### Story C.d: v0.15.0 Aggregate tree compilation [Done]
 
 FR-6 — a tree of notebooks compiles to a single exercise dict; structure is invisible to learningfoundry.
 
-- [ ] Compiler accepts a YAML whose `sections[i].code_file` references notebooks within a tree
-- [ ] Tree-internal references inline via `notebooks.parse_all`
-- [ ] Tree-external references rejected by `paths.resolve_under` (FR-3 path-escape)
-- [ ] Output dict shape unchanged from single-notebook case
-- [ ] Bump version to v0.15.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: a 3-notebook tree fixture compiles to one dict whose `sections` reflect the inlined references
+- [x] Compiler accepts a YAML whose `sections[i].code_file` references notebooks within a tree
+- [x] Tree-internal references inline via `notebooks.parse_all`
+- [x] Tree-external references rejected by `paths.resolve_under` (FR-3 path-escape)
+- [x] Output dict shape unchanged from single-notebook case
+- [x] Bump version to v0.15.0
+- [x] Update CHANGELOG.md
+- [x] Verify: a 3-notebook tree fixture compiles to one dict whose `sections` reflect the inlined references
 
 ### Story C.e: v0.16.0 Standalone artifact emitter [Planned]
 
