@@ -115,15 +115,15 @@ Single source of truth for YAML input shape and BR-1/BR-4 wire shape per tech-sp
 - [x] Update CHANGELOG.md
 - [x] Verify: a hand-written valid dict round-trips `RawExerciseModel.model_validate(...)`; representative invalid permutations raise
 
-### Story B.b: v0.8.0 Markdown renderer [Planned]
+### Story B.b: v0.8.0 Markdown renderer [Done]
 
 Markdown → HTML wrapper honoring the `markdown_flavor` toggle.
 
-- [ ] `src/nbfoundry/markdown.py` with `render(text: str, flavor: Literal["commonmark", "gfm"]) -> str`
-- [ ] `markdown-it-py` configured for CommonMark; GFM enabled via plugin set
-- [ ] Bump version to v0.8.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: `render("**bold**", "commonmark")` returns `<p><strong>bold</strong></p>`; GFM-only constructs render only under `gfm`
+- [x] `src/nbfoundry/markdown.py` with `render(text: str, flavor: Literal["commonmark", "gfm"]) -> str`
+- [x] `markdown-it-py` configured for CommonMark; GFM enabled via plugin set
+- [x] Bump version to v0.8.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `render("**bold**", "commonmark")` returns `<p><strong>bold</strong></p>`; GFM-only constructs render only under `gfm`
 
 ### Story B.c: v0.9.0 Asset handling [Planned]
 
