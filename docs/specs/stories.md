@@ -82,17 +82,17 @@ SC-3 path containment guard, used by every subsequent file-reading code path.
 - [x] Update CHANGELOG.md
 - [x] Verify: unit-level smoke — `resolve_under(tmp, "x.yaml")` succeeds; `resolve_under(tmp, "../x")` raises
 
-### Story A.g: v0.6.0 Config loader [Planned]
+### Story A.g: v0.6.0 Config loader [Done]
 
 `nbfoundry.toml` + defaults precedence per features.md Configuration; immutable `Config` dataclass for downstream consumers.
 
-- [ ] `src/nbfoundry/config.py` with `load(base_dir) -> Config` using stdlib `tomllib`
-- [ ] `Config` frozen dataclass with `compile.default_out`, `exercise.markdown_flavor`, `environment.spec_path`, `assets.{max_single_asset_mb, warn_single_asset_mb, allow_large_assets}`
-- [ ] Built-in defaults applied when file or key absent
-- [ ] CLI flag merge stub (the merge function — flags wired in Phase D)
-- [ ] Bump version to v0.6.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: `load(tmp_with_no_toml)` returns defaults; `load(tmp_with_partial_toml)` overrides only listed keys
+- [x] `src/nbfoundry/config.py` with `load(base_dir) -> Config` using stdlib `tomllib`
+- [x] `Config` frozen dataclass with `compile.default_out`, `exercise.markdown_flavor`, `environment.spec_path`, `assets.{max_single_asset_mb, warn_single_asset_mb, allow_large_assets}`
+- [x] Built-in defaults applied when file or key absent
+- [x] CLI flag merge stub (the merge function — flags wired in Phase D)
+- [x] Bump version to v0.6.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `load(tmp_with_no_toml)` returns defaults; `load(tmp_with_partial_toml)` overrides only listed keys
 
 ---
 
