@@ -137,16 +137,16 @@ BR-5 enumeration, existence checks, and size policy per tech-spec Cross-Cutting.
 - [x] Update CHANGELOG.md
 - [x] Verify: enumeration over a fixture with two image outputs (one duplicate) returns 1 entry, sorted
 
-### Story B.d: v0.10.0 Notebook discovery and parsing [Planned]
+### Story B.d: v0.10.0 Notebook discovery and parsing [Done]
 
 Marimo notebook entry-point detection, parse, and tree walking per FR-2 / FR-6.
 
-- [ ] `src/nbfoundry/notebooks.py` with `discover_entry(notebook_or_dir) -> Path` (single file → that file; dir → root-of-tree by convention)
-- [ ] `parse_all(entry) -> list[ParsedNotebook]` aggregating Marimo parse failures with file/line info into `ExerciseError`
-- [ ] No `exec`, no `eval`, no `subprocess` (SC-4)
-- [ ] Bump version to v0.10.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: a tiny hand-written Marimo notebook parses; a deliberately broken one raises `ExerciseError` naming the file
+- [x] `src/nbfoundry/notebooks.py` with `discover_entry(notebook_or_dir) -> Path` (single file → that file; dir → root-of-tree by convention)
+- [x] `parse_all(entry) -> list[ParsedNotebook]` aggregating Marimo parse failures with file/line info into `ExerciseError`
+- [x] No `exec`, no `eval`, no `subprocess` (SC-4)
+- [x] Bump version to v0.10.0
+- [x] Update CHANGELOG.md
+- [x] Verify: a tiny hand-written Marimo notebook parses; a deliberately broken one raises `ExerciseError` naming the file
 
 ### Story B.e: v0.11.0 Modelfoundry adapter [Planned]
 
