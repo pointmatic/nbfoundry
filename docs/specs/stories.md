@@ -213,18 +213,18 @@ FR-6 — a tree of notebooks compiles to a single exercise dict; structure is in
 - [x] Update CHANGELOG.md
 - [x] Verify: a 3-notebook tree fixture compiles to one dict whose `sections` reflect the inlined references
 
-### Story C.e: v0.16.0 Standalone artifact emitter [Planned]
+### Story C.e: v0.16.0 Standalone artifact emitter [Done]
 
 FR-2 — `nbfoundry compile <notebook-or-dir>` produces a self-contained runnable directory.
 
-- [ ] `src/nbfoundry/standalone.py` with `compile(notebook_or_dir, out) -> Path`
-- [ ] Atomic write: stage into `tempfile.mkdtemp(dir=out.parent)` → `os.replace` on success
-- [ ] Emit notebooks, `environment.yml` copy, and `launch.py` (shipped from `templates/standalone/launch.py`)
-- [ ] `launch.py` shells out to `marimo edit` against the entry-point notebook
-- [ ] Aggregate parse failures with file/line info → `ExerciseError`
-- [ ] Bump version to v0.16.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: compiling a single hand-written Marimo notebook produces a directory whose `python launch.py` boots Marimo
+- [x] `src/nbfoundry/standalone.py` with `compile(notebook_or_dir, out) -> Path`
+- [x] Atomic write: stage into `tempfile.mkdtemp(dir=out.parent)` → `os.replace` on success
+- [x] Emit notebooks, `environment.yml` copy, and `launch.py` (shipped from `templates/standalone/launch.py`)
+- [x] `launch.py` shells out to `marimo edit` against the entry-point notebook
+- [x] Aggregate parse failures with file/line info → `ExerciseError`
+- [x] Bump version to v0.16.0
+- [x] Update CHANGELOG.md
+- [x] Verify: compiling a single hand-written Marimo notebook produces a directory whose `python launch.py` boots Marimo
 
 ---
 

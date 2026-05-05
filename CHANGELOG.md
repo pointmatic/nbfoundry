@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-05-05
+
+### Added
+- `nbfoundry.standalone.compile(notebook_or_dir, out) -> Path` — FR-2 standalone artifact emitter. Validates notebook parse (`notebooks.parse_all` aggregates failures), stages into `tempfile.mkdtemp(dir=out.parent)`, copies the notebook tree (or single file) and an adjacent `environment.yml` if present, writes `launch.py` from the bundled template, and atomically `os.replace`s the staged dir into `out`. Refuses to overwrite an existing `out` (CLI may add `--force` later).
+- `src/nbfoundry/templates/standalone/launch.py` package data: minimal launcher that resolves its own entry-point and runs `marimo edit` against it.
+
 ## [0.15.0] - 2026-05-05
 
 ### Added
