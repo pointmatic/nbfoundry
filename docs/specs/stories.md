@@ -291,16 +291,16 @@ FR-4 CLI: prints each error on its own line; exit `0` empty, `1` otherwise.
 - [x] Update CHANGELOG.md
 - [x] Verify: validating a YAML with two errors prints two lines on stdout and exits `1`; a clean YAML exits `0` silently
 
-### Story D.f: v0.22.0 Public library API surface [Planned]
+### Story D.f: v0.22.0 Public library API surface [Done]
 
 Lock down the `from nbfoundry import compile_exercise, validate_exercise, ExerciseError, __version__` contract per OR-2 / AC-1.
 
-- [ ] Tighten `nbfoundry/__init__.py` re-exports, set `__all__`
-- [ ] Type-stub the public functions to match BR-1 / BR-2 / BR-3 signatures verbatim
-- [ ] Add a public-API smoke test asserting names and signatures
-- [ ] Bump version to v0.22.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: `pyve run python -c "from nbfoundry import compile_exercise, validate_exercise, ExerciseError, __version__; print(__version__)"` prints `0.22.0`
+- [x] Tighten `nbfoundry/__init__.py` re-exports, set `__all__`
+- [x] Type-stub the public functions to match BR-1 / BR-2 / BR-3 signatures verbatim
+- [x] Add a public-API smoke test asserting names and signatures
+- [x] Bump version to v0.22.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `pyve run python -c "from nbfoundry import compile_exercise, validate_exercise, ExerciseError, __version__; print(__version__)"` prints `0.22.0`
 
 ---
 

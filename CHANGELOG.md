@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-05-05
+
+### Added
+- Public-API smoke test ([tests/unit/test_public_api.py](tests/unit/test_public_api.py)) asserting the four `from nbfoundry import ...` names are present, signatures of `compile_exercise` / `validate_exercise` match BR-1 / BR-2 verbatim (positional `yaml_path: Path`, `base_dir: Path`; any extras are keyword-only), and `ExerciseError` carries the BR-3 fields.
+
+### Changed
+- Locked the public API surface (OR-2 / AC-1): `nbfoundry.__all__` is `["ExerciseError", "__version__", "compile_exercise", "validate_exercise"]`. The signatures already matched the spec; this story formalizes the contract via the smoke test.
+
 ## [0.21.0] - 2026-05-05
 
 ### Added
