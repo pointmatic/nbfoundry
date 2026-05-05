@@ -37,15 +37,15 @@ Smallest runnable artifact proving the package + console script wiring works.
 - [x] Update CHANGELOG.md
 - [x] Verify: `pyve run nbfoundry --version` prints `nbfoundry 0.2.0`
 
-### Story A.c: End-to-end compile-path spike [Planned]
+### Story A.c: End-to-end compile-path spike [Done]
 
 Throwaway script (in `scripts/`, not the package) that wires the critical YAML → BR-1 dict path end-to-end with a hand-written minimal exercise fixture, before any production module exists. De-risks the architecture; the script is **deleted** when Phase C lands.
 
-- [ ] Create `scripts/spike_compile_exercise.py` with Apache-2.0 / Pointmatic header
-- [ ] Hand-write a tiny `scripts/spike_fixtures/minimal.yaml` (one section, no submission, no assets)
-- [ ] Spike loads YAML, renders markdown via `markdown-it-py`, assembles a BR-1-shaped dict, prints JSON
-- [ ] Document in script docstring: "throwaway; superseded by `nbfoundry.compiler` in Phase C"
-- [ ] Verify: `pyve run python scripts/spike_compile_exercise.py` prints valid JSON matching the BR-1 contract from `learningfoundry-dependency-spec.md`
+- [x] Create `scripts/spike_compile_exercise.py` with Apache-2.0 / Pointmatic header
+- [x] Hand-write a tiny `scripts/spike_fixtures/minimal.yaml` (one section, no submission, no assets)
+- [x] Spike loads YAML, renders markdown via `markdown-it-py`, assembles a BR-1-shaped dict, prints JSON
+- [x] Document in script docstring: "throwaway; superseded by `nbfoundry.compiler` in Phase C"
+- [x] Verify: `pyve run python scripts/spike_compile_exercise.py` prints valid JSON matching the BR-1 contract from `learningfoundry-dependency-spec.md`
 
 ### Story A.d: v0.3.0 ExerciseError and ErrorDetail [Planned]
 
