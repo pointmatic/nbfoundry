@@ -100,20 +100,20 @@ SC-3 path containment guard, used by every subsequent file-reading code path.
 
 The validated input model and the four primitive services the compiler orchestrates: schema, markdown, assets, notebook discovery, and the modelfoundry adapter.
 
-### Story B.a: v0.7.0 Pydantic schema models [Planned]
+### Story B.a: v0.7.0 Pydantic schema models [Done]
 
 Single source of truth for YAML input shape and BR-1/BR-4 wire shape per tech-spec Data Models.
 
-- [ ] `src/nbfoundry/schema.py` with `RawSectionModel`, `RawExpectedOutputModel`, `ExpectedRule`, `SubmissionFieldModel`, `SubmissionModel`, `EnvironmentModel`, `RawExerciseModel`
-- [ ] `code_xor_code_file` model validator on `RawSectionModel`
-- [ ] `shape_by_type` validator on `RawExpectedOutputModel` (image requires `path`+`alt`; text/table require `content`)
-- [ ] `ExpectedRule` validator: required keys per `type` (`range` needs `min`/`max`; `equals` needs `value`; `contains_all` needs `values`)
-- [ ] `SubmissionFieldModel` validator: rule/type compat (`range`→number; `contains_all`→text; `equals`→number|text)
-- [ ] `SubmissionModel` validator: unique field names, `pass_threshold ∈ [0.0, 1.0]`, `weight > 0`
-- [ ] `CompiledExercise` and supporting `TypedDict`s for the BR-1 wire shape
-- [ ] Bump version to v0.7.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: a hand-written valid dict round-trips `RawExerciseModel.model_validate(...)`; representative invalid permutations raise
+- [x] `src/nbfoundry/schema.py` with `RawSectionModel`, `RawExpectedOutputModel`, `ExpectedRule`, `SubmissionFieldModel`, `SubmissionModel`, `EnvironmentModel`, `RawExerciseModel`
+- [x] `code_xor_code_file` model validator on `RawSectionModel`
+- [x] `shape_by_type` validator on `RawExpectedOutputModel` (image requires `path`+`alt`; text/table require `content`)
+- [x] `ExpectedRule` validator: required keys per `type` (`range` needs `min`/`max`; `equals` needs `value`; `contains_all` needs `values`)
+- [x] `SubmissionFieldModel` validator: rule/type compat (`range`→number; `contains_all`→text; `equals`→number|text)
+- [x] `SubmissionModel` validator: unique field names, `pass_threshold ∈ [0.0, 1.0]`, `weight > 0`
+- [x] `CompiledExercise` and supporting `TypedDict`s for the BR-1 wire shape
+- [x] Bump version to v0.7.0
+- [x] Update CHANGELOG.md
+- [x] Verify: a hand-written valid dict round-trips `RawExerciseModel.model_validate(...)`; representative invalid permutations raise
 
 ### Story B.b: v0.8.0 Markdown renderer [Planned]
 
