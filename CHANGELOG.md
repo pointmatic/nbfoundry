@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-05-05
+
+### Added
+- `model_evaluation` lifecycle template ([src/nbfoundry/templates/model_evaluation/notebook.py](src/nbfoundry/templates/model_evaluation/notebook.py)): 9-cell reactive Marimo scaffold covering MPS device selection, train/test split via `sklearn.model_selection.train_test_split`, small MLP training, `sklearn.metrics.classification_report` rendered in markdown, `ConfusionMatrixDisplay`, `sklearn.calibration.calibration_curve` reliability diagram, and a final markdown report with accuracy + calibration MAE. Bundled `environment.yml` mirrors the pinned ML stack.
+- AC-4 satisfied: all five lifecycle templates (`data_exploration`, `data_preparation`, `model_experimentation`, `model_optimization`, `model_evaluation`) now scaffold via `nbfoundry init` and parse via `notebooks.parse_all`.
+
 ## [0.27.0] - 2026-05-05
 
 ### Added
