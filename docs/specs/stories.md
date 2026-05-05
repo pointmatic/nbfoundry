@@ -125,17 +125,17 @@ Markdown → HTML wrapper honoring the `markdown_flavor` toggle.
 - [x] Update CHANGELOG.md
 - [x] Verify: `render("**bold**", "commonmark")` returns `<p><strong>bold</strong></p>`; GFM-only constructs render only under `gfm`
 
-### Story B.c: v0.9.0 Asset handling [Planned]
+### Story B.c: v0.9.0 Asset handling [Done]
 
 BR-5 enumeration, existence checks, and size policy per tech-spec Cross-Cutting.
 
-- [ ] `src/nbfoundry/assets.py` with `enumerate(compiled_outputs) -> list[str]` (sorted, deduplicated)
-- [ ] `check_existence(base_dir, paths)` raising `ExerciseError` on missing files (no byte reads — `Path.is_file()` only)
-- [ ] `check_size(base_dir, paths, *, warn_mb, max_mb, allow_large)` — warn ≥ `warn_mb`, raise `ExerciseError` ≥ `max_mb` unless `allow_large`
-- [ ] Reject paths matching `^https?://`
-- [ ] Bump version to v0.9.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: enumeration over a fixture with two image outputs (one duplicate) returns 1 entry, sorted
+- [x] `src/nbfoundry/assets.py` with `enumerate(compiled_outputs) -> list[str]` (sorted, deduplicated)
+- [x] `check_existence(base_dir, paths)` raising `ExerciseError` on missing files (no byte reads — `Path.is_file()` only)
+- [x] `check_size(base_dir, paths, *, warn_mb, max_mb, allow_large)` — warn ≥ `warn_mb`, raise `ExerciseError` ≥ `max_mb` unless `allow_large`
+- [x] Reject paths matching `^https?://`
+- [x] Bump version to v0.9.0
+- [x] Update CHANGELOG.md
+- [x] Verify: enumeration over a fixture with two image outputs (one duplicate) returns 1 entry, sorted
 
 ### Story B.d: v0.10.0 Notebook discovery and parsing [Planned]
 
