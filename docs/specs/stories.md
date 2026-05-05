@@ -148,16 +148,16 @@ Marimo notebook entry-point detection, parse, and tree walking per FR-2 / FR-6.
 - [x] Update CHANGELOG.md
 - [x] Verify: a tiny hand-written Marimo notebook parses; a deliberately broken one raises `ExerciseError` naming the file
 
-### Story B.e: v0.11.0 Modelfoundry adapter [Planned]
+### Story B.e: v0.11.0 Modelfoundry adapter [Done]
 
 Thin Protocol adapter per FR-7 / AC-10. Provisional method shape pending modelfoundry's contract.
 
-- [ ] `src/nbfoundry/_modelfoundry.py` with `ModelfoundryAdapter` Protocol (`prepare_data`, `train`, `optimize`, `evaluate`)
-- [ ] `get_adapter() -> ModelfoundryAdapter` lazy-imports `modelfoundry`; raises `RuntimeError("modelfoundry is required ...")` with install hint when import fails
-- [ ] AST-scan test asserting the compiler core (`compiler.py`, `validator.py`, `schema.py`, `cli.py`) does not import `_modelfoundry`
-- [ ] Bump version to v0.11.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: `get_adapter()` raises with the expected message in an env where `modelfoundry` is absent
+- [x] `src/nbfoundry/_modelfoundry.py` with `ModelfoundryAdapter` Protocol (`prepare_data`, `train`, `optimize`, `evaluate`)
+- [x] `get_adapter() -> ModelfoundryAdapter` lazy-imports `modelfoundry`; raises `RuntimeError("modelfoundry is required ...")` with install hint when import fails
+- [x] AST-scan test asserting the compiler core (`compiler.py`, `validator.py`, `schema.py`, `cli.py`) does not import `_modelfoundry`
+- [x] Bump version to v0.11.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `get_adapter()` raises with the expected message in an env where `modelfoundry` is absent
 
 ---
 
