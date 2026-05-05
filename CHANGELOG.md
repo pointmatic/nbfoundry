@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-05-05
+
+### Added
+- Pinned ML stack ([environment.yml](environment.yml) at the repo root, mirrored as package data at [src/nbfoundry/templates/environment.yml](src/nbfoundry/templates/environment.yml)): `python=3.12.13`, scikit-learn ≥ 1.5, pytorch ≥ 2.5 (MPS), marimo, and the Apple Silicon TensorFlow stack via pip (`tensorflow-macos`, `tensorflow-metal`, `keras`).
+- [scripts/metal_smoke.py](scripts/metal_smoke.py): probes PyTorch / TensorFlow / Keras for MPS-backed devices and runs a small matmul / fit on each. Exits 0 only if every framework runs on MPS.
+- README "Apple Silicon quickstart" section walking the `micromamba env create` → `pip install -e .` → `python scripts/metal_smoke.py` sequence.
+- `nbfoundry compile` now falls back to the bundled `templates/environment.yml` when no `environment.yml` sits next to the source notebook tree, so every standalone artifact ships with the pinned spec.
+- A copy of `environment.yml` ships with the `data_exploration` template so `nbfoundry init demo` produces a reproducible project skeleton.
+
+### Note
+- The hardware verification step (Apple Silicon MPS smoke) requires a clean Apple Silicon machine and a fresh `micromamba env create` against `environment.yml`. Versions in the spec are floors (`>=`) rather than exact pins for v1; tighten to `==` once the lockfile workflow lands in Phase G.
+
 ## [0.22.0] - 2026-05-05
 
 ### Added

@@ -308,18 +308,18 @@ Lock down the `from nbfoundry import compile_exercise, validate_exercise, Exerci
 
 Major new integration boundary: the pinned Apple Silicon Metal stack plus the five lifecycle templates that ride on top of it. Phase opens with a spike per the Story Writing Rules.
 
-### Story E.a: v0.23.0 Pinned environment + Metal acceleration spike [Planned]
+### Story E.a: v0.23.0 Pinned environment + Metal acceleration spike [Done]
 
 CR-10 / AC-5 — verified Pyve + micromamba environment with Metal-compatible PyTorch / TensorFlow / Keras / scikit-learn on Python 3.12.13. Validated by a Metal smoke benchmark per PE-4.
 
-- [ ] Author `environment.yml` pinning `python=3.12.13` and the highest stable Metal-compatible versions of PyTorch, TensorFlow (+ `tensorflow-metal` plugin), Keras, scikit-learn, NumPy, SciPy, Matplotlib, Pandas, Marimo
-- [ ] Channels: `conda-forge`, `pypi`, with `pytorch` / `apple` channels where they bring stability
-- [ ] Document the one-step install in `README.md` ("Apple Silicon quickstart")
-- [ ] Add `scripts/metal_smoke.py` running a small training step on each of PyTorch / TensorFlow / Keras and asserting non-trivial GPU/MPS utilization
-- [ ] Ship `environment.yml` as package data so `init` and `compile` can copy it
-- [ ] Bump version to v0.23.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: on a clean Apple Silicon machine, `pyve` + micromamba install reproduces the env; `pyve run python scripts/metal_smoke.py` reports MPS device used for each framework
+- [x] Author `environment.yml` pinning `python=3.12.13` and the highest stable Metal-compatible versions of PyTorch, TensorFlow (+ `tensorflow-metal` plugin), Keras, scikit-learn, NumPy, SciPy, Matplotlib, Pandas, Marimo
+- [x] Channels: `conda-forge`, `pypi`, with `pytorch` / `apple` channels where they bring stability
+- [x] Document the one-step install in `README.md` ("Apple Silicon quickstart")
+- [x] Add `scripts/metal_smoke.py` running a small training step on each of PyTorch / TensorFlow / Keras and asserting non-trivial GPU/MPS utilization
+- [x] Ship `environment.yml` as package data so `init` and `compile` can copy it
+- [x] Bump version to v0.23.0
+- [x] Update CHANGELOG.md
+- [ ] Verify: on a clean Apple Silicon machine, `pyve` + micromamba install reproduces the env; `pyve run python scripts/metal_smoke.py` reports MPS device used for each framework — **deferred to developer hardware**
 
 ### Story E.b: v0.24.0 `data_exploration` lifecycle template [Planned]
 
