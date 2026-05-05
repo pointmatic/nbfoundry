@@ -165,19 +165,19 @@ Thin Protocol adapter per FR-7 / AC-10. Provisional method shape pending modelfo
 
 Wire schema + primitives into the production compile/validate pipeline and the standalone artifact emitter. After this phase the spike script from A.c is deleted.
 
-### Story C.a: v0.12.0 Compiler core [Planned]
+### Story C.a: v0.12.0 Compiler core [Done]
 
 `compile_exercise()` — FR-3 happy path and first-error semantics.
 
-- [ ] `src/nbfoundry/compiler.py` with `compile_exercise(yaml_path, base_dir, *, allow_large_assets=False) -> dict`
-- [ ] Pipeline: path-resolve → `yaml.safe_load` → reject URL-looking scalars → Pydantic validate → resolve `code_file` under `base_dir` → render markdown → enumerate assets → assemble dict in canonical key order
-- [ ] No file writes, no network, no module imports beyond declared runtime deps
-- [ ] Pydantic `ValidationError` → first `ExerciseError` via `errors.from_pydantic`
-- [ ] Re-export `compile_exercise` from `nbfoundry/__init__.py`
-- [ ] Delete `scripts/spike_compile_exercise.py` and its fixtures (superseded)
-- [ ] Bump version to v0.12.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: `from nbfoundry import compile_exercise` works; a minimal hand-written YAML produces a dict with `type=="exercise"`, `source=="nbfoundry"`, `status=="ready"`, `assets==[]`
+- [x] `src/nbfoundry/compiler.py` with `compile_exercise(yaml_path, base_dir, *, allow_large_assets=False) -> dict`
+- [x] Pipeline: path-resolve → `yaml.safe_load` → reject URL-looking scalars → Pydantic validate → resolve `code_file` under `base_dir` → render markdown → enumerate assets → assemble dict in canonical key order
+- [x] No file writes, no network, no module imports beyond declared runtime deps
+- [x] Pydantic `ValidationError` → first `ExerciseError` via `errors.from_pydantic`
+- [x] Re-export `compile_exercise` from `nbfoundry/__init__.py`
+- [x] Delete `scripts/spike_compile_exercise.py` and its fixtures (superseded)
+- [x] Bump version to v0.12.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `from nbfoundry import compile_exercise` works; a minimal hand-written YAML produces a dict with `type=="exercise"`, `source=="nbfoundry"`, `status=="ready"`, `assets==[]`
 
 ### Story C.b: v0.13.0 Validator core [Planned]
 
