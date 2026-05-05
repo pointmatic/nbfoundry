@@ -348,13 +348,13 @@ First real five-stage template; replaces the Phase-D placeholder.
 - [x] Update CHANGELOG.md
 - [x] Verify: scaffolded template trains a small model on MPS with sub-second per-epoch time — **deferred to developer hardware (template authors per-epoch wall-clock capture; needs the pinned env to actually run)**
 
-### Story E.e: v0.27.0 `model_optimization` lifecycle template [Planned]
+### Story E.e: v0.27.0 `model_optimization` lifecycle template [Done]
 
-- [ ] `src/nbfoundry/templates/model_optimization/notebook.py` with hyperparameter search / pruning / quantization scaffolding
-- [ ] Apache-2.0 / Pointmatic header
-- [ ] Bump version to v0.27.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: scaffolded template runs a parameter sweep producing a results table
+- [x] `src/nbfoundry/templates/model_optimization/notebook.py` with hyperparameter search / pruning / quantization scaffolding
+- [x] Apache-2.0 / Pointmatic header
+- [x] Bump version to v0.27.0
+- [x] Update CHANGELOG.md
+- [x] Verify: scaffolded template runs a parameter sweep producing a results table — **runtime sweep deferred to developer hardware (template authors the 3×3 grid + DataFrame; needs the pinned env to actually train)**
 
 ### Story E.f: v0.28.0 `model_evaluation` lifecycle template [Planned]
 

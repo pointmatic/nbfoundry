@@ -1,0 +1,33 @@
+# Copyright (c) 2026 Pointmatic
+# SPDX-License-Identifier: Apache-2.0
+#
+# Pinned ML stack for nbfoundry on Apple Silicon (Metal/MPS).
+# Reproduce with:  micromamba env create -f environment.yml -n nbfoundry
+#
+# Channel preferences (per tech-spec.md "Pinned ML stack"):
+# - conda-forge: default for the scientific Python stack.
+# - pypi (via the `pip:` section): tensorflow-macos / tensorflow-metal which
+#   are not packaged on conda-forge for Apple Silicon.
+# - pytorch / apple: opt-in if conda-forge stops tracking the leading edge.
+
+name: nbfoundry
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12.13
+  # Scientific Python core — let the solver pick mutually-compatible versions.
+  - numpy
+  - scipy
+  - matplotlib
+  - pandas
+  # ML stack — pinned to currently-stable Metal-compatible majors.
+  - scikit-learn>=1.5
+  - pytorch>=2.5    # MPS backend; verified on Apple Silicon
+  # Notebook runtime
+  - marimo
+  # pip-only deps (Apple's TF distribution + the Metal acceleration plugin)
+  - pip
+  - pip:
+      - tensorflow-macos>=2.16
+      - tensorflow-metal>=1.1
+      - keras>=3.5

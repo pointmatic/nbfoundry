@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-05-05
+
+### Added
+- `model_optimization` lifecycle template ([src/nbfoundry/templates/model_optimization/notebook.py](src/nbfoundry/templates/model_optimization/notebook.py)): 8-cell reactive Marimo scaffold covering MPS device selection, synthetic dataset, `build_mlp` / `train_one` helpers, a 3×3 grid sweep over `lr × hidden`, sorted results table, and an L1-unstructured `torch.nn.utils.prune` pass on the best model with sparsity / post-prune accuracy reported. Bundled `environment.yml` mirrors the pinned ML stack.
+
 ## [0.26.0] - 2026-05-05
 
 ### Added
