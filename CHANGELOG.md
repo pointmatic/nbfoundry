@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-05-05
+
+### Added
+- `model_experimentation` lifecycle template ([src/nbfoundry/templates/model_experimentation/notebook.py](src/nbfoundry/templates/model_experimentation/notebook.py)): 7-cell reactive Marimo scaffold covering MPS device selection, synthetic 1024×8 dataset, PyTorch `MLP(nn.Module)` definition, 10-epoch training loop with per-epoch loss / accuracy / wall-clock capture, and a metrics summary. Bundled `environment.yml` mirrors the pinned ML stack.
+
 ## [0.25.0] - 2026-05-05
 
 ### Added

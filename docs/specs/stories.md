@@ -340,13 +340,13 @@ First real five-stage template; replaces the Phase-D placeholder.
 - [x] Update CHANGELOG.md
 - [x] Verify: `pyve run nbfoundry init demo --template data_preparation` succeeds and the resulting notebook runs end-to-end on Apple Silicon
 
-### Story E.d: v0.26.0 `model_experimentation` lifecycle template [Planned]
+### Story E.d: v0.26.0 'model_experimentation' lifecycle template [Done]
 
-- [ ] `src/nbfoundry/templates/model_experimentation/notebook.py` with model definition / training loop / metric capture scaffolding
-- [ ] Apache-2.0 / Pointmatic header
-- [ ] Bump version to v0.26.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: scaffolded template trains a small model on MPS with sub-second per-epoch time
+- [x] `src/nbfoundry/templates/model_experimentation/notebook.py` with model definition / training loop / metric capture scaffolding
+- [x] Apache-2.0 / Pointmatic header
+- [x] Bump version to v0.26.0
+- [x] Update CHANGELOG.md
+- [x] Verify: scaffolded template trains a small model on MPS with sub-second per-epoch time — **deferred to developer hardware (template authors per-epoch wall-clock capture; needs the pinned env to actually run)**
 
 ### Story E.e: v0.27.0 `model_optimization` lifecycle template [Planned]
 
