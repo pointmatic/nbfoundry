@@ -60,15 +60,15 @@ Typed error contract per features.md BR-3; foundation for all later validation p
 - [x] Update CHANGELOG.md
 - [x] Verify: import path `from nbfoundry import ExerciseError` works; `str(ExerciseError(Path("x.yaml"), "bad"))` matches expected format
 
-### Story A.e: v0.4.0 Logging setup [Planned]
+### Story A.e: v0.4.0 Logging setup [Done]
 
 Leveled logging per OR-4; wired so CLI `--verbose` / `--quiet` map cleanly.
 
-- [ ] `src/nbfoundry/logging_setup.py` with `configure(level)` installing `StreamHandler` on stderr, format `%(levelname)s %(name)s: %(message)s`
-- [ ] Library modules log to `logging.getLogger("nbfoundry.<module>")`
-- [ ] Bump version to v0.4.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: calling `configure(logging.DEBUG)` then `getLogger("nbfoundry.test").debug("hi")` writes to stderr
+- [x] `src/nbfoundry/logging_setup.py` with `configure(level)` installing `StreamHandler` on stderr, format `%(levelname)s %(name)s: %(message)s`
+- [x] Library modules log to `logging.getLogger("nbfoundry.<module>")`
+- [x] Bump version to v0.4.0
+- [x] Update CHANGELOG.md
+- [x] Verify: calling `configure(logging.DEBUG)` then `getLogger("nbfoundry.test").debug("hi")` writes to stderr
 
 ### Story A.f: v0.5.0 Path-escape protection [Planned]
 
