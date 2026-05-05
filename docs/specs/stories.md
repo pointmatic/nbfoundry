@@ -282,14 +282,14 @@ FR-3 CLI: writes JSON to `--out` if given, else stdout.
 - [x] Update CHANGELOG.md
 - [x] Verify: piping output of a fixture run into `python -c "import json,sys;json.load(sys.stdin)"` succeeds
 
-### Story D.e: v0.21.0 `nbfoundry validate` subcommand [Planned]
+### Story D.e: v0.21.0 'nbfoundry validate' subcommand [Done]
 
 FR-4 CLI: prints each error on its own line; exit `0` empty, `1` otherwise.
 
-- [ ] `validate <yaml-path> [--base-dir <path>]` Typer command
-- [ ] Bump version to v0.21.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: validating a YAML with two errors prints two lines on stdout and exits `1`; a clean YAML exits `0` silently
+- [x] `validate <yaml-path> [--base-dir <path>]` Typer command
+- [x] Bump version to v0.21.0
+- [x] Update CHANGELOG.md
+- [x] Verify: validating a YAML with two errors prints two lines on stdout and exits `1`; a clean YAML exits `0` silently
 
 ### Story D.f: v0.22.0 Public library API surface [Planned]
 

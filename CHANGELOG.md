@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-05-05
+
+### Added
+- `nbfoundry validate <yaml-path> [--base-dir <path>]` — FR-4 CLI contract finalized: prints each error returned by `validate_exercise` on its own line on stdout; exits `0` silently for clean YAML, `1` otherwise. The wrapper itself was scaffolded in D.a; this story owns the version bump and the formal exit-code contract.
+
 ## [0.20.0] - 2026-05-05
 
 ### Changed
