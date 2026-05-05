@@ -114,13 +114,11 @@ def cmd_compile(
     out: Annotated[Path | None, typer.Option("--out", help="Output directory.")] = None,
 ) -> None:
     """Compile a Marimo notebook (or tree) to a standalone artifact directory."""
-    base_dir = (
-        notebook_or_dir if notebook_or_dir.is_dir() else notebook_or_dir.parent
-    ).resolve()
-    cfg = merge_cli(load_config(base_dir), default_out=str(out) if out else None)
+    cwd = Path.cwd()
+    cfg = merge_cli(load_config(cwd), default_out=str(out) if out else None)
     target = Path(cfg.compile.default_out)
     if not target.is_absolute():
-        target = (base_dir / target).resolve()
+        target = (cwd / target).resolve()
     result = compile_standalone(notebook_or_dir, target)
     typer.echo(str(result))
 

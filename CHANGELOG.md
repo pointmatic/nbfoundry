@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-05-05
+
+### Changed
+- `nbfoundry compile` now resolves `Config.compile.default_out` (default `dist/`) relative to the current working directory rather than the notebook's parent. Matches CLI ergonomics: `nbfoundry compile demo/notebook.py` writes to `./dist/`, not `./demo/dist/`. Loads `nbfoundry.toml` from cwd. `--out` overrides the default; user-supplied relative paths still resolve from cwd via Python's normal `Path` semantics.
+
 ## [0.18.0] - 2026-05-05
 
 ### Added

@@ -259,16 +259,16 @@ FR-1 scaffold from five-stage templates (templates themselves arrive in Phase E;
 - [x] Update CHANGELOG.md
 - [x] Verify: `pyve run nbfoundry init demo` creates `demo/` with the template file; rerunning errors
 
-### Story D.c: v0.19.0 `nbfoundry compile` subcommand [Planned]
+### Story D.c: v0.19.0 'nbfoundry compile' subcommand [Done]
 
 FR-2 wire-up of `standalone.compile` to the CLI.
 
-- [ ] `compile <notebook-or-dir> [--out <path>]` Typer command
-- [ ] Default `--out` from `Config.compile.default_out` (i.e., `dist/`)
-- [ ] Print output directory path on success
-- [ ] Bump version to v0.19.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: `pyve run nbfoundry compile demo/notebook.py` writes to `dist/` and prints the path
+- [x] `compile <notebook-or-dir> [--out <path>]` Typer command
+- [x] Default `--out` from `Config.compile.default_out` (i.e., `dist/`)
+- [x] Print output directory path on success
+- [x] Bump version to v0.19.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `pyve run nbfoundry compile demo/notebook.py` writes to `dist/` and prints the path
 
 ### Story D.d: v0.20.0 `nbfoundry compile-exercise` subcommand [Planned]
 
