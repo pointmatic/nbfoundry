@@ -70,17 +70,17 @@ Leveled logging per OR-4; wired so CLI `--verbose` / `--quiet` map cleanly.
 - [x] Update CHANGELOG.md
 - [x] Verify: calling `configure(logging.DEBUG)` then `getLogger("nbfoundry.test").debug("hi")` writes to stderr
 
-### Story A.f: v0.5.0 Path-escape protection [Planned]
+### Story A.f: v0.5.0 Path-escape protection [Done]
 
 SC-3 path containment guard, used by every subsequent file-reading code path.
 
-- [ ] `src/nbfoundry/paths.py` with `resolve_under(base_dir, candidate) -> Path`
-- [ ] Reject absolute paths, `..` traversal, symlinks-out-of-base
-- [ ] Resolve symlinks via `Path.resolve(strict=True)` before containment check
-- [ ] Raise `ExerciseError` on escape with the offending candidate in `message`
-- [ ] Bump version to v0.5.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: unit-level smoke — `resolve_under(tmp, "x.yaml")` succeeds; `resolve_under(tmp, "../x")` raises
+- [x] `src/nbfoundry/paths.py` with `resolve_under(base_dir, candidate) -> Path`
+- [x] Reject absolute paths, `..` traversal, symlinks-out-of-base
+- [x] Resolve symlinks via `Path.resolve(strict=True)` before containment check
+- [x] Raise `ExerciseError` on escape with the offending candidate in `message`
+- [x] Bump version to v0.5.0
+- [x] Update CHANGELOG.md
+- [x] Verify: unit-level smoke — `resolve_under(tmp, "x.yaml")` succeeds; `resolve_under(tmp, "../x")` raises
 
 ### Story A.g: v0.6.0 Config loader [Planned]
 
