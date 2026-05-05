@@ -332,13 +332,13 @@ First real five-stage template; replaces the Phase-D placeholder.
 - [x] Update CHANGELOG.md
 - [x] Verify: `pyve run nbfoundry init demo --template data_exploration && pyve run nbfoundry compile demo/notebook.py` produces a runnable artifact
 
-### Story E.c: v0.25.0 `data_preparation` lifecycle template [Planned]
+### Story E.c: v0.25.0 'data_preparation' lifecycle template [Done]
 
-- [ ] `src/nbfoundry/templates/data_preparation/notebook.py` with cleaning / feature engineering / split scaffolding
-- [ ] Apache-2.0 / Pointmatic header
-- [ ] Bump version to v0.25.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: `pyve run nbfoundry init demo --template data_preparation` succeeds and the resulting notebook runs end-to-end on Apple Silicon
+- [x] `src/nbfoundry/templates/data_preparation/notebook.py` with cleaning / feature engineering / split scaffolding
+- [x] Apache-2.0 / Pointmatic header
+- [x] Bump version to v0.25.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `pyve run nbfoundry init demo --template data_preparation` succeeds and the resulting notebook runs end-to-end on Apple Silicon
 
 ### Story E.d: v0.26.0 `model_experimentation` lifecycle template [Planned]
 

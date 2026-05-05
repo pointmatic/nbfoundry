@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-05-05
+
+### Added
+- `data_preparation` lifecycle template ([src/nbfoundry/templates/data_preparation/notebook.py](src/nbfoundry/templates/data_preparation/notebook.py)): 6-cell reactive Marimo scaffold covering load → clean (drop NaNs, cast dtypes) → engineer (one-hot encode `category`, interaction term) → split (`sklearn.model_selection.train_test_split` with stratification) → summary. Bundled `environment.yml` mirrors the pinned ML stack.
+
 ## [0.24.0] - 2026-05-05
 
 ### Changed
