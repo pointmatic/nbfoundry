@@ -1,0 +1,72 @@
+# Copyright (c) 2026 Pointmatic
+# SPDX-License-Identifier: Apache-2.0
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "nbfoundry"
+description = "Marimo-based notebook framework for ML/DS work — standalone tools and embeddable learningfoundry exercises from one source"
+readme = "README.md"
+requires-python = ">=3.12.13,<3.14"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Pointmatic" },
+]
+keywords = ["marimo", "notebook", "machine-learning", "data-science", "curriculum", "learningfoundry"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Education",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "marimo",
+    "typer",
+    "pyyaml",
+    "markdown-it-py",
+    "pydantic>=2",
+]
+dynamic = ["version"]
+
+[project.scripts]
+nbfoundry = "nbfoundry.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/pointmatic/nbfoundry"
+Repository = "https://github.com/pointmatic/nbfoundry"
+Issues = "https://github.com/pointmatic/nbfoundry/issues"
+Changelog = "https://github.com/pointmatic/nbfoundry/blob/main/CHANGELOG.md"
+
+[tool.hatch.version]
+path = "src/nbfoundry/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nbfoundry"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "I", "UP", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "src"
+packages = ["nbfoundry"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
