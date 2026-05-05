@@ -26,16 +26,16 @@ Create the package skeleton, license, manifest, and developer-facing baseline. E
 - [x] Apache-2.0 / Pointmatic header on every new source file
 - [x] Verify: `pyve run pip install -e .` succeeds; `pyve testenv --install -r requirements-dev.txt` succeeds
 
-### Story A.b: v0.2.0 Hello-World CLI entry point [Planned]
+### Story A.b: v0.2.0 Hello-World CLI entry point [Done]
 
 Smallest runnable artifact proving the package + console script wiring works.
 
-- [ ] Add minimal Typer app skeleton in `src/nbfoundry/cli.py` exposing `main()`
-- [ ] Implement `--version` global flag reading from `_version.py`
-- [ ] Re-export `__version__` from `nbfoundry/__init__.py`
-- [ ] Bump version to v0.2.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: `pyve run nbfoundry --version` prints `nbfoundry 0.2.0`
+- [x] Add minimal Typer app skeleton in `src/nbfoundry/cli.py` exposing `main()`
+- [x] Implement `--version` global flag reading from `_version.py`
+- [x] Re-export `__version__` from `nbfoundry/__init__.py`
+- [x] Bump version to v0.2.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `pyve run nbfoundry --version` prints `nbfoundry 0.2.0`
 
 ### Story A.c: End-to-end compile-path spike [Planned]
 
