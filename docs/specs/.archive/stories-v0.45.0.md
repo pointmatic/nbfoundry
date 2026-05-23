@@ -1,0 +1,398 @@
+# stories.md -- nbfoundry (Python 3.12.13)
+
+This document breaks the `nbfoundry` project into an ordered sequence of small, independently completable stories grouped into phases. Each story has a checklist of concrete tasks. Stories are organized by phase and reference modules defined in `tech-spec.md`.
+
+Put **`vX.Y.Z` in the story title only when that story ships the package version bump** for that release. Doc-only or polish stories **omit the version from the title** (they share the release with the preceding code story, or use your project's doc-release policy). **One semver bump per owning story** — extra tasks on the *same* story share that bump; see `project-essentials.md`. Semantic versioning applies to the package. Stories are marked with `[Planned]` initially and changed to `[Done]` when completed.
+
+For a high-level concept (why), see [`concept.md`](concept.md). For requirements and behavior (what), see [`features.md`](features.md). For implementation details (how), see [`tech-spec.md`](tech-spec.md). For project-specific must-know facts, see [`project-essentials.md`](project-essentials.md) (`plan_phase` appends new facts per phase). For the workflow steps tailored to the current mode (cycle steps, approval gates, conventions), see [`docs/project-guide/go.md`](../project-guide/go.md) — re-read it whenever the mode changes or after context compaction.
+
+---
+
+## Phase A: Foundation
+
+Scaffolding, the smallest runnable artifact, an end-to-end compile-path spike, and the cross-cutting primitives (errors, logging, path-escape protection, config) that every later phase depends on.
+
+### Story A.a: v0.1.0 Project Scaffolding [Done]
+
+Create the package skeleton, license, manifest, and developer-facing baseline. Executed in `scaffold_project` mode; marked `[Done]` by that mode upon completion.
+
+- [x] LICENSE (Apache-2.0, copyright Pointmatic)
+- [x] `pyproject.toml` with `hatchling` build backend, `requires-python = ">=3.12.13,<3.14"`, dynamic version from `src/nbfoundry/_version.py`, console script `nbfoundry = "nbfoundry.cli:main"`
+- [x] `src/nbfoundry/__init__.py` and `src/nbfoundry/_version.py` (`__version__ = "0.1.0"`)
+- [x] `requirements-dev.txt` (ruff, mypy, pytest, pytest-cov, types-PyYAML)
+- [x] `README.md` (one-paragraph description + install stub)
+- [x] `CHANGELOG.md` (Keep-a-Changelog format, `0.1.0` entry)
+- [x] `.gitignore` (Python + venv + dist artifacts)
+- [x] Apache-2.0 / Pointmatic header on every new source file
+- [x] Verify: `pyve run pip install -e .` succeeds; `pyve testenv --install -r requirements-dev.txt` succeeds
+
+### Story A.b: v0.2.0 Hello-World CLI entry point [Done]
+
+Smallest runnable artifact proving the package + console script wiring works.
+
+- [x] Add minimal Typer app skeleton in `src/nbfoundry/cli.py` exposing `main()`
+- [x] Implement `--version` global flag reading from `_version.py`
+- [x] Re-export `__version__` from `nbfoundry/__init__.py`
+- [x] Bump version to v0.2.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `pyve run nbfoundry --version` prints `nbfoundry 0.2.0`
+
+### Story A.c: End-to-end compile-path spike [Done]
+
+Throwaway script (in `scripts/`, not the package) that wires the critical YAML → BR-1 dict path end-to-end with a hand-written minimal exercise fixture, before any production module exists. De-risks the architecture; the script is **deleted** when Phase C lands.
+
+- [x] Create `scripts/spike_compile_exercise.py` with Apache-2.0 / Pointmatic header
+- [x] Hand-write a tiny `scripts/spike_fixtures/minimal.yaml` (one section, no submission, no assets)
+- [x] Spike loads YAML, renders markdown via `markdown-it-py`, assembles a BR-1-shaped dict, prints JSON
+- [x] Document in script docstring: "throwaway; superseded by `nbfoundry.compiler` in Phase C"
+- [x] Verify: `pyve run python scripts/spike_compile_exercise.py` prints valid JSON matching the BR-1 contract from `learningfoundry-dependency-spec.md`
+
+### Story A.d: v0.3.0 ExerciseError and ErrorDetail [Done]
+
+Typed error contract per features.md BR-3; foundation for all later validation paths.
+
+- [x] `src/nbfoundry/errors.py` — `ExerciseError` frozen dataclass (file_path, message, detail) inheriting `Exception`
+- [x] `ErrorDetail` frozen dataclass (section_index, field_name, yaml_pointer)
+- [x] `__str__` formatting per tech-spec
+- [x] Helper `from_pydantic(yaml_path, ValidationError) -> list[ExerciseError]` walking `loc` tuples into `yaml_pointer` strings
+- [x] Re-export `ExerciseError` from `nbfoundry/__init__.py`
+- [x] Bump version to v0.3.0
+- [x] Update CHANGELOG.md
+- [x] Verify: import path `from nbfoundry import ExerciseError` works; `str(ExerciseError(Path("x.yaml"), "bad"))` matches expected format
+
+### Story A.e: v0.4.0 Logging setup [Done]
+
+Leveled logging per OR-4; wired so CLI `--verbose` / `--quiet` map cleanly.
+
+- [x] `src/nbfoundry/logging_setup.py` with `configure(level)` installing `StreamHandler` on stderr, format `%(levelname)s %(name)s: %(message)s`
+- [x] Library modules log to `logging.getLogger("nbfoundry.<module>")`
+- [x] Bump version to v0.4.0
+- [x] Update CHANGELOG.md
+- [x] Verify: calling `configure(logging.DEBUG)` then `getLogger("nbfoundry.test").debug("hi")` writes to stderr
+
+### Story A.f: v0.5.0 Path-escape protection [Done]
+
+SC-3 path containment guard, used by every subsequent file-reading code path.
+
+- [x] `src/nbfoundry/paths.py` with `resolve_under(base_dir, candidate) -> Path`
+- [x] Reject absolute paths, `..` traversal, symlinks-out-of-base
+- [x] Resolve symlinks via `Path.resolve(strict=True)` before containment check
+- [x] Raise `ExerciseError` on escape with the offending candidate in `message`
+- [x] Bump version to v0.5.0
+- [x] Update CHANGELOG.md
+- [x] Verify: unit-level smoke — `resolve_under(tmp, "x.yaml")` succeeds; `resolve_under(tmp, "../x")` raises
+
+### Story A.g: v0.6.0 Config loader [Done]
+
+`nbfoundry.toml` + defaults precedence per features.md Configuration; immutable `Config` dataclass for downstream consumers.
+
+- [x] `src/nbfoundry/config.py` with `load(base_dir) -> Config` using stdlib `tomllib`
+- [x] `Config` frozen dataclass with `compile.default_out`, `exercise.markdown_flavor`, `environment.spec_path`, `assets.{max_single_asset_mb, warn_single_asset_mb, allow_large_assets}`
+- [x] Built-in defaults applied when file or key absent
+- [x] CLI flag merge stub (the merge function — flags wired in Phase D)
+- [x] Bump version to v0.6.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `load(tmp_with_no_toml)` returns defaults; `load(tmp_with_partial_toml)` overrides only listed keys
+
+---
+
+## Phase B: Schema and Primitives
+
+The validated input model and the four primitive services the compiler orchestrates: schema, markdown, assets, notebook discovery, and the modelfoundry adapter.
+
+### Story B.a: v0.7.0 Pydantic schema models [Done]
+
+Single source of truth for YAML input shape and BR-1/BR-4 wire shape per tech-spec Data Models.
+
+- [x] `src/nbfoundry/schema.py` with `RawSectionModel`, `RawExpectedOutputModel`, `ExpectedRule`, `SubmissionFieldModel`, `SubmissionModel`, `EnvironmentModel`, `RawExerciseModel`
+- [x] `code_xor_code_file` model validator on `RawSectionModel`
+- [x] `shape_by_type` validator on `RawExpectedOutputModel` (image requires `path`+`alt`; text/table require `content`)
+- [x] `ExpectedRule` validator: required keys per `type` (`range` needs `min`/`max`; `equals` needs `value`; `contains_all` needs `values`)
+- [x] `SubmissionFieldModel` validator: rule/type compat (`range`→number; `contains_all`→text; `equals`→number|text)
+- [x] `SubmissionModel` validator: unique field names, `pass_threshold ∈ [0.0, 1.0]`, `weight > 0`
+- [x] `CompiledExercise` and supporting `TypedDict`s for the BR-1 wire shape
+- [x] Bump version to v0.7.0
+- [x] Update CHANGELOG.md
+- [x] Verify: a hand-written valid dict round-trips `RawExerciseModel.model_validate(...)`; representative invalid permutations raise
+
+### Story B.b: v0.8.0 Markdown renderer [Done]
+
+Markdown → HTML wrapper honoring the `markdown_flavor` toggle.
+
+- [x] `src/nbfoundry/markdown.py` with `render(text: str, flavor: Literal["commonmark", "gfm"]) -> str`
+- [x] `markdown-it-py` configured for CommonMark; GFM enabled via plugin set
+- [x] Bump version to v0.8.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `render("**bold**", "commonmark")` returns `<p><strong>bold</strong></p>`; GFM-only constructs render only under `gfm`
+
+### Story B.c: v0.9.0 Asset handling [Done]
+
+BR-5 enumeration, existence checks, and size policy per tech-spec Cross-Cutting.
+
+- [x] `src/nbfoundry/assets.py` with `enumerate(compiled_outputs) -> list[str]` (sorted, deduplicated)
+- [x] `check_existence(base_dir, paths)` raising `ExerciseError` on missing files (no byte reads — `Path.is_file()` only)
+- [x] `check_size(base_dir, paths, *, warn_mb, max_mb, allow_large)` — warn ≥ `warn_mb`, raise `ExerciseError` ≥ `max_mb` unless `allow_large`
+- [x] Reject paths matching `^https?://`
+- [x] Bump version to v0.9.0
+- [x] Update CHANGELOG.md
+- [x] Verify: enumeration over a fixture with two image outputs (one duplicate) returns 1 entry, sorted
+
+### Story B.d: v0.10.0 Notebook discovery and parsing [Done]
+
+Marimo notebook entry-point detection, parse, and tree walking per FR-2 / FR-6.
+
+- [x] `src/nbfoundry/notebooks.py` with `discover_entry(notebook_or_dir) -> Path` (single file → that file; dir → root-of-tree by convention)
+- [x] `parse_all(entry) -> list[ParsedNotebook]` aggregating Marimo parse failures with file/line info into `ExerciseError`
+- [x] No `exec`, no `eval`, no `subprocess` (SC-4)
+- [x] Bump version to v0.10.0
+- [x] Update CHANGELOG.md
+- [x] Verify: a tiny hand-written Marimo notebook parses; a deliberately broken one raises `ExerciseError` naming the file
+
+### Story B.e: v0.11.0 Modelfoundry adapter [Done]
+
+Thin Protocol adapter per FR-7 / AC-10. Provisional method shape pending modelfoundry's contract.
+
+- [x] `src/nbfoundry/_modelfoundry.py` with `ModelfoundryAdapter` Protocol (`prepare_data`, `train`, `optimize`, `evaluate`)
+- [x] `get_adapter() -> ModelfoundryAdapter` lazy-imports `modelfoundry`; raises `RuntimeError("modelfoundry is required ...")` with install hint when import fails
+- [x] AST-scan test asserting the compiler core (`compiler.py`, `validator.py`, `schema.py`, `cli.py`) does not import `_modelfoundry`
+- [x] Bump version to v0.11.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `get_adapter()` raises with the expected message in an env where `modelfoundry` is absent
+
+---
+
+## Phase C: Compile and Validate Orchestration
+
+Wire schema + primitives into the production compile/validate pipeline and the standalone artifact emitter. After this phase the spike script from A.c is deleted.
+
+### Story C.a: v0.12.0 Compiler core [Done]
+
+`compile_exercise()` — FR-3 happy path and first-error semantics.
+
+- [x] `src/nbfoundry/compiler.py` with `compile_exercise(yaml_path, base_dir, *, allow_large_assets=False) -> dict`
+- [x] Pipeline: path-resolve → `yaml.safe_load` → reject URL-looking scalars → Pydantic validate → resolve `code_file` under `base_dir` → render markdown → enumerate assets → assemble dict in canonical key order
+- [x] No file writes, no network, no module imports beyond declared runtime deps
+- [x] Pydantic `ValidationError` → first `ExerciseError` via `errors.from_pydantic`
+- [x] Re-export `compile_exercise` from `nbfoundry/__init__.py`
+- [x] Delete `scripts/spike_compile_exercise.py` and its fixtures (superseded)
+- [x] Bump version to v0.12.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `from nbfoundry import compile_exercise` works; a minimal hand-written YAML produces a dict with `type=="exercise"`, `source=="nbfoundry"`, `status=="ready"`, `assets==[]`
+
+### Story C.b: v0.13.0 Validator core [Done]
+
+`validate_exercise()` — FR-4 collect-all-errors mode sharing the C.a pipeline.
+
+- [x] Refactor C.a's pipeline into a private `_validate(...) -> tuple[Model | None, list[ExerciseError]]` core
+- [x] `compile_exercise` raises on first; `validate_exercise(yaml_path, base_dir) -> list[str]` formats and returns the full list
+- [x] YAML parse failure or missing file short-circuits to a single-element list
+- [x] Re-export `validate_exercise` from `nbfoundry/__init__.py`
+- [x] Bump version to v0.13.0
+- [x] Update CHANGELOG.md
+- [x] Verify: a YAML with three independent rejections returns three error strings, each with file path
+
+### Story C.c: v0.14.0 Submission / BR-4 validation [Done]
+
+FR-5 enforcement of every §BR-4 validator requirement.
+
+- [x] Pydantic-driven enforcement of: `pass_threshold ∈ [0.0, 1.0]`, non-empty `fields`, rule/type compat, `weight > 0`, unique `name`, required keys per rule
+- [x] Each rejection produces a human-readable string with the offending field name and value
+- [x] Bump version to v0.14.0
+- [x] Update CHANGELOG.md
+- [x] Verify: a fixture exercising each BR-4 rejection returns a distinct, recognizable error message
+
+### Story C.d: v0.15.0 Aggregate tree compilation [Done]
+
+FR-6 — a tree of notebooks compiles to a single exercise dict; structure is invisible to learningfoundry.
+
+- [x] Compiler accepts a YAML whose `sections[i].code_file` references notebooks within a tree
+- [x] Tree-internal references inline via `notebooks.parse_all`
+- [x] Tree-external references rejected by `paths.resolve_under` (FR-3 path-escape)
+- [x] Output dict shape unchanged from single-notebook case
+- [x] Bump version to v0.15.0
+- [x] Update CHANGELOG.md
+- [x] Verify: a 3-notebook tree fixture compiles to one dict whose `sections` reflect the inlined references
+
+### Story C.e: v0.16.0 Standalone artifact emitter [Done]
+
+FR-2 — `nbfoundry compile <notebook-or-dir>` produces a self-contained runnable directory.
+
+- [x] `src/nbfoundry/standalone.py` with `compile(notebook_or_dir, out) -> Path`
+- [x] Atomic write: stage into `tempfile.mkdtemp(dir=out.parent)` → `os.replace` on success
+- [x] Emit notebooks, `environment.yml` copy, and `launch.py` (shipped from `templates/standalone/launch.py`)
+- [x] `launch.py` shells out to `marimo edit` against the entry-point notebook
+- [x] Aggregate parse failures with file/line info → `ExerciseError`
+- [x] Bump version to v0.16.0
+- [x] Update CHANGELOG.md
+- [x] Verify: compiling a single hand-written Marimo notebook produces a directory whose `python launch.py` boots Marimo
+
+---
+
+## Phase D: CLI and Library API
+
+User-facing surface: Typer subcommands, global flags, exit codes, and the public library re-exports.
+
+### Story D.a: v0.17.0 CLI scaffold and global flags [Done]
+
+Typer app shell with shared flags wired to logging and config.
+
+- [x] Flesh out `src/nbfoundry/cli.py`: Typer app, `--verbose`/`--quiet` → `logging_setup.configure(...)`
+- [x] Each subcommand thin-wraps a library call; maps `ExerciseError` → exit code 1, message on stderr
+- [x] Exit codes: `0` success, `1` `ExerciseError`/validation/parse/asset-oversize, `2` Typer misuse
+- [x] Load `nbfoundry.toml` via `config.load(base_dir)` and merge with parsed flags
+- [x] Bump version to v0.17.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `pyve run nbfoundry --help` lists all four subcommand names; `--version` still prints
+
+### Story D.b: v0.18.0 'nbfoundry init' subcommand [Done]
+
+FR-1 scaffold from five-stage templates (templates themselves arrive in Phase E; this story validates the wiring against a placeholder template).
+
+- [x] `init <name> [--template <stage>]` Typer command in `cli.py`
+- [x] Default `--template` to `data_exploration`
+- [x] Use `importlib.resources.files("nbfoundry.templates")` to read template directory
+- [x] Copy template files into `<name>/` under cwd; preserve Apache-2.0 / Pointmatic header
+- [x] Reject existing `<name>` (no overwrite); reject unknown stage
+- [x] Print created path on stdout
+- [x] Add a placeholder `src/nbfoundry/templates/data_exploration/notebook.py` (real five-stage content lands in Phase E)
+- [x] Bump version to v0.18.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `pyve run nbfoundry init demo` creates `demo/` with the template file; rerunning errors
+
+### Story D.c: v0.19.0 'nbfoundry compile' subcommand [Done]
+
+FR-2 wire-up of `standalone.compile` to the CLI.
+
+- [x] `compile <notebook-or-dir> [--out <path>]` Typer command
+- [x] Default `--out` from `Config.compile.default_out` (i.e., `dist/`)
+- [x] Print output directory path on success
+- [x] Bump version to v0.19.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `pyve run nbfoundry compile demo/notebook.py` writes to `dist/` and prints the path
+
+### Story D.d: v0.20.0 'nbfoundry compile-exercise' subcommand [Done]
+
+FR-3 CLI: writes JSON to `--out` if given, else stdout.
+
+- [x] `compile-exercise <yaml-path> [--base-dir <path>] [--out <path>] [--allow-large-assets]` Typer command
+- [x] Default `--base-dir` to YAML's parent directory
+- [x] Serialize via `json.dumps(d, sort_keys=False, ensure_ascii=False, separators=(",", ": "), indent=2)` for OR-5 stability
+- [x] Atomic write when `--out` is given
+- [x] Bump version to v0.20.0
+- [x] Update CHANGELOG.md
+- [x] Verify: piping output of a fixture run into `python -c "import json,sys;json.load(sys.stdin)"` succeeds
+
+### Story D.e: v0.21.0 'nbfoundry validate' subcommand [Done]
+
+FR-4 CLI: prints each error on its own line; exit `0` empty, `1` otherwise.
+
+- [x] `validate <yaml-path> [--base-dir <path>]` Typer command
+- [x] Bump version to v0.21.0
+- [x] Update CHANGELOG.md
+- [x] Verify: validating a YAML with two errors prints two lines on stdout and exits `1`; a clean YAML exits `0` silently
+
+### Story D.f: v0.22.0 Public library API surface [Done]
+
+Lock down the `from nbfoundry import compile_exercise, validate_exercise, ExerciseError, __version__` contract per OR-2 / AC-1.
+
+- [x] Tighten `nbfoundry/__init__.py` re-exports, set `__all__`
+- [x] Type-stub the public functions to match BR-1 / BR-2 / BR-3 signatures verbatim
+- [x] Add a public-API smoke test asserting names and signatures
+- [x] Bump version to v0.22.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `pyve run python -c "from nbfoundry import compile_exercise, validate_exercise, ExerciseError, __version__; print(__version__)"` prints `0.22.0`
+
+---
+
+## Phase E: Pinned ML Stack and Five-Stage Templates
+
+Major new integration boundary: the pinned Apple Silicon Metal stack plus the five lifecycle templates that ride on top of it. Phase opens with a spike per the Story Writing Rules.
+
+### Story E.a: v0.23.0 Pinned environment + Metal acceleration spike [Done]
+
+CR-10 / AC-5 — verified Pyve + micromamba environment with Metal-compatible PyTorch / TensorFlow / Keras / scikit-learn on Python 3.12.13. Validated by a Metal smoke benchmark per PE-4.
+
+- [x] Author `environment.yml` pinning `python=3.12.13` and the highest stable Metal-compatible versions of PyTorch, TensorFlow (+ `tensorflow-metal` plugin), Keras, scikit-learn, NumPy, SciPy, Matplotlib, Pandas, Marimo
+- [x] Channels: `conda-forge`, `pypi`, with `pytorch` / `apple` channels where they bring stability
+- [x] Document the one-step install in `README.md` ("Apple Silicon quickstart")
+- [x] Add `scripts/metal_smoke.py` running a small training step on each of PyTorch / TensorFlow / Keras and asserting non-trivial GPU/MPS utilization
+- [x] Ship `environment.yml` as package data so `init` and `compile` can copy it
+- [x] Bump version to v0.23.0
+- [x] Update CHANGELOG.md
+- [ ] Verify: on a clean Apple Silicon machine, `pyve` + micromamba install reproduces the env; `pyve run python scripts/metal_smoke.py` reports MPS device used for each framework — **deferred to developer hardware**. Procedure: `mkdir nbfoundry-test && cd nbfoundry-test && mkdir scripts && cp <repo>/environment.yml . && cp <repo>/scripts/metal_smoke.py scripts/ && pyve init --backend micromamba && pyve run python scripts/metal_smoke.py`. The smoke script has no `nbfoundry` dependency, so no `pip install -e .` step is needed.
+
+### Story E.b: v0.24.0 'data_exploration' lifecycle template [Done]
+
+First real five-stage template; replaces the Phase-D placeholder.
+
+- [x] `src/nbfoundry/templates/data_exploration/notebook.py` Marimo notebook with reactive cells covering load → describe → visualize
+- [x] Imports modelfoundry primitives only via `_modelfoundry.get_adapter()`
+- [x] Apache-2.0 / Pointmatic header
+- [x] Bump version to v0.24.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `pyve run nbfoundry init demo --template data_exploration && pyve run nbfoundry compile demo/notebook.py` produces a runnable artifact
+
+### Story E.c: v0.25.0 'data_preparation' lifecycle template [Done]
+
+- [x] `src/nbfoundry/templates/data_preparation/notebook.py` with cleaning / feature engineering / split scaffolding
+- [x] Apache-2.0 / Pointmatic header
+- [x] Bump version to v0.25.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `pyve run nbfoundry init demo --template data_preparation` succeeds and the resulting notebook runs end-to-end on Apple Silicon
+
+### Story E.d: v0.26.0 'model_experimentation' lifecycle template [Done]
+
+- [x] `src/nbfoundry/templates/model_experimentation/notebook.py` with model definition / training loop / metric capture scaffolding
+- [x] Apache-2.0 / Pointmatic header
+- [x] Bump version to v0.26.0
+- [x] Update CHANGELOG.md
+- [x] Verify: scaffolded template trains a small model on MPS with sub-second per-epoch time — **deferred to developer hardware (template authors per-epoch wall-clock capture; needs the pinned env to actually run)**
+
+### Story E.e: v0.27.0 'model_optimization' lifecycle template [Done]
+
+- [x] `src/nbfoundry/templates/model_optimization/notebook.py` with hyperparameter search / pruning / quantization scaffolding
+- [x] Apache-2.0 / Pointmatic header
+- [x] Bump version to v0.27.0
+- [x] Update CHANGELOG.md
+- [x] Verify: scaffolded template runs a parameter sweep producing a results table — **runtime sweep deferred to developer hardware (template authors the 3×3 grid + DataFrame; needs the pinned env to actually train)**
+
+### Story E.f: v0.28.0 'model_evaluation' lifecycle template [Done]
+
+- [x] `src/nbfoundry/templates/model_evaluation/notebook.py` with held-out evaluation / confusion matrix / calibration scaffolding
+- [x] Apache-2.0 / Pointmatic header
+- [x] Bump version to v0.28.0
+- [x] Update CHANGELOG.md
+- [x] Verify: scaffolded template emits an evaluation report; AC-4 (all five templates scaffold and run) is satisfied
+
+---
+
+## Future
+
+<!--
+This section captures items intentionally deferred from the active phases above:
+- Stories not yet planned in detail
+- Phases beyond the current scope
+- Project-level out-of-scope items
+The `archive_stories` mode preserves this section verbatim when archiving stories.md.
+-->
+
+- **Marimo WASM (Option A) embed surface** — deferred per concept.md Scope and features.md NG-2; revisit post-v1 when the in-browser execution path becomes worthwhile.
+- **Modelfoundry contract finalization** — when modelfoundry's interface is published, harden `_modelfoundry.py` from the provisional Protocol to the real signatures; pin `nbfoundry[modelfoundry]` extra in `pyproject.toml`. Per the Phase F plan, modelfoundry and DataRefinery **coexist**: modelfoundry continues to own modeling primitives (training loops, optimizers, eval), DataRefinery owns data prep.
+- **Phase I: DataRefinery integration** — wire `src/nbfoundry/_datarefinery.py` adapter (mirrors `_modelfoundry.py` pattern), add `[datarefinery]` optional extra in `pyproject.toml`, update lifecycle templates to load / inspect / materialize DataRefinery `Instance` objects, and extend per-template smokes to exercise an Instance end-to-end. Phase F only adds `ml-datarefinery` to `templates/environment.yml` so the package is installable alongside nbfoundry; the actual adapter and template wiring lives here. See `docs/specs/phase-f-pypi-distribution-and-stack-refresh-plan.md` § Out of Scope for the Coexist-vs-Subsume design decision (Coexist locked).
+- **Windows CI** — out of v1 cross-platform scope (QR-3 limits CI to macOS primary, Linux stretch).
+- **Concurrency / parallel parse** — `notebooks.parse_all` parallelization via `concurrent.futures` if curriculum-scale performance bites (tech-spec.md Performance).
+- **Pre-commit hooks** — declined for v1 (tech-spec.md Runtime & Tooling); reconsider if CI-gates-only causes friction.
+- **CUDA/Linux acceleration tuning** — best-effort only in v1 (NG-9); promote if user demand warrants.
+- **Non-ML/DS exercise flavors** — owned by other tools (NG-8); not an nbfoundry concern.
+- **Hosted runtime / managed cloud** — out of scope (NG-4); local-first is the v1 contract.
+
+### (Future) Story ?.?: v1.0.0 Production release
+
+Cut the stable, production-quality, feature-complete release per the versioning rule in `tech-spec.md` and the v1 acceptance criteria AC-1..AC-10.
+
+- [ ] Walk every AC-1..AC-10 in `features.md` and confirm each is satisfied
+- [ ] Final `CHANGELOG.md` entry under `1.0.0` summarizing the v1 surface
+- [ ] Update `README.md` to remove pre-1.0 caveats
+- [ ] Bump version to v1.0.0
+- [ ] Tag `v1.0.0`; `publish.yml` ships the release to PyPI
+- [ ] Verify: `pip install nbfoundry==1.0.0` from PyPI on a clean Apple Silicon machine; `nbfoundry init`, `compile`, `compile-exercise`, and `validate` all run successfully against the documented sample

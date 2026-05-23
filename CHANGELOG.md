@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-05-23
+
+### Added
+- PyPI publish workflow ([.github/workflows/publish.yml](.github/workflows/publish.yml)): triggered on `v*` tag push, builds sdist + wheel via `hatch build`, and uploads to PyPI through trusted publishing (OIDC; no long-lived API tokens). A pre-build guard fails the run if the pushed tag and `hatch version` disagree, so the only way to ship a release is to tag the commit that owns the matching version bump.
+- README "Releasing to PyPI" section documenting the one-time PyPI trusted-publisher setup (owner `pointmatic`, repo `nbfoundry`, workflow `publish.yml`, environment `pypi`) and the per-release tag-and-push procedure.
+
+### Note
+- This is the first story in Phase F. The trusted-publisher binding on PyPI must be created before the first tag is pushed; until then the workflow will run the build but the publish step will fail closed. Phase F's per-tool and per-template end-to-end smokes (F.c–F.j) depend on this pipeline because they install `nbfoundry==<published-version>` from PyPI rather than from the working tree.
+
 ## [0.28.0] - 2026-05-05
 
 ### Added
