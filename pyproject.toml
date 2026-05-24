@@ -71,4 +71,8 @@ packages = ["nbfoundry"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-addopts = "-ra"
+addopts = "-ra -m 'not hardware'"
+markers = [
+    "slow: tests that take more than a few seconds",
+    "hardware: tests that require Apple Silicon Metal/MPS hardware (opt-in via -m hardware)",
+]

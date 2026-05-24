@@ -64,18 +64,37 @@ Rewrite the template env as a single sectioned cross-platform stack derived from
 - [x] Update CHANGELOG.md
 - [ ] Verify: `mkdir env-refresh-test && cd env-refresh-test && cp <repo>/src/nbfoundry/templates/environment.yml . && pyve init --backend micromamba && pyve run python <repo>/scripts/metal_smoke.py` reports all packages import cleanly on Apple Silicon — **deferred to developer hardware**
 
-### Story F.c: v0.31.0 TensorFlow happy path [Planned]
+### Story F.c: v0.31.0 TensorFlow happy path [Done]
 
 End-to-end smoke proving the refreshed stack produces a working TF/MPS training run on Apple Silicon, installed from PyPI against the new env.
 
-- [ ] `tests/integration/test_e2e_tensorflow.py` marked `@pytest.mark.slow` and `@pytest.mark.hardware` (opt-in in CI, runs locally)
-- [ ] Test procedure: build a fresh env from `templates/environment.yml`; install `nbfoundry==<latest-published>` from PyPI; scaffold synthetic data (~100 samples); train a tiny TF model for 1 epoch on MPS; assert loss decreases and MPS device is reported in use
-- [ ] Budget: under 60s on M-series silicon (tiny model, tiny dataset)
-- [ ] Apache-2.0 / Pointmatic header
-- [ ] Document the run procedure in the story body for the developer-hardware verify
-- [ ] Bump version to v0.31.0
-- [ ] Update CHANGELOG.md
+- [x] `tests/integration/test_e2e_tensorflow.py` marked `@pytest.mark.slow` and `@pytest.mark.hardware` (opt-in in CI, runs locally)
+- [x] Test procedure: build a fresh env from `templates/environment.yml`; install `nbfoundry==<latest-published>` from PyPI; scaffold synthetic data (~100 samples); train a tiny TF model for 1 epoch on MPS; assert loss decreases and MPS device is reported in use — **trains 3 epochs rather than 1**, because asserting "loss decreases" requires ≥2 measurements; the wall-clock impact is negligible (tiny model, 100 samples, batch_size=16) and the assertion semantics match the story's intent
+- [x] Budget: under 60s on M-series silicon (tiny model, tiny dataset)
+- [x] Apache-2.0 / Pointmatic header
+- [x] Document the run procedure in the story body for the developer-hardware verify (procedure embedded in the test module docstring at [tests/integration/test_e2e_tensorflow.py](../../tests/integration/test_e2e_tensorflow.py))
+- [x] Bump version to v0.31.0
+- [x] Update CHANGELOG.md
 - [ ] Verify: `pyve test tests/integration/test_e2e_tensorflow.py -m hardware` passes on developer Apple Silicon — **deferred to developer hardware**
+
+**Run procedure (one-time per release, on developer Apple Silicon):**
+
+```bash
+# 1. Build a fresh micromamba-backed env from the refreshed templates env.
+mkdir tf-smoke && cd tf-smoke
+cp <repo>/src/nbfoundry/templates/environment.yml .
+pyve init --backend micromamba
+
+# 2. Install nbfoundry from PyPI into that env (not editable from the working
+#    tree -- per project-essentials, F.c-F.j install from PyPI to validate
+#    the published surface):
+pyve run pip install nbfoundry==<latest-published>
+
+# 3. Run the smoke from inside the repo.
+pyve test tests/integration/test_e2e_tensorflow.py -m hardware
+```
+
+The `@pytest.mark.hardware` marker is gated out by default via the new `addopts = "-ra -m 'not hardware'"` in `pyproject.toml`, so routine `pyve test` runs skip it; the developer opts in with `-m hardware`.
 
 ### Story F.d: v0.32.0 PyTorch happy path [Planned]
 

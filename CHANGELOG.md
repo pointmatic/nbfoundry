@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-05-23
+
+### Added
+- TensorFlow end-to-end happy-path smoke at [tests/integration/test_e2e_tensorflow.py](tests/integration/test_e2e_tensorflow.py): trains a tiny dense classifier (`Dense(16, relu) → Dense(1, sigmoid)`) on ~100 synthetic samples for 3 epochs under `tf.device("/GPU:0")` and asserts training loss decreases epoch-over-epoch and that `tf.config.list_physical_devices("GPU")` reports an Apple Silicon GPU. Gated behind `@pytest.mark.slow` and `@pytest.mark.hardware`; opt-in via `pyve test -m hardware`. Budget: under 60s on M-series silicon.
+- `[tool.pytest.ini_options]` in [pyproject.toml](pyproject.toml) now registers `slow` and `hardware` markers and defaults to `addopts = "-ra -m 'not hardware'"` so `pyve test` skips hardware-gated tests in routine runs; developers run them explicitly with `pyve test -m hardware`.
+- `tests/integration/` package initialized with an `__init__.py` carrying the Apache-2.0 / Pointmatic header — this is the home for the F.c-F.j per-tool and per-template end-to-end smokes.
+
+### Note
+- The story body deviates from the literal "1 epoch" wording: asserting loss *decreases* requires at least two measurements, so the smoke trains 3 epochs and compares `losses[0]` vs `losses[-1]`. Wall-clock impact is negligible (tiny model, 100 samples, batch_size=16).
+- Hardware verification (`pyve test tests/integration/test_e2e_tensorflow.py -m hardware` against a fresh micromamba env with `nbfoundry` installed from PyPI) is deferred to developer Apple Silicon hardware.
+
 ## [0.30.0] - 2026-05-23
 
 ### Added
