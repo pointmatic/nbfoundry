@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-05-23
+
+### Added
+- Sectioned cross-project ML stack at [src/nbfoundry/templates/environment.yml](src/nbfoundry/templates/environment.yml): single shared file with comment-delimited `# core`, `# framework`, `# huggingface`, `# optimization`, `# dev tooling` sections. Defaults to the proven Apple Silicon path (`tensorflow-macos` + `tensorflow-metal`, bundled Keras 3 from TF 2.16+, MPS PyTorch) with inline swap blocks for CUDA (`cu126` / `cu128`) and generic Linux/CPU (`tensorflow` / `tensorflow[and-cuda]`).
+- Core section additions: `pyarrow`, `seaborn`, `plotly`, `pillow`, `h5py`, `click`, `rich`, `python-dotenv`, `conda-lock`, and the Pointmatic-internal `ml-datarefinery` (package availability only — adapter and template wiring are deferred to a future Phase I per the phase plan).
+- HuggingFace section: `transformers`, `datasets`, `peft`, `sentencepiece`, `protobuf`, `tiktoken`.
+- Optimization section: `optuna`.
+- Dev-tooling section: `ruff`, `mypy`, `pytest`, `pytest-cov` (so a scaffolded student project ships dev-tool-complete out of the box).
+- `_emit_shared_env()` in [src/nbfoundry/cli.py](src/nbfoundry/cli.py): `nbfoundry init` now copies the single shared `environment.yml` into every scaffolded project alongside the template notebook.
+- [scripts/metal_smoke.py](scripts/metal_smoke.py) extended to import every new package after the framework MPS probes and assert basic availability — framework training for HuggingFace / Optuna stays in the F.c–F.g per-tool smoke stories.
+
+### Changed
+- [src/nbfoundry/standalone.py](src/nbfoundry/standalone.py) clarifies that the bundled-env fallback now resolves to the single shared sectioned file (per-template envs no longer exist).
+- [docs/specs/tech-spec.md](docs/specs/tech-spec.md) "Pinned ML stack" subsection rewritten to describe the new sectioned file and its by-section package list; package-structure block updated to show the shared `templates/environment.yml` and to note that lifecycle-template directories no longer carry their own env file.
+- [README.md](README.md) Apple Silicon quickstart updated to point at `src/nbfoundry/templates/environment.yml` (the shared spec) and to describe the new cross-platform CUDA / CPU swap blocks.
+
+### Removed
+- Per-template `environment.yml` copies under `src/nbfoundry/templates/{data_exploration,data_preparation,model_experimentation,model_optimization,model_evaluation}/` — superseded by the single shared file. `nbfoundry init` now sources the env from the templates root.
+- `jupyterlab`, `ipykernel`, `ipywidgets` from the env (Marimo replaces them).
+- Standalone `keras>=3.x` pin from the env. Keras 3 ships bundled inside TF 2.16+ and is exposed as both `tf.keras` and the bare `keras` namespace; a separate pin pulls a parallel minor and silently fights TF's bundled copy.
+
+### Note
+- Hardware verification (`mkdir env-refresh-test && cd env-refresh-test && cp <repo>/src/nbfoundry/templates/environment.yml . && pyve init --backend micromamba && pyve run python <repo>/scripts/metal_smoke.py`) is deferred to developer Apple Silicon hardware; the env solve isn't reproducible from CI.
+
 ## [0.29.0] - 2026-05-23
 
 ### Added

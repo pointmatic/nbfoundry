@@ -1,33 +1,101 @@
 # Copyright (c) 2026 Pointmatic
 # SPDX-License-Identifier: Apache-2.0
 #
-# Pinned ML stack for nbfoundry on Apple Silicon (Metal/MPS).
-# Reproduce with:  micromamba env create -f environment.yml -n nbfoundry
+# Shared ML stack for nbfoundry templates. Defaults to the proven Apple
+# Silicon path (Metal/MPS PyTorch, Apple's TensorFlow distribution + the
+# tensorflow-metal plugin, bundled Keras 3 from TF 2.16+). Cross-platform
+# users follow the swap blocks called out in each framework section.
 #
-# Channel preferences (per tech-spec.md "Pinned ML stack"):
-# - conda-forge: default for the scientific Python stack.
-# - pypi (via the `pip:` section): tensorflow-macos / tensorflow-metal which
-#   are not packaged on conda-forge for Apple Silicon.
-# - pytorch / apple: opt-in if conda-forge stops tracking the leading edge.
+# Reproduce with one of:
+#   pyve init --backend micromamba                  # reads this file locally
+#   micromamba env create -f environment.yml        # plain micromamba
+#
+# Channel preference: conda-forge for everything available there; PyPI (via
+# the `pip:` block) for Apple's TF distribution and Pointmatic-internal
+# packages that don't ship on conda-forge.
 
 name: nbfoundry
 channels:
   - conda-forge
 dependencies:
   - python=3.12.13
-  # Scientific Python core — let the solver pick mutually-compatible versions.
+  - pip
+
+  # ============================================================
+  # core — scientific Python + utilities every template uses
+  # ============================================================
   - numpy
   - scipy
-  - matplotlib
   - pandas
-  # ML stack — pinned to currently-stable Metal-compatible majors.
+  - pyarrow
+  - matplotlib
+  - seaborn
+  - plotly
   - scikit-learn>=1.5
-  - pytorch>=2.5    # MPS backend; verified on Apple Silicon
-  # Notebook runtime
+  - pillow
+  - h5py
+  - pyyaml
+  - click
+  - rich
+  - python-dotenv
   - marimo
-  # pip-only deps (Apple's TF distribution + the Metal acceleration plugin)
-  - pip
+  - conda-lock
+  # ml-datarefinery is Pointmatic-internal and pip-only; pinned in the pip:
+  # block below. Phase F only ensures it installs alongside nbfoundry; the
+  # adapter + template wiring lands in a future Phase I.
+
+  # ============================================================
+  # framework — PyTorch (Apple Silicon MPS default)
+  # ============================================================
+  # Cross-platform swap: drop this conda-forge line and add to the pip:
+  # block below:
+  #     --extra-index-url https://download.pytorch.org/whl/cu126
+  #     torch
+  #   (or .../whl/cu128 for CUDA 12.8)
+  # Mixing the conda-forge pytorch and a pip torch install fights — pick one.
+  - pytorch>=2.5
+
+  # ============================================================
+  # huggingface — transformers, datasets, peft, tokenizer helpers
+  # ============================================================
+  - transformers
+  - datasets
+  - peft
+  - sentencepiece
+  - protobuf
+  - tiktoken
+
+  # ============================================================
+  # optimization — hyperparameter search
+  # ============================================================
+  - optuna
+
+  # ============================================================
+  # dev tooling — scaffolded student projects ship dev-tool-complete
+  # ============================================================
+  - ruff
+  - mypy
+  - pytest
+  - pytest-cov
+
   - pip:
+      # =========================================================
+      # framework (pip) — TensorFlow + bundled Keras 3
+      # =========================================================
+      # Default: Apple's macOS distribution + Metal acceleration plugin.
+      # Cross-platform swap — replace the two lines below with one of:
+      #     tensorflow>=2.16            # CPU-only / generic
+      #     tensorflow[and-cuda]>=2.16  # Linux + CUDA
       - tensorflow-macos>=2.16
       - tensorflow-metal>=1.1
-      - keras>=3.5
+      # NOTE: do NOT add `keras` here. Keras 3 is the bundled `tf.keras`
+      # namespace exposed by TF 2.16+ and is also importable as bare `keras`
+      # (TF re-exports it). A separate `keras` pin pulls a parallel minor
+      # and silently fights TF's bundled copy.
+
+      # =========================================================
+      # core (pip-only) — Pointmatic-internal data prep
+      # =========================================================
+      # Package availability only in Phase F; nbfoundry-side adapter +
+      # template integration are deferred to a future Phase I.
+      - ml-datarefinery

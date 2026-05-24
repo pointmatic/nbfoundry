@@ -1,10 +1,14 @@
 # Copyright (c) 2026 Pointmatic
 # SPDX-License-Identifier: Apache-2.0
-"""Apple Silicon Metal-acceleration smoke test (Story E.a / PE-4).
+"""Apple Silicon Metal-acceleration smoke test (Story E.a / PE-4 / F.b).
 
 Probes each of PyTorch, TensorFlow, and Keras for an MPS-backed device and
-runs a small training step / matmul on it. Exits 0 only if every framework
-ran on MPS; non-zero with a clear message otherwise.
+runs a small training step / matmul on it. Also imports every other package
+added to the shared `templates/environment.yml` in Phase F (HuggingFace
+stack, Optuna, plotly, seaborn, pyarrow, etc.) and asserts they load — per-
+framework training for those tools is covered by the F.c-F.g per-tool smoke
+stories. Exits 0 only if every framework ran on MPS *and* every additional
+package imported cleanly.
 
 Run from the repo root after `micromamba env create -f environment.yml`:
 
@@ -98,6 +102,41 @@ def _keras_smoke() -> str | None:
     return None
 
 
+_F_B_IMPORT_PROBES: list[tuple[str, str]] = [
+    # (section, module name to import)
+    ("core", "pyarrow"),
+    ("core", "seaborn"),
+    ("core", "plotly"),
+    ("core", "PIL"),
+    ("core", "h5py"),
+    ("core", "yaml"),
+    ("core", "click"),
+    ("core", "rich"),
+    ("core", "dotenv"),
+    ("core", "conda_lock"),
+    ("core", "ml_datarefinery"),
+    ("huggingface", "transformers"),
+    ("huggingface", "datasets"),
+    ("huggingface", "peft"),
+    ("huggingface", "sentencepiece"),
+    ("huggingface", "google.protobuf"),
+    ("huggingface", "tiktoken"),
+    ("optimization", "optuna"),
+]
+
+
+def _f_b_imports_smoke() -> list[str]:
+    _section("F.b additional packages (import-only)")
+    fails: list[str] = []
+    for section, module in _F_B_IMPORT_PROBES:
+        try:
+            __import__(module)
+            _ok(f"[{section}] {module}")
+        except ImportError as e:
+            fails.append(_fail(f"[{section}] could not import {module}: {e}"))
+    return fails
+
+
 def main() -> int:
     failures: list[str] = []
     for label, probe in [
@@ -111,6 +150,9 @@ def main() -> int:
             err = _fail(f"unexpected error: {e!r}")
         if err is not None:
             failures.append(f"{label}: {err}")
+
+    extra_fails = _f_b_imports_smoke()
+    failures.extend(f"imports: {m}" for m in extra_fails)
 
     print("\n=== summary ===")
     if failures:

@@ -94,7 +94,16 @@ def cmd_init(
 
     target.mkdir(parents=True)
     _copy_template_tree(template_root, target)
+    _emit_shared_env(target)
     typer.echo(str(target))
+
+
+def _emit_shared_env(target: Path) -> None:
+    env_dst = target / "environment.yml"
+    if env_dst.exists():
+        return
+    shared_env = files(_TEMPLATES_PACKAGE).joinpath("environment.yml")
+    env_dst.write_text(shared_env.read_text(encoding="utf-8"), encoding="utf-8")
 
 
 def _copy_template_tree(src: Traversable, dst: Path) -> None:

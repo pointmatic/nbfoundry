@@ -52,6 +52,8 @@ def _populate(notebook_or_dir: Path, staged: Path) -> None:
     if env_src.is_file() and not (staged / "environment.yml").exists():
         shutil.copy2(env_src, staged / "environment.yml")
     elif not (staged / "environment.yml").exists():
+        # Fall back to the shared sectioned env shipped as package data.
+        # Per-template envs were dropped in F.b — one source of truth.
         bundled_env = files("nbfoundry.templates").joinpath("environment.yml")
         (staged / "environment.yml").write_text(
             bundled_env.read_text(encoding="utf-8"), encoding="utf-8"

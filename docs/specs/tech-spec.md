@@ -70,19 +70,34 @@ pyve testenv --install -r requirements-dev.txt
 | `pytest-cov` | Coverage measurement; fail-under 85 on `nbfoundry` public modules. |
 | `types-PyYAML` | mypy stubs. |
 
-### Pinned ML stack (in `environment.yml`, runtime — Apple Silicon Metal target)
+### Pinned ML stack (in `src/nbfoundry/templates/environment.yml`)
 
-User direction: **prefer the highest stable versions that remain compatible with the highest stable Python (3.12.13) and the rest of the scientific Python stack**. Channels: `conda-forge` and `pypi` preferred; open to `pytorch` / `apple` channels where they bring greater compatibility/stability. Specific version pins are **TBD at implementation time** (during the `plan_phase` / build-out story for environment lockdown) — the spec lists the slots, not the numbers.
+Single sectioned cross-platform stack shipped as package data. `nbfoundry init`
+copies it into every scaffolded project; `nbfoundry compile` emits it into every
+standalone artifact unless the source tree carries its own. Defaults to the
+proven Apple Silicon path (Metal/MPS PyTorch, Apple's TensorFlow distribution +
+`tensorflow-metal`, bundled Keras 3 from TF 2.16+). Cross-platform users follow
+documented comment-block swaps inside each framework section.
 
-| Slot | Channel preference | Notes |
+Sections (`# core`, `# framework`, `# huggingface`, `# optimization`,
+`# dev tooling`) are comment-delimited within the one shared file. The
+per-template `environment.yml` copies were removed in Phase F.b — one source
+of truth.
+
+| Section | Channel | Packages |
 |---|---|---|
-| `python=3.12.13` | conda-forge | Pinned exact. |
-| `pytorch` (Metal) | pytorch / conda-forge | MPS backend verified on Apple Silicon. |
-| `tensorflow` (Metal) | apple / conda-forge | `tensorflow-metal` plugin where required. |
-| `keras` | conda-forge / pypi | Aligned with TF major. |
-| `scikit-learn` | conda-forge | |
-| `numpy`, `scipy`, `matplotlib`, `pandas` | conda-forge | Compatibility-driven floor; let solver pick. |
-| `marimo` | pypi (via pip section in env) | Same version as the runtime declared in `pyproject.toml`. |
+| core | conda-forge | `python=3.12.13` (exact), `numpy`, `scipy`, `pandas`, `pyarrow`, `matplotlib`, `seaborn`, `plotly`, `scikit-learn>=1.5`, `pillow`, `h5py`, `pyyaml`, `click`, `rich`, `python-dotenv`, `marimo`, `conda-lock` |
+| core (pip) | pypi | `ml-datarefinery` (Pointmatic-internal; adapter + template integration deferred to a future Phase I) |
+| framework | conda-forge | `pytorch>=2.5` (MPS default; cross-platform swap to `cu126` / `cu128` pip wheels documented inline) |
+| framework (pip) | pypi | `tensorflow-macos>=2.16` + `tensorflow-metal>=1.1` (Apple Silicon default; swap to `tensorflow` or `tensorflow[and-cuda]` documented inline). Keras 3 is the bundled `tf.keras` namespace — **no standalone `keras` pin**. |
+| huggingface | conda-forge | `transformers`, `datasets`, `peft`, `sentencepiece`, `protobuf`, `tiktoken` |
+| optimization | conda-forge | `optuna` |
+| dev tooling | conda-forge | `ruff`, `mypy`, `pytest`, `pytest-cov` (so scaffolded student projects ship dev-tool-complete) |
+
+**Phase F dropped (do not reintroduce):** `jupyterlab`, `ipykernel`, `ipywidgets`
+(Marimo replaces them); standalone `keras>=3.x` (Keras 3 ships bundled with TF
+2.16+ and is exposed as both `tf.keras` and bare `keras`; a separate pin pulls a
+parallel minor and silently fights TF's bundled copy).
 
 ---
 
@@ -120,7 +135,8 @@ nbfoundry/                                    # repo root
 │       ├── _modelfoundry.py                  # thin adapter Protocol; raises clear error when modelfoundry not importable
 │       └── templates/
 │           ├── __init__.py                   # importlib.resources entry point
-│           ├── data_exploration/             # five-stage lifecycle template (Marimo .py + supporting files)
+│           ├── environment.yml               # single shared sectioned ML stack (replaces per-template copies as of F.b)
+│           ├── data_exploration/             # five-stage lifecycle template (Marimo .py only; env from shared file)
 │           ├── data_preparation/
 │           ├── model_experimentation/
 │           ├── model_optimization/
