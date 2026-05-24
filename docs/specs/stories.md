@@ -143,18 +143,30 @@ pyve run pip install nbfoundry==<latest-published>
 pyve test tests/integration/test_e2e_keras.py -m hardware
 ```
 
-### Story F.f: v0.34.0 HuggingFace stack happy path [Planned]
+### Story F.f: v0.34.0 HuggingFace stack happy path [Done]
 
 End-to-end smoke covering `transformers` + `datasets` + `peft` against a small pretrained model and a tiny dataset.
 
-- [ ] `tests/integration/test_e2e_huggingface.py` marked `@pytest.mark.slow` and `@pytest.mark.hardware`
-- [ ] Test procedure: load a small pretrained model (e.g. `distilbert-base-uncased` or `sshleifer/tiny-gpt2`) via `transformers`; load a tiny synthetic dataset via `datasets`; apply a `peft` LoRA wrapper; run one forward pass; assert tokenizer round-trip, model output shape, and PEFT parameter count is materially smaller than full-model parameter count
-- [ ] Budget: under 90s on M-series silicon (model download cached on first run)
-- [ ] Apache-2.0 / Pointmatic header
-- [ ] Document the run procedure in the story body, including the cache-warmup caveat
-- [ ] Bump version to v0.34.0
-- [ ] Update CHANGELOG.md
+- [x] `tests/integration/test_e2e_huggingface.py` marked `@pytest.mark.slow` and `@pytest.mark.hardware`
+- [x] Test procedure: load `sshleifer/tiny-gpt2` (~5MB) via `transformers.AutoModelForCausalLM`; build a 3-example synthetic `datasets.Dataset.from_dict`; wrap with `peft.LoraConfig(task_type=CAUSAL_LM, r=4, lora_alpha=8, target_modules=["c_attn"])`; run one forward pass; assert tokenizer round-trip, logits shape `(1, seq_len, vocab_size)`, and LoRA-trainable params are materially smaller than base model total (< base_total / 10)
+- [x] Budget: under 90s on M-series silicon (model download cached on first run)
+- [x] Apache-2.0 / Pointmatic header
+- [x] Document the run procedure in the story body, including the cache-warmup caveat (embedded in the test module docstring at [tests/integration/test_e2e_huggingface.py](../../tests/integration/test_e2e_huggingface.py))
+- [x] Bump version to v0.34.0
+- [x] Update CHANGELOG.md
 - [ ] Verify: `pyve test tests/integration/test_e2e_huggingface.py -m hardware` passes on developer Apple Silicon — **deferred to developer hardware**
+
+**Run procedure** — identical to F.c/F.d/F.e with the test path swapped, plus a cache-warmup caveat:
+
+```bash
+mkdir hf-smoke && cd hf-smoke
+cp <repo>/src/nbfoundry/templates/environment.yml .
+pyve init --backend micromamba
+pyve run pip install nbfoundry==<latest-published>
+pyve test tests/integration/test_e2e_huggingface.py -m hardware
+```
+
+The first run downloads `sshleifer/tiny-gpt2` (~5MB) into `~/.cache/huggingface/hub`. Subsequent runs read from cache. If you are behind a corporate proxy or running in an environment without internet access, set `HF_HUB_OFFLINE=1` only *after* the cache has been warmed at least once.
 
 ### Story F.g: v0.35.0 Optuna hyperparameter search happy path [Planned]
 

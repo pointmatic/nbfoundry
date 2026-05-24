@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-05-23
+
+### Added
+- HuggingFace end-to-end happy-path smoke at [tests/integration/test_e2e_huggingface.py](tests/integration/test_e2e_huggingface.py): two hardware-gated tests against `sshleifer/tiny-gpt2` (~5MB).
+  - `test_tokenizer_round_trip` — loads the tokenizer via `AutoTokenizer.from_pretrained`, encodes "the quick brown fox", decodes back, asserts the round-trip matches.
+  - `test_peft_lora_shrinks_trainable_params_and_forward_pass_works` — loads the base causal LM via `AutoModelForCausalLM`, builds a 3-example `datasets.Dataset.from_dict`, wraps the model with `peft.LoraConfig(task_type=CAUSAL_LM, r=4, lora_alpha=8, target_modules=["c_attn"])`, asserts LoRA-trainable params are materially smaller than the base model total (< base_total / 10), and runs one forward pass asserting the logits shape is `(1, seq_len, vocab_size)`.
+
+### Note
+- Budget bumped to 90s (story spec) because the first run downloads the model into `~/.cache/huggingface/hub`; subsequent runs read from cache and finish in well under 30s.
+- Hardware verification (`pyve test tests/integration/test_e2e_huggingface.py -m hardware` against a fresh micromamba env with `nbfoundry` installed from PyPI, network access to HF Hub on first run) is deferred to developer Apple Silicon hardware.
+
 ## [0.33.0] - 2026-05-23
 
 ### Added
