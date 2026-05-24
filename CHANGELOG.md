@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-05-23
+
+### Added
+- PyTorch end-to-end happy-path smoke at [tests/integration/test_e2e_pytorch.py](tests/integration/test_e2e_pytorch.py): builds a tiny `Linear(8,16) → ReLU → Linear(16,1)` classifier on `(100, 8)` random data, trains 1 epoch with `batch_size=16` (≈6 optimizer steps) on `torch.device("mps")`, records the BCE-with-logits loss at each batch, and asserts `losses[-1] < losses[0]` plus `torch.backends.mps.is_available()`. Gated behind `@pytest.mark.slow` and `@pytest.mark.hardware`; opt-in via `pyve test -m hardware`. Budget: under 60s on M-series silicon.
+
+### Note
+- Mirrors the F.c TensorFlow smoke's structure (module-level `pytestmark = [slow, hardware]`, `pytest.importorskip`, run-procedure in the module docstring), but tracks loss **per batch within 1 epoch** rather than per epoch — that matches the story's literal "1 epoch on MPS" wording while still providing the ≥2 measurements the loss-decrease assertion needs.
+- Hardware verification (`pyve test tests/integration/test_e2e_pytorch.py -m hardware` against a fresh micromamba env with `nbfoundry` installed from PyPI) is deferred to developer Apple Silicon hardware.
+
 ## [0.31.0] - 2026-05-23
 
 ### Added
