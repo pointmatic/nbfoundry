@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-05-23
+
+### Added
+- Keras 3 end-to-end happy-path smoke at [tests/integration/test_e2e_keras.py](tests/integration/test_e2e_keras.py): two hardware-gated tests.
+  - `test_keras_is_the_tf_bundled_namespace` — guards against accidental reintroduction of the standalone `keras` pin that F.b dropped. Asserts `importlib.metadata.distribution("keras")` raises `PackageNotFoundError` (i.e. no separate distribution is installed) and that the `keras` module's `__file__` resolves under the TensorFlow install tree.
+  - `test_keras_3_mps_loss_decreases` — builds a `Dense(16, relu) → Dense(1, sigmoid)` model via `keras.Sequential` (resolving to the TF-bundled namespace), trains 3 epochs on `(100, 8)` random data under `tf.device("/GPU:0")`, and asserts `history.history["loss"][-1] < losses[0]`.
+
+### Note
+- Same per-epoch loss-decrease adaptation as F.c (3 epochs rather than 1) — required because Keras' `model.fit` returns one loss value per epoch, and asserting a decrease needs ≥2 measurements.
+- Hardware verification (`pyve test tests/integration/test_e2e_keras.py -m hardware` against a fresh micromamba env with `nbfoundry` installed from PyPI) is deferred to developer Apple Silicon hardware.
+
 ## [0.32.0] - 2026-05-23
 
 ### Added
