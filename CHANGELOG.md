@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.34.1] - 2026-05-29
+
+### Fixed
+- [scripts/metal_smoke.py](scripts/metal_smoke.py) no longer exits silently (SIGBUS, `exit=138`) partway through the Keras section on Apple Silicon. Root cause: PyTorch's MPS backend and TensorFlow-Metal cannot coexist in one process — once `torch.mps` claims the Metal device, the later TF-Metal Grappler optimization that Keras's TF backend triggers on `fit()` faults on misaligned memory. The script ran all frameworks in one process and wrapped each probe in `try/except Exception`, which cannot catch native (signal) termination, so the only failure mode that occurs was invisible. Fix: each framework probe now runs in its own subprocess (`--probe <name>`); the driver imports no ML framework, collects each child's exit code, and reports `PASS` / `FAIL (exit N)` / `CRASH (signal N, exit 128+N)`. Process isolation makes the co-residence crash impossible and any native crash loud. Verified on developer M3 Max: all probes `PASS`, `exit=0`.
+- The `ml-datarefinery` import probe in [scripts/metal_smoke.py](scripts/metal_smoke.py) used the wrong module name (`ml_datarefinery`); the PyPI distribution is `ml-datarefinery` but the import name is `datarefinery` (sklearn-style). The bug was previously masked by the SIGBUS, which crashed before the import-probe section ran.
+
+### Added
+- [tests/unit/test_metal_smoke.py](tests/unit/test_metal_smoke.py): hardware-independent regression tests for the subprocess-isolation driver — each framework runs in its own subprocess, and a native crash in one is reported rather than swallowed.
+
 ## [0.34.0] - 2026-05-23
 
 ### Added

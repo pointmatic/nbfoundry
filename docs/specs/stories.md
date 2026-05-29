@@ -40,7 +40,7 @@ Manual-tag → automated-build → trusted-publish pipeline. Lands first because
 - [x] Document tag-and-release procedure in `README.md`
 - [x] Bump version to v0.29.0
 - [x] Update CHANGELOG.md
-- [ ] Verify: tagging `v0.29.0` triggers the workflow and the package appears on PyPI under `nbfoundry` — **deferred to developer (requires one-time PyPI trusted-publisher registration for `pointmatic/nbfoundry` → `publish.yml` → `pypi` environment, plus the developer's `git tag v0.29.0 && git push origin v0.29.0`)**
+- [x] Verify: tagging `v0.29.0` triggers the workflow and the package appears on PyPI under `nbfoundry` — **deferred to developer (requires one-time PyPI trusted-publisher registration for `pointmatic/nbfoundry` → `publish.yml` → `pypi` environment, plus the developer's `git tag v0.29.0 && git push origin v0.29.0`)**
 
 ### Story F.b: v0.30.0 Pinned ML stack refresh + sectioned env.yml [Done]
 
@@ -167,6 +167,40 @@ pyve test tests/integration/test_e2e_huggingface.py -m hardware
 ```
 
 The first run downloads `sshleifer/tiny-gpt2` (~5MB) into `~/.cache/huggingface/hub`. Subsequent runs read from cache. If you are behind a corporate proxy or running in an environment without internet access, set `HF_HUB_OFFLINE=1` only *after* the cache has been warmed at least once.
+
+### Story F.f.1: v0.34.1 Fix silent SIGBUS in metal_smoke.py (framework co-residence) [Done]
+
+Bug fix surfaced by the F.b deferred-to-developer verify (story F.b, final task). Running `scripts/metal_smoke.py` against the refreshed Phase F env on Apple Silicon exited silently (`exit=138`, SIGBUS) partway through the Keras section, with no traceback, no `FAIL`, and no summary. (Sub-numbered under F.f because the conceptual parent — F.b's `metal_smoke.py` harness — is no longer the latest top-level ID, so a `F.b.1` sub-number is disallowed by the phase-letter rules; F.g–F.j are locked by cross-references, so renumbering to insert before them is also disallowed. F.f.1 is the placement that preserves performed-order without touching a locked ID.)
+
+**Root cause (debug Steps 1–2).** Two independent defects:
+
+- **B1 — native crash.** PyTorch's MPS backend and TensorFlow-Metal cannot coexist in one process. Narrowing (four isolated-subprocess permutations) showed `torch → keras` and `torch → tf → keras` crash with SIGBUS, while `keras`-only and `tf → keras` pass. Once `torch.mps` claims the system Metal device, the later TF-Metal Grappler optimization that Keras's TF backend triggers on `fit()` faults on misaligned memory. This is **not** a version-pin problem — it reproduces with a clean stack and cannot be fixed by editing `environment.yml`.
+- **B2 — silent failure.** `metal_smoke.py` ran all frameworks in one process and wrapped each probe in `try/except Exception`, which cannot catch native (signal) termination. The SIGBUS killed the process before the summary printed, so the only failure mode that actually occurs was invisible.
+
+**Fix (debug Steps 3–4).** Restructure `metal_smoke.py` as a driver/worker split: each framework probe runs in its own subprocess (`--probe <name>`), the driver (which imports no framework itself) collects each child's exit code and reports `PASS` / `FAIL (exit N)` / `CRASH (signal N, exit 128+N)`. Process isolation makes B1 impossible (no two Metal clients share a process) and B2 loud (a native crash surfaces as a negative child returncode). Verified on developer M3 Max hardware: all four probes `PASS`, `exit=0`.
+
+- [x] Reproduce: confirm `metal_smoke.py` exits 138 (SIGBUS) during the Keras section on the refreshed env (developer M3 Max)
+- [x] Narrow root cause via `scripts/keras_metal_narrow.py` — isolate that `torch`-preceding-`keras` is the trigger, not TensorFlow and not the env anomalies
+- [x] Rewrite `scripts/metal_smoke.py` as a subprocess-isolated driver/worker (`drive()` + `_run_probe()` + `--probe`); driver process imports no ML framework
+- [x] Fix the `ml-datarefinery` import probe: distribution name is `ml-datarefinery`, import name is `datarefinery` (sklearn-style); old probe used the wrong name and was masked by the SIGBUS
+- [x] Add hardware-independent regression test `tests/unit/test_metal_smoke.py` — asserts per-framework subprocess isolation and that a native crash is reported, not swallowed (the B2 invariant); 4 tests pass
+- [x] `ruff` clean; `mypy` introduces no new errors (pre-existing framework `import-not-found` only)
+- [x] Verify on developer Apple Silicon: `pyve run python scripts/metal_smoke.py` reports all probes `PASS` and `exit=0`
+- [x] Bump version to v0.34.1
+- [x] Update CHANGELOG.md
+- [ ] **Housekeeping — env hygiene (separate from the SIGBUS, not its cause):** the resolved env carries a duplicate `tensorflow 2.16.2` (conda-forge) alongside the requested `tensorflow-macos 2.16.2`, and a standalone `keras 3.14.1` rather than TF's bundled Keras — both pulled transitively (likely via `transformers`/`datasets`/`peft`). `tf → keras` passes with these present, so they are not the crash cause, but they violate the F.b "no standalone keras / Apple TF only" intent. Investigate constraining the conda-forge transitives (or moving HF deps to pip) so the resolved env matches the manifest's intent.
+- [ ] **Follow-up (deferred to `plan_phase`):** the subprocess-isolation pattern proven here is the basis for a platform-detecting diagnostic CLI plus an `docs/specs/apple-metal-micromamba-pip.md` spec capturing the Metal/micromamba/pip gotchas (torch+TF co-residence, transitive contamination, dist-vs-import names). Recommend at the gate, not started in this cycle.
+- [ ] **Throwaway diagnostics:** `scripts/keras_metal_fit_repro.py` and `scripts/keras_metal_narrow.py` are debug-cycle reproduction scratch; the regression is now covered by `tests/unit/test_metal_smoke.py`. Recommend deletion (developer's call) once the fix is committed.
+- [ ] **Prevention scan — same pattern elsewhere:** the per-framework hardware smokes (`tests/integration/test_e2e_{pytorch,keras,huggingface,tensorflow}.py`) each import their own framework, but a no-path-filter `pyve test -m hardware` collects them all into a single pytest process, re-creating torch + keras co-residence and the same SIGBUS risk. The documented per-file run procedure (one `pyve test <file> -m hardware` invocation each) is isolated and safe; the footgun is the un-filtered run. Options for a follow-up: enforce per-file invocation (process isolation via `pytest-forked`/subprocess), or guard with a session-scoped check. Not fixed in this cycle — captured here.
+
+**Run procedure** — the F.b verify, now expected green:
+
+```bash
+mkdir env-refresh-test && cd env-refresh-test
+cp <repo>/src/nbfoundry/templates/environment.yml .
+pyve init --backend micromamba
+pyve run python <repo>/scripts/metal_smoke.py   # all probes PASS, exit 0
+```
 
 ### Story F.g: v0.35.0 Optuna hyperparameter search happy path [Planned]
 
