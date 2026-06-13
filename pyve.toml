@@ -1,0 +1,35 @@
+pyve_schema = "3.0"
+
+[project]
+name = "nbfoundry"
+
+# Light: nbfoundry itself + its runtime deps. No ML stack.
+[env.root]
+purpose = "utility"
+backend = "venv"                              # nbfoundry is light; conda is overkill
+
+# Light: routine CI tests, ruff, mypy, pytest. Default for every `pyve test`.
+[env.testenv]
+purpose = "test"
+backend = "venv"
+default = true
+requirements = ["requirements-dev.txt"]
+
+# Heavy, focused, lazy: hardware smokes, one env per framework.
+[env.smoke-pytorch]
+purpose = "test"
+backend = "micromamba"
+manifest = "tests/integration/env/pytorch.yml"   # torch + numpy + pytest only
+lazy = true
+
+[env.smoke-tensorflow]
+purpose = "test"
+backend = "micromamba"
+manifest = "tests/integration/env/tensorflow.yml"   # tf-macos + tf-metal + numpy + pytest
+lazy = true                                         # serves F.c TF AND F.e Keras (bundled)
+
+[env.smoke-huggingface]
+purpose = "test"
+backend = "micromamba"
+manifest = "tests/integration/env/huggingface.yml"  # transformers + datasets + peft + torch + numpy + pytest
+lazy = true

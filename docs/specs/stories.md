@@ -62,7 +62,7 @@ Rewrite the template env as a single sectioned cross-platform stack derived from
 - [x] Apache-2.0 / Pointmatic header on `environment.yml` (YAML `#` comments) and any new files
 - [x] Bump version to v0.30.0
 - [x] Update CHANGELOG.md
-- [ ] Verify: `mkdir env-refresh-test && cd env-refresh-test && cp <repo>/src/nbfoundry/templates/environment.yml . && pyve init --backend micromamba && pyve run python <repo>/scripts/metal_smoke.py` reports all packages import cleanly on Apple Silicon — **deferred to developer hardware**
+- [x] Verify: `mkdir env-refresh-test && cd env-refresh-test && cp <repo>/src/nbfoundry/templates/environment.yml . && pyve init --backend micromamba && pyve run python <repo>/scripts/metal_smoke.py` reports all packages import cleanly on Apple Silicon — **deferred to developer hardware**
 
 ### Story F.c: v0.31.0 TensorFlow happy path [Done]
 
@@ -75,7 +75,7 @@ End-to-end smoke proving the refreshed stack produces a working TF/MPS training 
 - [x] Document the run procedure in the story body for the developer-hardware verify (procedure embedded in the test module docstring at [tests/integration/test_e2e_tensorflow.py](../../tests/integration/test_e2e_tensorflow.py))
 - [x] Bump version to v0.31.0
 - [x] Update CHANGELOG.md
-- [ ] Verify: `pyve test tests/integration/test_e2e_tensorflow.py -m hardware` passes on developer Apple Silicon — **deferred to developer hardware**
+- [x] Verify: `pyve test <repo>/tests/integration/test_e2e_tensorflow.py -m hardware` passes on developer Apple Silicon — verified 2026-05-29 on M3 Max (1 passed in 8.41s); actual invocation used `--env main` per the testenv-trap doc
 
 **Run procedure (one-time per release, on developer Apple Silicon):**
 
@@ -83,7 +83,7 @@ End-to-end smoke proving the refreshed stack produces a working TF/MPS training 
 # 1. Build a fresh micromamba-backed env from the refreshed templates env.
 mkdir tf-smoke && cd tf-smoke
 cp <repo>/src/nbfoundry/templates/environment.yml .
-pyve init --backend micromamba
+pyve init --backend micromamba --no-lock
 
 # 2. Install nbfoundry from PyPI into that env (not editable from the working
 #    tree -- per project-essentials, F.c-F.j install from PyPI to validate
@@ -107,7 +107,8 @@ End-to-end smoke proving the refreshed stack produces a working PyTorch/MPS trai
 - [x] Document the run procedure in the story body (procedure embedded in the test module docstring at [tests/integration/test_e2e_pytorch.py](../../tests/integration/test_e2e_pytorch.py))
 - [x] Bump version to v0.32.0
 - [x] Update CHANGELOG.md
-- [ ] Verify: `pyve test tests/integration/test_e2e_pytorch.py -m hardware` passes on developer Apple Silicon — **deferred to developer hardware**
+- [x] Verify: `pyve test <repo>/tests/integration/test_e2e_pytorch.py -m hardware` activates test outside the repo, skips without `--env` flag. — verified 2026-05-29 on M3 Max (1 skipped; `could not import 'torch'`); pyve's silent-skip advisory fired with the corrective hint
+- [x] Verify: `pyve test --env root <repo>/tests/integration/test_e2e_pytorch.py -m hardware` passes on developer Apple Silicon — verified 2026-05-29 on M3 Max (1 passed in 25.79s; torch trained on MPS, loss decreased)
 
 **Run procedure** — identical to F.c with the test path swapped:
 
@@ -116,7 +117,7 @@ mkdir torch-smoke && cd torch-smoke
 cp <repo>/src/nbfoundry/templates/environment.yml .
 pyve init --backend micromamba
 pyve run pip install nbfoundry==<latest-published>
-pyve test tests/integration/test_e2e_pytorch.py -m hardware
+pyve test --env root <repo>/tests/integration/test_e2e_pytorch.py -m hardware
 ```
 
 ### Story F.e: v0.33.0 Keras 3 happy path [Done]
@@ -131,7 +132,7 @@ End-to-end smoke proving Keras 3 (the bundled `tf.keras` from TF 2.16+) works in
 - [x] Document the run procedure in the story body (embedded in the test module docstring at [tests/integration/test_e2e_keras.py](../../tests/integration/test_e2e_keras.py))
 - [x] Bump version to v0.33.0
 - [x] Update CHANGELOG.md
-- [ ] Verify: `pyve test tests/integration/test_e2e_keras.py -m hardware` passes on developer Apple Silicon — **deferred to developer hardware**
+- [ ] Verify: `pyve test --env main <repo>/tests/integration/test_e2e_keras.py -m hardware` passes on developer Apple Silicon — **attempted 2026-05-29 on M3 Max: 1 failed, 1 passed.** `test_keras_3_mps_loss_decreases` passed (Keras trained on MPS). `test_keras_is_the_tf_bundled_namespace` failed: `a standalone keras distribution is installed (3.14.1)` — exactly the env-hygiene regression F.b dropped and F.e's guard was authored to catch. **Blocked by F.f.1 env-hygiene housekeeping** (constrain transitive pulls of `keras` / conda-forge `tensorflow` via `transformers`/`datasets`/`peft`).
 
 **Run procedure** — identical to F.c/F.d with the test path swapped:
 
@@ -154,7 +155,7 @@ End-to-end smoke covering `transformers` + `datasets` + `peft` against a small p
 - [x] Document the run procedure in the story body, including the cache-warmup caveat (embedded in the test module docstring at [tests/integration/test_e2e_huggingface.py](../../tests/integration/test_e2e_huggingface.py))
 - [x] Bump version to v0.34.0
 - [x] Update CHANGELOG.md
-- [ ] Verify: `pyve test tests/integration/test_e2e_huggingface.py -m hardware` passes on developer Apple Silicon — **deferred to developer hardware**
+- [x] Verify: `pyve test --env main <repo>/tests/integration/test_e2e_huggingface.py -m hardware` passes on developer Apple Silicon — verified 2026-05-30 on M3 Max (2 passed in 26.78s; tokenizer round-trip + LoRA forward pass; 6 deprecation warnings from `transformers`/`huggingface_hub`/`peft`, no failures)
 
 **Run procedure** — identical to F.c/F.d/F.e with the test path swapped, plus a cache-warmup caveat:
 
@@ -168,7 +169,7 @@ pyve test tests/integration/test_e2e_huggingface.py -m hardware
 
 The first run downloads `sshleifer/tiny-gpt2` (~5MB) into `~/.cache/huggingface/hub`. Subsequent runs read from cache. If you are behind a corporate proxy or running in an environment without internet access, set `HF_HUB_OFFLINE=1` only *after* the cache has been warmed at least once.
 
-### Story F.f.1: v0.34.1 Fix silent SIGBUS in metal_smoke.py (framework co-residence) [Done]
+### Story F.f.1: v0.34.1 Fix silent SIGBUS in metal_smoke.py (framework co-residence) [Planned]
 
 Bug fix surfaced by the F.b deferred-to-developer verify (story F.b, final task). Running `scripts/metal_smoke.py` against the refreshed Phase F env on Apple Silicon exited silently (`exit=138`, SIGBUS) partway through the Keras section, with no traceback, no `FAIL`, and no summary. (Sub-numbered under F.f because the conceptual parent — F.b's `metal_smoke.py` harness — is no longer the latest top-level ID, so a `F.b.1` sub-number is disallowed by the phase-letter rules; F.g–F.j are locked by cross-references, so renumbering to insert before them is also disallowed. F.f.1 is the placement that preserves performed-order without touching a locked ID.)
 
@@ -188,10 +189,13 @@ Bug fix surfaced by the F.b deferred-to-developer verify (story F.b, final task)
 - [x] Verify on developer Apple Silicon: `pyve run python scripts/metal_smoke.py` reports all probes `PASS` and `exit=0`
 - [x] Bump version to v0.34.1
 - [x] Update CHANGELOG.md
-- [ ] **Housekeeping — env hygiene (separate from the SIGBUS, not its cause):** the resolved env carries a duplicate `tensorflow 2.16.2` (conda-forge) alongside the requested `tensorflow-macos 2.16.2`, and a standalone `keras 3.14.1` rather than TF's bundled Keras — both pulled transitively (likely via `transformers`/`datasets`/`peft`). `tf → keras` passes with these present, so they are not the crash cause, but they violate the F.b "no standalone keras / Apple TF only" intent. Investigate constraining the conda-forge transitives (or moving HF deps to pip) so the resolved env matches the manifest's intent.
+- [x] **Housekeeping — env hygiene (separate from the SIGBUS, not its cause):** the resolved env carries a duplicate `tensorflow 2.16.2` (conda-forge) alongside the requested `tensorflow-macos 2.16.2`, and a standalone `keras 3.14.1` rather than TF's bundled Keras — both pulled transitively (likely via `transformers`/`datasets`/`peft`). `tf → keras` passes with these present, so they are not the crash cause, but they violate the F.b "no standalone keras / Apple TF only" intent. **Upgraded to a real bug + tracked in F.f.2** (Constrain template transitives) after F.e's `test_keras_is_the_tf_bundled_namespace` guard fired on it during the 2026-05-29 verify pass on M3 Max. F.f.2 is blocked on the pyve named-testenvs feature bundle.
 - [ ] **Follow-up (deferred to `plan_phase`):** the subprocess-isolation pattern proven here is the basis for a platform-detecting diagnostic CLI plus an `docs/specs/apple-metal-micromamba-pip.md` spec capturing the Metal/micromamba/pip gotchas (torch+TF co-residence, transitive contamination, dist-vs-import names). Recommend at the gate, not started in this cycle.
 - [ ] **Throwaway diagnostics:** `scripts/keras_metal_fit_repro.py` and `scripts/keras_metal_narrow.py` are debug-cycle reproduction scratch; the regression is now covered by `tests/unit/test_metal_smoke.py`. Recommend deletion (developer's call) once the fix is committed.
 - [ ] **Prevention scan — same pattern elsewhere:** the per-framework hardware smokes (`tests/integration/test_e2e_{pytorch,keras,huggingface,tensorflow}.py`) each import their own framework, but a no-path-filter `pyve test -m hardware` collects them all into a single pytest process, re-creating torch + keras co-residence and the same SIGBUS risk. The documented per-file run procedure (one `pyve test <file> -m hardware` invocation each) is isolated and safe; the footgun is the un-filtered run. Options for a follow-up: enforce per-file invocation (process isolation via `pytest-forked`/subprocess), or guard with a session-scoped check. Not fixed in this cycle — captured here.
+- [x] **pyve testenv trap — documented + fixed in pyve:** the prevention-scan discussion found that `pyve test` routes to a stack-less venv testenv even when the bundled `environment.yml` main env has both pytest and the stack, so hardware smokes **silently skip**. Captured in `docs/specs/phase-f-pyve-micromamba-testenv-trap.md`; pyve shipped `pyve test --env main` + a silent-skip advisory in response.
+- [x] **pyve named-testenvs — context brief for pyve planning:** authored `docs/specs/phase-f-pyve-named-testenvs.md`, a use-case/requirements brief (light-CI-vs-heavy-smoke envs, conda/runtime parity, native-dep backends, payload-fidelity, polyglot) to drive a pyve planning phase for general **named / multiple test environments**. Implementation is pyve's, in the pyve repo — tracked here only as the debug-cycle paper trail.
+- [ ] **e2e smoke run-procedure docstrings (deferred):** the F.c–F.f `test_e2e_*.py` docstrings (and the F.f run-procedure block) still say "run from inside the repo: `pyve test …`", which silently skips per the testenv trap. Correct form is the main-env runner (`pyve test --env main <repo>/… -m hardware`, or `pyve run python -m pytest …` on older pyve), one file at a time. Held pending the pyve named-testenvs direction to avoid churn; update once that lands.
 
 **Run procedure** — the F.b verify, now expected green:
 
@@ -201,6 +205,50 @@ cp <repo>/src/nbfoundry/templates/environment.yml .
 pyve init --backend micromamba
 pyve run python <repo>/scripts/metal_smoke.py   # all probes PASS, exit 0
 ```
+
+### Story F.f.2: v0.34.2 Constrain template transitives (standalone keras / duplicate tensorflow) [Planned]
+
+> **Blocked on:** the pyve **named test environments** feature bundle — see
+> [`phase-f-pyve-named-testenvs.md`](phase-f-pyve-named-testenvs.md). The fix
+> itself is a constraint on `src/nbfoundry/templates/environment.yml`, but the
+> *verify cycle* (build a micromamba env from the modified template, run F.e's
+> hygiene guard + the F.c/F.d/F.f smokes against it, iterate on the constraint)
+> is the manual separate-directory dance today and dramatically smoother once
+> named testenvs let the stack-bearing env live in-repo. Do not work this story
+> before pyve ships that bundle.
+
+Restore the F.b "no standalone keras / Apple TF only" contract that's currently violated by the resolved env. F.f.1's prevention scan flagged this as housekeeping; F.e's `test_keras_is_the_tf_bundled_namespace` guard then caught it as a hard test failure on the developer-hardware verify pass (2026-05-29 on M3 Max): `a standalone keras distribution is installed (3.14.1)`. The same resolution also carries a duplicate `tensorflow 2.16.2` from conda-forge alongside the requested `tensorflow-macos 2.16.2`. Neither is the SIGBUS cause (that was torch+TF-Metal co-residence, fixed in F.f.1), but both violate the manifest's stated intent and trip the regression guard F.b authored against exactly this drift.
+
+**Symptom & evidence:**
+- F.e verify on M3 Max 2026-05-29: 1 failed, 1 passed. Training test (`test_keras_3_mps_loss_decreases`) passes. Guard test (`test_keras_is_the_tf_bundled_namespace`) fails on standalone `keras 3.14.1`.
+- `pip list` in the resolved env: `tensorflow 2.16.2` (conda-forge) **and** `tensorflow-macos 2.16.2` (pip), plus `keras 3.14.1` standalone — none of which the template explicitly requests.
+
+**Root-cause hypothesis (to confirm in the cycle, not prescribe here):** conda-forge's `transformers` / `datasets` / `peft` recipes pull `tensorflow` and `keras` as optional/runtime deps; the conda solver materializes them even though the template's `pip:` block separately installs Apple's `tensorflow-macos` distribution. Likely fix axes — moving HF deps to the `pip:` block, channel/build constraints, explicit excludes, or `nodefaults` — to be chosen during root-cause analysis.
+
+**Acceptance criteria:**
+- F.e's `test_keras_is_the_tf_bundled_namespace` guard passes on developer Apple Silicon (no standalone `keras` distribution installed).
+- Resolved env contains exactly one `tensorflow*` distribution, matching the manifest's stated Apple-Silicon choice (`tensorflow-macos`).
+- F.e training test (`test_keras_3_mps_loss_decreases`), F.c, F.d, F.f smokes remain green — no regression in the broader stack.
+- A hygiene assertion (no standalone `keras`, no duplicate `tensorflow`) is added to the in-repo test suite, runnable via the new pyve named-testenv infrastructure once shipped.
+
+**Tasks** *(all `[ ]` until unblocked)*:
+
+- [ ] Root-cause which conda-forge package(s) pull standalone `keras` and `tensorflow` as transitives in the current template resolution
+- [ ] Choose and apply the manifest constraint (move HF to `pip:` / channel constraint / exclude pin / `nodefaults` — picked during investigation)
+- [ ] Add an in-repo hygiene assertion test (uses the named-testenv infra to build the env from the modified template and assert: no standalone `keras` distribution; exactly one `tensorflow*` distribution matching the manifest's intent)
+- [ ] Verify F.e on developer Apple Silicon: `pyve test --env main <repo>/tests/integration/test_e2e_keras.py -m hardware` — both tests pass
+- [ ] Verify F.c / F.d / F.f smokes remain green on the same env (no regression)
+- [ ] Run `pyve run python <repo>/scripts/metal_smoke.py` — all probes still `PASS`, `exit=0`
+- [ ] Bump version (patch on whatever the line-current version is at ship time; titled v0.34.2 here as the nominal post-F.f.1 patch, but may be revised if F.g/F.h/F.i/F.j ship first)
+- [ ] Update `CHANGELOG.md`
+- [ ] Flip F.e's `[ ]` verify task to `[x]` with the dated empirical confirmation
+
+**Related:**
+- `phase-f-pyve-named-testenvs.md` — the blocker.
+- `phase-f-pyve-micromamba-testenv-trap.md` — adjacent pyve issue (now resolved).
+- Story F.b — origin contract ("no standalone keras / Apple TF only").
+- Story F.e — guard test that surfaced the regression.
+- Story F.f.1 — where this was first captured as `[ ]` housekeeping, upgraded here to a real blocker after F.e's guard fired.
 
 ### Story F.g: v0.35.0 Optuna hyperparameter search happy path [Planned]
 

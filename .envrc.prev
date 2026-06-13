@@ -1,0 +1,12 @@
+# pyve-managed direnv configuration
+# Uniform template — all backends share this shape (v2.3.2).
+
+PATH_add ".pyve/envs/nbfoundry/bin"
+export CONDA_PREFIX="$PWD/.pyve/envs/nbfoundry"
+export PYVE_BACKEND="micromamba"
+export PYVE_ENV_NAME="nbfoundry"
+export PYVE_PROMPT_PREFIX="(micromamba:nbfoundry) "
+
+if [[ -f ".env" ]]; then
+    dotenv
+fi
