@@ -60,13 +60,13 @@ This project turns a YAML curriculum definition into a deployable SvelteKit lear
 
 learningfoundry is a PyPI package that acts as a curriculum engine and pipeline orchestrator. An author defines a curriculum's structure — modules, content templates, assessment gates, notebook exercises, and visualizations — in a YAML format. learningfoundry reads that definition and orchestrates a suite of owned, pluggable libraries to produce the learning artifacts: **lmentry** for LLM-powered content generation, **quizazz** for assessment content, **nbfoundry** for Marimo notebook generation which relies on **modelfoundry** for data preparation and model training scaffolding, and **d3foundry** for D3.js visualizations. The final output is a self-contained SvelteKit application with an in-browser SQLite database for progress tracking, deployable to a CDN or runnable locally. Each curriculum lives in its own application repository and consumes learningfoundry as a dependency, keeping the engine reusable across projects.
 
-For v1, the focus is on delivering a working end-to-end pipeline for a single reference curriculum (D802 Deep Learning Essentials) using the hello-world-first philosophy: mock and hack beneath the abstracted dependency interfaces, ship a functional learning artifact, and iterate. The library integrations will be minimal viable implementations — sufficient to prove the pipeline and produce a usable curriculum — with the expectation that each library matures independently over time.
+For v1, the focus is on delivering a working end-to-end pipeline for a single reference curriculum (Deep Learning Essentials) using the hello-world-first philosophy: mock and hack beneath the abstracted dependency interfaces, ship a functional learning artifact, and iterate. The library integrations will be minimal viable implementations — sufficient to prove the pipeline and produce a usable curriculum — with the expectation that each library matures independently over time.
 
 ### Goals
 
 - **Rapid curriculum delivery**: An author with a topic outline and YAML templates can produce a deployable learning app without building custom infrastructure.
 - **Unified learner experience**: Text, video (YouTube embeds), assessments, notebooks, and visualizations are presented in a single SvelteKit application with shared navigation and progress tracking via in-browser SQLite.
-- **Reusable engine**: The same learningfoundry package and pipeline templates can produce curricula on different topics — the D802 deep learning curriculum is the first instance, not a one-off.
+- **Reusable engine**: The same learningfoundry package and pipeline templates can produce curricula on different topics — the deep learning curriculum is the first instance, not a one-off.
 - **Content ownership**: All curriculum content lives in YAML and markdown under version control. The compiled SvelteKit app is a static artifact with no external service dependency at runtime.
 - **Pluggable library architecture**: Each capability (LLM access, assessments, model training, notebooks, visualizations) is encapsulated in an independent library with a clear interface, allowing any component to be replaced or upgraded without rewriting the engine.
 - **Velocity-first v1**: Deliver a working end-to-end artifact before optimizing any single component. Mock, stub, and hack beneath the abstraction boundaries to prove the pipeline, then iterate.
@@ -83,7 +83,7 @@ For v1, the focus is on delivering a working end-to-end pipeline for a single re
 - YouTube video embedding via URL references in YAML
 - SvelteKit frontend shell — unified learner experience with module navigation, progress tracking (SQLite/IndexedDB), and embedded content types
 - In-browser SQLite database for learner progress (module completion, assessment scores, exercise status)
-- D802 Deep Learning Essentials as the reference curriculum implementation
+- Deep Learning Essentials as the reference curriculum implementation
 - Static deployment target (CDN or local)
 
 **Out of scope (v1):**

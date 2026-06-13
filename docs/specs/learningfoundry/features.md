@@ -70,7 +70,7 @@ The primary input is a single YAML file defining the curriculum structure. The f
 version: "1.0.0"
 
 curriculum:
-  title: "D802 Deep Learning Essentials"
+  title: "Deep Learning Essentials"
   description: "A hands-on curriculum covering deep learning fundamentals."
 
   modules:
@@ -488,7 +488,7 @@ No specific performance targets for v1. The pipeline should complete in a reason
 2. `learningfoundry validate` catches and reports schema errors, missing files, and version mismatches with clear, actionable messages.
 3. `learningfoundry preview` builds the app and serves it locally for review.
 4. The generated app tracks lesson completion and assessment scores in an in-browser SQLite database and displays progress in the navigation UI.
-5. The D802 Deep Learning Essentials reference curriculum builds and runs successfully as the first end-to-end proof of the pipeline.
+5. The Deep Learning Essentials reference curriculum builds and runs successfully as the first end-to-end proof of the pipeline.
 6. The pipeline runs on macOS, Linux, and Windows with Python 3.12.
 7. Pre/post assessment data is stored in the progress database, anticipating future gating support without enforcing it in v1.
 8. Placeholder slots exist in the frontend for future nbfoundry and d3foundry content types.

@@ -913,7 +913,7 @@ See `schema_v1.py` above for the full Pydantic model. The YAML structure matches
 ```yaml
 version: "1.0.0"
 curriculum:
-  title: "D802 Deep Learning Essentials"
+  title: "Deep Learning Essentials"
   description: "A hands-on curriculum covering deep learning fundamentals."
   modules:
     - id: mod-01
@@ -959,7 +959,7 @@ In addition to the module/lesson/content tree, `ResolvedCurriculum` carries an `
 ```json
 {
   "version": "1.0.0",
-  "title": "D802 Deep Learning Essentials",
+  "title": "Deep Learning Essentials",
   "description": "...",
   "modules": [
     {

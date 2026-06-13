@@ -1,55 +1,66 @@
 ![Pyve](docs/site/images/pyve_header_readme.png)
 
-# Pyve: Python Virtual Environment Manager
+# Pyve: A single, easy entry point for managing all your virtual environments.
 
 [![Tests](https://github.com/pointmatic/pyve/actions/workflows/test.yml/badge.svg)](https://github.com/pointmatic/pyve/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/pointmatic/pyve/branch/main/graph/badge.svg)](https://codecov.io/gh/pointmatic/pyve)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-A command-line tool that simplifies setting up and managing Python virtual environments on macOS and Linux, orchestrating Python version managers, venv and micromamba backends, and direnv in a single script.
+A command-line tool that gives every project a single, declarative entry point for setting up and managing its environments across language ecosystems on macOS and Linux. A root-level `pyve.toml` names each environment and its purpose; language plugins — Python (venv/micromamba) and Node (pnpm/npm/yarn) today, more through a stable contract — materialize them through their own backends and compose into one direnv activation, one `.gitignore`, and one health report.
 
-See https://pointmatic.github.io/pyve/ for more information.
+See https://pointmatic.github.io/pyve/ for full documentation.
+
+> **Coming from v2?** Pyve 3.0 introduces the `pyve.toml` manifest and the plugin model. Your v2 project keeps working during the v3.0 window; `pyve self migrate` moves it onto the new manifest in one step. See the [Migration guide](https://pointmatic.github.io/pyve/migration/).
 
 ## Why Pyve?
 
-Pyve is a focused command-line tool that provides a single, deterministic entry point for setting up and managing Python virtual environments on macOS and Linux. It orchestrates Python version management (asdf or pyenv), virtual environments (venv or micromamba), and direnv integration in one script. It supports interactive workflows with auto-activation and non-interactive CI/CD pipelines with explicit execution via `pyve run`.
+Getting from an empty directory to a clean, ready-to-code environment requires the same fiddly setup every time — and every ecosystem reinvents it. Python has asdf/pyenv + venv/conda + direnv; Node has nvm/fnm/volta + npm/pnpm/yarn; polyglot projects multiply the pain. Pyve orchestrates the tools you already use behind one consistent CLI and one declarative manifest.
 
-- One-command environment setup (`pyve init`)
-- Dual backend support — venv (pip) and micromamba (conda-compatible)
-- Automatic Python version management via asdf or pyenv
+- One declarative manifest (`pyve.toml`) for every environment
+- Polyglot — Python and Node in one repo, composed cleanly (one `.envrc`, one `.gitignore`, one `check`/`status`/`purge`)
+- The right backend per stack — venv / micromamba / pnpm / npm / yarn, auto-detected
+- Automatic version management via asdf / pyenv (Python) and nvm / fnm / volta (Node)
+- Named environments by purpose — `run` / `test` / `utility` / `temp`
 - direnv integration for seamless shell activation
 - CI/CD-ready with `--no-direnv`, `--auto-bootstrap`, and `--strict` flags
 - Clean teardown with `pyve purge` — preserves your secrets
+- Deterministic v2 → v3 migration (`pyve self migrate`)
 - Zero runtime dependencies — pure Bash, no daemons
 
 ### Philosophy
 Make things easy and natural, but avoid being invasive.
-- Pyve manages the environments it creates.
-- Pyve asks before installing non-critical, networked dependencies like `micromamba` or `pytest`. 
-- If you prefer `asdf` instead of `venv`, Pyve will automatically detect and use it to manage the virtual environment for you. 
-- Pyve does not install `conda-lock`, but wraps its invocation via `pyve lock` when it is available — handling platform detection and suppressing the misleading post-run message.
+- Pyve **orchestrates** existing tools rather than replacing them.
+- Pyve manages the environments it creates, and never destroys user data (non-empty `.env`, your code, lockfiles, git history).
+- Pyve asks before installing non-critical, networked dependencies like `micromamba` or `pytest`.
+- Pyve does not install version managers or `conda-lock`, but wraps their invocation (e.g. `pyve lock`) when they're available — handling platform detection and suppressing the misleading post-run message.
 
 ## Key Features
-- **Install**: Install Pyve via Homebrew (`brew install pointmatic/tap/pyve`) or manually from source (`./pyve.sh self install`, which copies the script to `~/.local/bin/` and creates a symlink).
-- **Init**: Pyve will automatically initialize your Python coding environment as a virtual environment with your specified (or the default) version of Python and configure `direnv` to autoactivate and deactivate your virtual environment when you change directories.
-  - **Re-Init**: Refresh your Pyve initialization using `pyve init --force`. This will first purge, then initialize Pyve in one commmand. 
-- **Purge**: Remove all the Pyve setup and artifacts, except if you've added any secrets to the `.env` file, Pyve will leave it and let you know that.
+- **Install**: via Homebrew (`brew install pointmatic/tap/pyve`) or from source (`./pyve.sh self install`, which copies the script to `~/.local/bin/` and creates a symlink).
+- **Init**: `pyve init` auto-detects each stack, pins language versions, creates environments, configures `direnv` for auto-activation, secures `.env` (`chmod 600`), and self-heals `.gitignore`.
+  - **Re-Init**: `pyve init --force` purges and rebuilds the run environment in one command — test/utility envs survive.
+- **Declare**: `pyve.toml` names each `[env.<name>]` (purpose / backend) and each `[plugins.<lang>]`.
+- **Migrate**: `pyve self migrate` writes `pyve.toml` from a v2 project's legacy sources and rebuilds at the v3 layout.
+- **Purge**: Remove all the Pyve setup and artifacts — except a non-empty `.env`, which Pyve preserves and tells you about.
 
 ## Conceptual Model
 
-Pyve separates three concerns:
+Pyve separates concerns per stack and composes them:
 
-1. **Python runtime selection**
-   - Provided by `asdf` or `pyenv`
-   - Determines *which Python version* is used
+1. **Language runtime selection**
+   - Python via `asdf` / `pyenv`; Node via `nvm` / `fnm` / `volta` / `asdf`
+   - Determines *which version* of each language is used
 
-2. **Environment backend**
-   - `venv` (pip-based) for application and development workflows
-   - `micromamba` (conda-compatible) for scientific / ML workflows
+2. **Environment backend** (registered by the language plugin)
+   - Python: `venv` (pip) for app/dev work, `micromamba` (conda-compatible) for scientific/ML
+   - Node: `pnpm` / `npm` / `yarn`
 
-3. **Activation and execution**
-   - `direnv` for interactive shell convenience
-   - Pyve commands for deterministic environment setup and execution
+3. **Declaration**
+   - `pyve.toml` — `[env.<name>]` (purpose, backend) and `[plugins.<lang>]` (which sub-tree each plugin owns)
+   - `.pyve/` holds materialized state only — never configuration
+
+4. **Activation and execution**
+   - `direnv` for interactive shell convenience (composed across every plugin)
+   - `pyve run` / `pyve test` for deterministic execution without relying on shell state
 
 ## Execution Model (Preview)
 
@@ -68,7 +79,8 @@ for scripts, automation, and CI workflows.
 - Either of these Python version managers:
   - **asdf** (recommended, with Python plugin). Pyve auto-installs requested Python versions.
   - **pyenv**. Pyve auto-installs requested Python versions.
-- **direnv** (required for `pyve init`; not required for standalone `pyve python-version`)
+- For **Node** projects: any of **nvm**, **fnm**, **volta**, **asdf**, or a Homebrew/system Node
+- **direnv** (required for `pyve init`; not required for standalone `pyve python set`)
 - **micromamba** (optional):
   - Required only when initializing conda-compatible environments
   - Used for ML / scientific stacks that benefit from binary dependencies
@@ -96,7 +108,7 @@ Go to the root of your project directory and run `pyve init` to initialize your 
 
 In a single command, Pyve will:
 
-- **Set Python version**: Uses asdf or pyenv to set the Python version (default: 3.14.3)
+- **Set Python version**: Uses asdf or pyenv to set the Python version (default: 3.14.5)
 - **Create virtual environment**: Creates `.venv` directory with Python venv
 - **Upgrade pip**: Automatically upgrades pip to the latest version for security and features
 - **Configure direnv**: Sets up `.envrc` for automatic activation when entering the directory
@@ -269,8 +281,6 @@ pyve init --backend venv         # Force venv (skip prompt)
 - Cross-platform reproducibility needed
 - Projects already using conda/mamba
 
-Note: On Python 3.12+, Pyve installs a lightweight distutils compatibility shim (via `sitecustomize.py`) to avoid TensorFlow/Keras import failures in environments that still import `distutils`. Disable with `PYVE_DISABLE_DISTUTILS_SHIM=1`.
-
 #### Pip Dependency Installation
 
 After creating the environment, Pyve prompts to install pip dependencies if `pyproject.toml` or `requirements.txt` exists:
@@ -362,23 +372,29 @@ pyve testenv install -r requirements-dev.txt
 
 ```bash
 # Environment
-pyve init                 # Initialize your Python coding environment
-pyve purge                # Remove environment artifacts
-pyve python-version <ver> # Set Python version only
-pyve lock                 # Generate/update conda-lock.yml (micromamba projects)
+pyve init                 # Initialize the project's environment(s)
+pyve purge                # Remove environment artifacts (composed across plugins)
+pyve update               # Non-destructive refresh of config + managed files
+pyve python set <ver>     # Pin the project Python version
+pyve python show          # Show the pinned Python version + its source
+pyve lock                 # Generate/update conda-lock.yml (micromamba envs)
+pyve env <subcommand>     # Manage named environments (init/install/purge/run/list/prune/sync)
 
 # Execution
-pyve run <cmd>            # Execute command in project environment
-pyve test [pytest args]   # Run pytest via the dev/test runner environment
-pyve testenv <subcommand> # Manage the dev/test runner environment
+pyve run <cmd>            # Execute a command in the project environment
+pyve test [--env <name>]  # Run tests in a test-purpose environment
 
 # Diagnostics
-pyve doctor               # Check environment health and configuration
-pyve validate             # Validate installation and configuration
+pyve check                # Diagnose problems (CI-safe 0/1/2 exit codes)
+pyve status               # Read-only project-state dashboard (always exit 0)
+
+# Packaging (reserved in v3.0)
+pyve package              # Reserved artifact-materialization verb
 
 # Self management
-pyve self install         # Install pyve to ~/.local/bin
-pyve self uninstall       # Remove pyve from ~/.local/bin
+pyve self install         # Install pyve (provisions the toolchain venv)
+pyve self uninstall       # Remove pyve
+pyve self migrate         # Migrate a v2 project to the v3 pyve.toml manifest
 
 # Universal flags
 pyve --help, -h           # Show help
@@ -389,30 +405,35 @@ pyve --config, -c         # Show configuration
 pyve <command> --help     # Show focused help for a specific command
 ```
 
+> `pyve testenv <subcommand>` still works as a deprecated alias for `pyve env <subcommand>` (removed in v4.0).
+
 ## Configuration
 
 ### Project Configuration File
 
-Create `.pyve/config` for explicit backend and environment settings:
+From v3.0, a project is described by a root-level `pyve.toml` manifest. Everything under `.pyve/` is materialized state — never configuration.
 
-```yaml
-# .pyve/config
-backend: micromamba
+```toml
+# pyve.toml
+pyve_schema = "3.0"
 
-micromamba:
-  env_name: myproject
-  env_file: environment.yml
-  channels:
-    - conda-forge
-    - defaults
-  prefix: .pyve/envs/myproject
+[project]
+name = "myproject"
 
-python:
-  version: "3.11"
+[env.root]
+purpose = "run"
+backend = "venv"        # or "micromamba"
 
-venv:
-  directory: .venv
+[env.testenv]
+purpose = "test"
+requirements = ["requirements-dev.txt"]
+
+# Optional: declare language plugins and the sub-tree each owns
+[plugins.python]
+path = "."
 ```
+
+You rarely write `pyve.toml` by hand — `pyve init` and `pyve self migrate` generate it. See the [`pyve.toml` reference](https://pointmatic.github.io/pyve/pyve-toml/) for the full schema.
 
 ### Environment Variables
 - **Project-specific**: `.env` file in your project root for secrets and environment variables
@@ -452,14 +473,14 @@ The script checks for prerequisites (asdf/pyenv, direnv) before initialization a
 
 **Direct execution**: You can run the script directly without installing: `./pyve.sh init`
 
-### Diagnostic Command
+### Diagnostic Commands
 
-Check environment health and configuration:
+Diagnose problems, or snapshot project state:
 
 ```bash
-pyve doctor                          # Check environment health
-pyve doctor --backend micromamba     # Check micromamba setup
-pyve doctor --verbose                # Detailed diagnostics
+pyve check                  # Diagnose problems; CI-safe exit codes (0 pass / 2 warn / 1 error)
+pyve --verbose check        # Detailed diagnostics
+pyve status                 # Read-only "what is this project?" dashboard (always exit 0)
 ```
 
 ### Micromamba Bootstrap
@@ -566,57 +587,37 @@ cd "My ML Project"
 pyve init --backend micromamba  # Environment: my-ml-project
 ```
 
-### Lock File Validation
+### Lock Files (`conda-lock.yml`)
 
-Pyve validates conda lock files to ensure reproducibility:
+For micromamba projects, a `conda-lock.yml` pins every dependency (and its transitive deps) to exact versions per platform, so the environment builds byte-for-byte reproducibly. When a `conda-lock.yml` is present, Pyve builds the env *from the lock* rather than re-solving `environment.yml`.
 
-#### Lock File Status
+#### Whether a lock is required is declarative
+
+Pyve keys "is a lock required?" on **your own declaration** — whether `conda-lock` is a dependency in `environment.yml`:
+
+- **`conda-lock` declared, no lock yet** → `pyve init` proceeds and gently **nudges** you to run `pyve lock` when your dependencies are finalized. `pyve init --strict` instead **errors** (the production gate).
+- **`conda-lock` not declared** → no lock is expected; init proceeds silently (the pre-production default).
+
+A fresh micromamba scaffold declares `conda-lock` by default (interactive init asks; `--no-lock` omits it), so `pyve lock` works immediately — no edit-then-rebuild dance.
+
+#### `--strict` and `--no-lock`
+
+- **`--strict`** — turn the missing/stale-lock nudge into a hard error (for CI/CD reproducibility). Also opts out of scaffolding/inference.
+- **`--no-lock`** — for this run, don't use a lock: resolve from `environment.yml`, ignore any present `conda-lock.yml` (it is **never deleted**, even with `--force`), skip the requirement (beats `--strict`), and omit `conda-lock` from a fresh scaffold. To opt out permanently, remove `conda-lock` from `environment.yml`.
 
 ```bash
-pyve doctor  # Check lock file status
+pyve init --backend micromamba --strict --auto-bootstrap --no-direnv   # CI: require a fresh lock
+pyve init --backend micromamba --no-lock                                # skip locking this run
 ```
 
-**Status Indicators:**
-- ✓ **Up to date** - `conda-lock.yml` newer than `environment.yml`
-- ⚠ **Stale** - `environment.yml` modified after `conda-lock.yml`
-- ⚠ **Missing** - No `conda-lock.yml` found
-
-#### Strict Mode
-
-Use `--strict` to enforce lock file requirements:
+#### Generate / check a lock
 
 ```bash
-# Error if lock file is stale or missing
-pyve init --backend micromamba --strict
-
-# Useful for CI/CD to ensure reproducibility
-pyve init --backend micromamba --strict --auto-bootstrap --no-direnv
+pyve lock          # generate/update conda-lock.yml for the current platform
+pyve check         # report lock status (up to date / stale / missing-but-required)
 ```
 
-**Strict Mode Behavior:**
-- **Missing lock file** - Exits with error, suggests generating with `conda-lock`
-- **Stale lock file** - Exits with error, shows timestamps, suggests regenerating
-- **Up-to-date lock file** - Proceeds normally
-
-**Generate Lock Files:**
-```bash
-# Generate lock file for the current platform (recommended)
-pyve lock
-
-# Or invoke conda-lock directly (must know your platform string)
-conda-lock -f environment.yml -p osx-arm64  # macOS Apple Silicon
-conda-lock -f environment.yml -p linux-64   # Linux x86_64
-```
-
-**Example Output (Stale Lock File):**
-```
-⚠ Lock file: conda-lock.yml (stale)
-  environment.yml: 2026-01-06 02:15:30
-  conda-lock.yml:  2026-01-05 18:42:15
-
-ERROR: Lock file is stale (--strict mode)
-Regenerate with: conda-lock -f environment.yml
-```
+`pyve check` reports a missing lock as a finding only when `conda-lock` is declared; otherwise it reports it as "not required." A stale lock (`environment.yml` newer than `conda-lock.yml`) warns; re-run `pyve lock` to refresh, then `pyve init --force` to rebuild the env from the new lock.
 
 ## Commands
 
@@ -711,127 +712,34 @@ pyve run python
 - **One-off commands** - Run tools without entering environment
 - **Automation** - Consistent execution across systems
 
-### `pyve doctor` - Environment Diagnostics
+### `pyve check` — Diagnostics
 
-Check environment health and configuration:
+> `pyve check` replaces the v1.x/v2 `pyve doctor` and `pyve validate` commands, which now hard-error with a migration hint.
 
-```bash
-pyve doctor
-```
-
-**What it checks:**
-- Backend type (venv or micromamba)
-- Environment location and status
-- Python version
-- Micromamba binary (if applicable)
-- Environment files (environment.yml, conda-lock.yml)
-- Lock file status (up to date, stale, missing)
-- Package count
-- Direnv configuration
-- .env file status
-
-**Example Output (Venv):**
-```
-Pyve Environment Diagnostics
-=============================
-
-✓ Backend: venv
-✓ Environment: .venv
-✓ Python: 3.13.7
-✓ Version file: .tool-versions (asdf)
-  Python: 3.13.7
-  Packages: 42 installed
-✓ Direnv: .envrc configured
-✓ Environment file: .env (configured)
-```
-
-**Example Output (Micromamba):**
-```
-Pyve Environment Diagnostics
-=============================
-
-✓ Backend: micromamba
-✓ Micromamba: /Users/user/.pyve/bin/micromamba (user) v1.5.3
-✓ Environment: .pyve/envs/myproject
-  Name: myproject
-✓ Python: 3.11.7
-✓ Environment file: environment.yml
-⚠ Lock file: conda-lock.yml (stale)
-  environment.yml: 2026-01-06 02:15:30
-  conda-lock.yml:  2026-01-05 18:42:15
-  Packages: 87 installed
-✓ Direnv: .envrc configured
-✓ Environment file: .env (configured)
-```
-
-**Status Indicators:**
-- ✓ - Success/OK
-- ✗ - Error/Not found
-- ⚠ - Warning/Issue detected
-
-**Use Cases:**
-- **Debugging** - Identify environment issues
-- **Verification** - Confirm setup is correct
-- **CI/CD** - Validate environment in pipelines
-- **Troubleshooting** - Quick health check
-
-### `pyve validate` — Validate Installation
-
-Validate Pyve installation structure and version compatibility:
+Diagnose problems and suggest one remediation per failure, composed across every active plugin:
 
 ```bash
-pyve validate
+pyve check
 ```
 
-**What it checks:**
-- Pyve version compatibility
-- Installation structure (.pyve directory, config file)
-- Backend configuration
-- Environment existence (venv directory or micromamba environment)
-- Python version availability
-- Direnv integration (.env file)
+**What it checks** (per active plugin): backend health, environment existence and location, language version, environment files (e.g. `environment.yml` / `conda-lock.yml`, `package.json` / `node_modules`), lock-file freshness, `.envrc` / `.env` status, and project-guide hosting.
 
-**Example Output (Success):**
-```
-Pyve Installation Validation
-==============================
+**Exit codes (CI-safe):**
+- `0` — pass (clean)
+- `2` — warnings only (advisory, non-failing)
+- `1` — errors (environment broken for run/test)
 
-✓ Pyve version: 1.5.2 (current)
-✓ Backend: venv
-✓ Virtual environment: .venv (exists)
-✓ Configuration: valid
-✓ Python version: 3.11 (available)
-✓ direnv integration: .env (exists)
+In a polyglot repo, each plugin contributes its own section and the worst severity across all of them becomes the process exit code.
 
-All validations passed.
+### `pyve status` — Project State
+
+Read-only "what is this project?" dashboard. Always exits `0` unless pyve itself errors — a broken reading is `check`'s job, not `status`'s.
+
+```bash
+pyve status
 ```
 
-**Example Output (Warnings):**
-```
-Pyve Installation Validation
-==============================
-
-⚠ Pyve version: 1.4.0 (current: 1.5.2)
-  Migration recommended. Run 'pyve init --update' to update.
-✓ Backend: venv
-✗ Virtual environment: .venv (missing)
-  Run 'pyve init' to create.
-✓ Configuration: valid
-✓ Python version: 3.11 (available)
-
-Validation completed with warnings and errors.
-```
-
-**Exit Codes:**
-- `0` - All validations passed
-- `1` - Validation errors (missing files, invalid config)
-- `2` - Warnings only (version mismatch, migration suggested)
-
-**Use Cases:**
-- **Version tracking** - Check if project uses current Pyve version
-- **Migration** - Identify projects that need updating
-- **Troubleshooting** - Diagnose installation issues
-- **CI/CD** - Validate project structure in pipelines
+It reports the project's backend(s), declared environments, language versions, and integrations across every active plugin.
 
 ### Smart Re-initialization
 
@@ -849,7 +757,7 @@ $ pyve init
   Backend: venv
 
 What would you like to do?
-  1. Update in-place (preserves environment, updates config)
+  1. Update in-place — refresh Pyve config/files (does NOT apply environment.yml/dependency edits; use option 2 for those)
   2. Purge and re-initialize (clean slate)
   3. Cancel
 
@@ -996,7 +904,7 @@ jobs:
         run: pyve run pytest tests/
       
       - name: Check environment
-        run: pyve doctor
+        run: pyve check
 ```
 
 **Micromamba Backend:**
@@ -1026,7 +934,7 @@ jobs:
         run: pyve run pytest tests/
       
       - name: Check environment
-        run: pyve doctor
+        run: pyve check
 ```
 
 **With Caching:**
@@ -1058,7 +966,7 @@ test:
   script:
     - pyve init --no-direnv
     - pyve run pytest tests/
-    - pyve doctor
+    - pyve check
 ```
 
 **Micromamba Backend:**
@@ -1073,7 +981,7 @@ test:
   script:
     - pyve init --backend micromamba --auto-bootstrap --no-direnv --strict
     - pyve run pytest tests/
-    - pyve doctor
+    - pyve check
   cache:
     paths:
       - .pyve/envs/
@@ -1135,7 +1043,7 @@ CMD ["pyve", "run", "python", "app.py"]
 2. Use `--auto-bootstrap` for micromamba (no interactive prompts)
 3. Use `--strict` to enforce lock file validation
 4. Cache environments and binaries for faster builds
-5. Run `pyve doctor` to verify setup
+5. Run `pyve check` to verify setup
 6. Use `pyve run` for all command execution
 
 **Caching Strategy:**
@@ -1176,7 +1084,7 @@ jobs:
                --strict
       
       - name: Verify setup
-        run: pyve doctor
+        run: pyve check
       
       - name: Run tests
         run: pyve run pytest tests/ --cov
