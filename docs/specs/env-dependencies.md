@@ -90,8 +90,8 @@ focused-manifest topology recorded here. The detailed reasoning lives in
   `utility` — it hosts tooling, not necessarily the app or the tests.
 - **Named test environment** — a `purpose: test` environment. The first/default is named
   `testenv`. Additional environments use distinct names (e.g. `testenv-integration`,
-  `testenv-min`, or — as in this repo — `smoke-pytorch`, `smoke-tensorflow`,
-  `smoke-huggingface`). Each maps to exactly one backend.
+  `testenv-min`, or — as in this repo — `smoke-torch`, `smoke-tensorflow`). Each maps to
+  exactly one backend.
 - **Backend** — the environment-management mechanism pyve uses to materialize an
   environment. Values are a **closed, Pyve-owned set** of specific mechanism names, never
   generic categories, and fall into three S6 categories: *project-virtualized* (`venv`,
@@ -221,8 +221,8 @@ focused-manifest topology recorded here. The detailed reasoning lives in
 
 | Backend | Status | Env location | Dependency manifest | Lock artifact | Init command |
 |---------|--------|--------------|---------------------|---------------|--------------|
-| `venv` | **canonical (default)** | `.pyve/envs/<name>/venv/` | `requirements.txt` (root) / `requirements-dev.txt` (testenv) | `requirements*.txt` w/ `--hash` (pip-tools) — not yet enforced for nbfoundry v0.x | `pyve init` |
-| `micromamba` | **canonical** | `.pyve/envs/<name>/conda/` | `environment.yml` (per-env, declared via `manifest` in `pyve.toml`) | `conda-lock.yml` (`pyve lock --env <name>`) — not yet generated for the smoke envs | `pyve init --backend micromamba` (root) or auto-provisioned on first `pyve test --env <name>` for lazy testenvs |
+| `venv` | **canonical (default)** | `.pyve/envs/<name>/venv/` | `requirements.txt` (root) / `requirements-dev.txt` (testenv) / `tests/integration/env/<fw>.txt` (smoke envs, via `requirements` in `pyve.toml`) | `requirements*.txt` w/ `--hash` (pip-tools) — not yet enforced for nbfoundry v0.x | `pyve init` (root/testenv); auto-provisioned on first `pyve test --env <name>` for the lazy smoke envs |
+| `micromamba` | **canonical** (not used by any `pyve.toml` env) | `.pyve/envs/<name>/conda/` | `environment.yml` | `conda-lock.yml` (`pyve lock`) | Out-of-band only: builds the learner bundled-payload env (`templates/environment.yml`) for the `scripts/metal_smoke.py` diagnostic — see §5.0 |
 
 **Default-backend assumption:** any environment may benefit from the `venv` backend, since
 Python is a general-purpose workhorse for scripting/automation even in non-Python repos.
@@ -249,8 +249,13 @@ a lockfile), *host-package* (`homebrew`, `apt`: OS-level tools), and *isolation*
 (`package-lock.json` / `pnpm-lock.yaml` / `yarn.lock`) and `node_modules` layout (hoisted vs
 pnpm's symlinked store vs Yarn PnP), which is why they are separate flavors.
 
-**Backends nbfoundry uses:** `venv` (root + default testenv) and `micromamba` (three smoke
-testenvs). No advisory backends, no container flavors, no non-canonical mechanisms.
+**Backends nbfoundry uses:** `venv` only — the `root` env, the default `testenv`, and all three
+`smoke-*` testenvs. `micromamba` is **not** used by any `pyve.toml` env; it appears in the repo
+only out-of-band, to build the conda **bundled-payload** env (`templates/environment.yml`) that
+the `scripts/metal_smoke.py` diagnostic validates. Every dependency the smoke envs need is a pip
+wheel on macOS arm64 (the MPS-enabled `torch` build, Apple's `tensorflow-macos`/`tensorflow-metal`,
+the HuggingFace stack), so conda buys nothing for the focused dev-side smokes. No advisory
+backends, no container flavors, no non-canonical mechanisms.
 
 ---
 
@@ -283,43 +288,31 @@ envs:
     packaging: none
     app_type: none
 
-  smoke-pytorch:
+  smoke-torch:
     purpose: test
-    backend: micromamba
+    backend: venv
     default: false
     path: "."
     languages: [python]
-    frameworks: [pytest]                 # ML libraries (torch, numpy) are dependencies declared in the manifest, NOT pyve frameworks
+    frameworks: [pytest]                 # ML libraries (torch, transformers, optuna) are manifest deps, NOT pyve frameworks
     packaging: none
     app_type: none
-    # manifest: tests/integration/env/pytorch.yml  (declared in pyve.toml; file authored by the F.f.2 follow-up)
+    # requirements: tests/integration/env/torch.txt  (declared in pyve.toml; file authored by F.f.3)
     # lazy: true
+    # Notes: the torch-family smoke env — serves F.d PyTorch, F.f HuggingFace (torch backend), F.g Optuna. No TensorFlow (the one hard isolation boundary).
 
   smoke-tensorflow:
     purpose: test
-    backend: micromamba
+    backend: venv
     default: false
     path: "."
     languages: [python]
     frameworks: [pytest]
     packaging: none
     app_type: none
-    # manifest: tests/integration/env/tensorflow.yml
+    # requirements: tests/integration/env/tensorflow.txt
     # lazy: true
     # Notes: serves F.c TensorFlow AND F.e Keras hardware smokes (Keras 3 ships bundled with TF 2.16+).
-
-  smoke-huggingface:
-    purpose: test
-    backend: micromamba
-    default: false
-    path: "."
-    languages: [python]
-    frameworks: [pytest]
-    packaging: none
-    app_type: none
-    # manifest: tests/integration/env/huggingface.yml
-    # lazy: true
-    # Notes: ships torch alongside transformers/datasets/peft because HF defaults to the torch backend in nbfoundry's smokes.
 ```
 
 ### 4.1 Inventory Table
@@ -328,14 +321,14 @@ envs:
 |---|------------------|---------|---------|----------|----------|------------|-----------|
 | 0 | `root` (repo root) | `utility` | `venv` | n/a | `library` | `[none]` | `[python]` |
 | 1 | `testenv` | `test` | `venv` | yes | `none` | `[pytest, ruff, mypy]` | `[python]` |
-| 2 | `smoke-pytorch` | `test` | `micromamba` | no | `none` | `[pytest]` | `[python]` |
-| 3 | `smoke-tensorflow` | `test` | `micromamba` | no | `none` | `[pytest]` | `[python]` |
-| 4 | `smoke-huggingface` | `test` | `micromamba` | no | `none` | `[pytest]` | `[python]` |
+| 2 | `smoke-torch` | `test` | `venv` | no | `none` | `[pytest]` | `[python]` |
+| 3 | `smoke-tensorflow` | `test` | `venv` | no | `none` | `[pytest]` | `[python]` |
 
-**Why this many test environments:** four envs are required because the dev-side test
-surface splits along *two orthogonal axes* that cannot be collapsed without recreating the
-two bugs the debug cycle in `stories.md` just fixed (story **F.f.1** SIGBUS and story
-**F.f.2** env hygiene). Each axis is empirically grounded; neither is theoretical.
+**Why this many test environments:** four total — the `root` utility env plus three test
+envs (one light `testenv` + two focused smoke envs). The dev-side *test* surface splits along
+*two orthogonal axes* that cannot be collapsed without recreating the two bugs the debug cycle
+in `stories.md` just fixed (story **F.f.1** SIGBUS and story **F.f.2** env hygiene). Each axis
+is empirically grounded; neither is theoretical.
 
 **Axis 1 — weight × platform.** The hardware-independent unit/integration tests
 (currently 11 tests, plus `ruff check`, `ruff format --check`, `mypy --strict`, and coverage
@@ -347,52 +340,59 @@ every push and compounding across the matrix. This axis is the routine-vs-smoke 
 it maps cleanly onto pyve's `lazy = true` mechanism: the heavy envs are *declared* but
 *not materialized* until a developer explicitly targets one.
 
-**Axis 2 — framework isolation (the F.f.1 / F.f.2 inheritance).** The hardware smokes
-themselves split across three envs because two debug-cycle findings make a single bundled
-ML env structurally unworkable:
+**Axis 2 — framework isolation (the F.f.1 inheritance).** The hardware smokes split across
+**two** envs along a single hard physical constraint:
 
 - **PyTorch-MPS and TensorFlow-Metal cannot coexist in one process on Apple Silicon**
   (SIGBUS during the Metal plugin's Grappler optimization step). The full root-cause
   analysis and subprocess-isolation fix live in story **F.f.1**; the empirical narrowing
   (`scripts/keras_metal_narrow.py`) showed that `torch → keras` reliably crashes while
   `tf → keras` passes — co-residence is the trigger, not the order or the env contents.
-  Putting both frameworks in a single env makes every future test that imports them
-  simultaneously a regression source. Per-framework envs make co-residence **impossible by
-  construction**; the subprocess-isolation logic in `scripts/metal_smoke.py` becomes
-  belt-and-suspenders rather than load-bearing.
-- **Bundling HuggingFace's conda-forge transitives with TensorFlow pulls a parallel
-  standalone `keras 3.x` distribution** that fights TF's bundled copy (story **F.f.2**,
-  empirically blocking F.e's hygiene guard test against the bundled-payload env). The
-  `transformers` / `datasets` / `peft` recipes on conda-forge declare keras as an optional
-  dep, and conda's solver pulls it transitively even when no top-level recipe asks for it.
-  The fix is not to wrestle the conda solver — it is to keep HuggingFace **out of the env
-  that owns the Keras hygiene contract**. `smoke-tensorflow` therefore ships TF + Metal
-  plugin + numpy + pytest only; `smoke-huggingface` ships HF + torch (HF's default backend
-  in nbfoundry's smokes) and has no Keras hygiene contract to honor.
+  This is the *one* boundary that forces a split: a **torch-family** env and a
+  **tensorflow-family** env. Co-residence becomes **impossible by construction**; the
+  subprocess-isolation logic in `scripts/metal_smoke.py` becomes belt-and-suspenders rather
+  than load-bearing.
+- **The keras-hygiene problem (F.f.2) rides the same boundary.** Bundling HuggingFace
+  alongside TensorFlow pulled a parallel standalone `keras 3.x` that fights TF's bundled copy
+  (empirically blocking F.e's hygiene guard). Keeping HuggingFace **out of the TensorFlow env**
+  is what makes F.e's guard pass by construction — and since HF is torch-based, it lives
+  naturally in the torch-family env. (Under the **venv/pip** backend the contamination is
+  doubly avoided: a base `pip install transformers` pulls neither TensorFlow nor a standalone
+  `keras` — those are optional `[tf]` extras.)
 
-Together the two axes give a four-env topology — one light routine env and three focused
-heavy smoke envs — that solves both problems at the env layer rather than at the test-
-harness layer.
+The two smoke envs are therefore:
 
-**Why exactly four and not three, five, or six.** Each alternative was considered and
+- **`smoke-torch`** — `torch` + the HuggingFace stack (`transformers`/`datasets`/`peft`) +
+  `optuna`; covers stories **F.d** (PyTorch), **F.f** (HuggingFace, torch backend), and **F.g**
+  (Optuna). All torch-family; no TensorFlow.
+- **`smoke-tensorflow`** — `tensorflow-macos` + `tensorflow-metal` + bundled Keras; covers
+  stories **F.c** (TF) and **F.e** (Keras). No torch.
+
+Together the two axes give a four-env topology — the `root` utility env, one light routine
+`testenv`, and two focused heavy smoke envs — that solves both problems at the env layer
+rather than at the test-harness layer.
+
+**Why two smoke envs and not one, three, or more.** Each alternative was considered and
 rejected for a specific reason:
 
-- **Not three (bundle the ML stack into `testenv` itself).** Defeats Axis 1: CI provisioning
-  a multi-GB env to skip the hardware tests is exactly the failure mode pyve's silent-skip
-  advisory exists to warn against (see `phase-f-pyve-micromamba-testenv-trap.md`).
-- **Not five with a separate `smoke-keras`.** Keras 3 is bundled inside TensorFlow 2.16+
-  and is exposed as both `tf.keras` and the bare `keras` namespace; no standalone install
-  is needed, and adding one re-creates the F.f.2 anti-pattern. `smoke-tensorflow` owns
-  both story **F.c** (TF) and story **F.e** (Keras) smokes correctly.
-- **Not five with a torch-free `smoke-huggingface`.** HuggingFace's smoke uses the torch
-  backend (the default in nbfoundry's smokes — see `tests/integration/test_e2e_huggingface.py`);
-  pulling torch out leaves nothing to run. The env preserves the one-framework-family-per-env
-  invariant by hosting *HuggingFace* (which happens to ride torch internally) as a distinct
-  family from raw PyTorch experimentation in `smoke-pytorch`.
-- **Not six with a future `smoke-optuna` or per-template smoke env.** Future stories F.g
-  (Optuna) and F.h–F.j (per-template smokes) will fold into one of the three existing smoke
-  envs based on which framework family they exercise; no new env is anticipated unless a
-  future smoke introduces a fourth framework family.
+- **Not one (bundle both families).** Re-creates the F.f.1 SIGBUS the moment a single pytest
+  process imports both torch and TensorFlow; relying on per-file process discipline to avoid it
+  is exactly the footgun the reframe removes. Two envs make co-residence impossible by
+  construction.
+- **Not bundled into `testenv`.** Defeats Axis 1: CI provisioning a multi-GB env to skip the
+  hardware tests is the silent-skip failure mode pyve's advisory exists to warn against (see
+  `phase-f-pyve-micromamba-testenv-trap.md`).
+- **Not three (separate `smoke-pytorch` and `smoke-huggingface`).** HuggingFace rides torch and
+  brings no TensorFlow, so it shares `smoke-torch` with raw PyTorch without conflict. A third
+  env would be organizational tidiness ("one library per env"), not a physical requirement, at
+  the cost of a heavier topology — so the two torch-based smokes are collapsed into one.
+- **Not a separate `smoke-keras`.** Keras 3 is bundled inside TensorFlow 2.16+ (both `tf.keras`
+  and the bare `keras` namespace); no standalone install is needed, and adding one re-creates
+  the F.f.2 anti-pattern. `smoke-tensorflow` owns both story **F.c** (TF) and **F.e** (Keras).
+- **No new env for F.g / F.h–F.j.** F.g (Optuna) is torch-family → `smoke-torch`. The
+  framework-agnostic template smokes F.h–F.j (pandas/scikit-learn/marimo, no Metal) run in the
+  light `testenv` per their story notes, not a smoke env. A new smoke env is anticipated only if
+  a future smoke introduces a third framework family (e.g. JAX).
 
 **Architectural compounding (dev side ↔ learner side).** The same pyve named-test-env
 primitive that gives nbfoundry these four dev-side envs also serves the *learner* side of
@@ -448,7 +448,7 @@ LearningFoundry curriculum reuse it twice.
   | Dependency | Version | Source class | Install method | Why not in the managed env |
   |------------|---------|--------------|----------------|----------------------------|
   | `git` | — | `system` | OS-provided | Source control; not a Python package |
-  | `micromamba` | `>=1` | `system` | Pyve bootstrap or `brew install micromamba` | Required to materialize the smoke envs (testenvs #2–4); not a runtime dep of nbfoundry itself |
+  | `micromamba` | `>=1` | `system` | Pyve bootstrap or `brew install micromamba` | **Optional, out-of-band only.** Used to build the conda **bundled-payload** env (`templates/environment.yml`) for the `scripts/metal_smoke.py` diagnostic and to validate the learner install path. **Not** required for the smoke testenvs (#2–4), which are now `venv`, nor a runtime dep of nbfoundry itself |
 
 - **Lock / reproducibility strategy:** `pyproject.toml` declares loose pins; the wheel
   hatchling builds is what ships to PyPI. Exact-pin lockfiles for the root env are not
@@ -475,6 +475,13 @@ LearningFoundry curriculum reuse it twice.
 - **Backend & rationale:** `venv` — all dev tools are pip-installable; pytest-collected tests
   exercise the editable nbfoundry source. No conda-only deps in this surface.
 - **Test categories covered:** unit, integration (non-hardware), lint, type-check (see §6).
+- **mypy scope (important):** `mypy` is configured to the `nbfoundry` package with
+  `src/nbfoundry/templates/` **excluded** — the templates are author notebook scaffolds (already
+  ruff-excluded) that import the ML stack (`numpy`/`pandas`/`sklearn`/`torch`) only as example
+  code. nbfoundry's actual typed surface (compiler / CLI / schema) is **ML-free** (FR-7), so
+  `mypy --strict` needs **no** ML dependencies and stays in this light `venv` env. Do **not**
+  add a separate mypy env, nor pull the ML stack into `testenv`, to "resolve" template
+  `import-not-found` — exclude the templates instead.
 - **Language runtime / pins:** Same as root (Python `>=3.12.13,<3.14`).
 - **Bootstrap (one-time):**
   ```bash
@@ -517,54 +524,73 @@ LearningFoundry curriculum reuse it twice.
 
 ---
 
-### 5.2 Environment: `smoke-pytorch` (purpose: `test`)
+### 5.2 Environment: `smoke-torch` (purpose: `test`)
 
-- **Purpose (surface):** `test` — hosts the PyTorch hardware smoke (story F.d,
-  `tests/integration/test_e2e_pytorch.py`). Validates that the shipped stack trains on Apple
-  Silicon's MPS device.
-- **Attributes:** app_type `none`; frameworks `[pytest]` (the test runner; the ML stack is a
-  set of manifest-declared dependencies, **not** pyve `frameworks` — torch, numpy,
-  tensorflow, transformers are libraries, not app/test/lint frameworks per §2's closed
-  vocabulary); languages `[python]`; packaging `none`.
-- **Backend & rationale:** `micromamba` — `pytorch>=2.5` from conda-forge is the proven Apple
-  Silicon MPS path (`tech-spec.md` "Pinned ML stack"). conda-forge resolves PyTorch with its
-  native deps cleanly; pip-wheel installs of torch on macOS arm64 are workable but vary
-  build-to-build. Matches the shipped payload's choice for the same package.
-- **Test categories covered:** hardware-smoke — PyTorch (see §6).
-- **Language runtime / pins:** `python=3.12.13` (exact, pinned in the smoke-env's
-  `environment.yml`).
-- **Bootstrap (one-time):** Lazy-provisioned by pyve on first `pyve test --env smoke-pytorch
+- **Purpose (surface):** `test` — the **torch-family** smoke env. Hosts the PyTorch smoke
+  (story F.d, `tests/integration/test_e2e_pytorch.py`), the HuggingFace smoke (story F.f,
+  `tests/integration/test_e2e_huggingface.py`, torch backend), and the Optuna smoke (story
+  F.g, torch objective). Validates that the torch-family stack runs on Apple Silicon's MPS
+  device. Holds **no** TensorFlow — that is the one hard isolation boundary (F.f.1 SIGBUS).
+- **Attributes:** app_type `none`; frameworks `[pytest]` (the test runner; the ML stack —
+  torch, transformers, datasets, peft, optuna, numpy — is a set of manifest-declared
+  dependencies, **not** pyve `frameworks` per §2's closed vocabulary); languages `[python]`;
+  packaging `none`.
+- **Backend & rationale:** `venv` — every dep is a macOS arm64 pip wheel: `torch`'s wheel is
+  the MPS-enabled build (PyTorch's own recommended Mac install); `transformers`/`datasets`/
+  `peft` are pure-Python; `sentencepiece`/`protobuf`/`tiktoken` ship arm64 + py3.12 wheels;
+  `optuna` is pure-Python. conda buys nothing, and the env is decoupled from the conda bundled
+  payload (the reframe's whole point).
+- **Test categories covered:** hardware-smoke — PyTorch, HuggingFace, Optuna (see §6).
+- **Language runtime / pins:** project Python (`≥3.12.13`); the venv inherits the project
+  interpreter (pin via asdf `.tool-versions` if exactness is required).
+- **Bootstrap (one-time):** Lazy-provisioned by pyve on first `pyve test --env smoke-torch
   ...`. No explicit init step required. (Equivalent explicit form:)
   ```bash
-  pyve testenv init smoke-pytorch
+  pyve testenv init smoke-torch
   ```
-- **Install dependencies:** Driven by the manifest declared in `pyve.toml`
-  (`tests/integration/env/pytorch.yml`). Pyve provisions on first targeted use.
-- **Managed dependencies (`pip` / `conda`):** As of this document's draft date the manifest
-  file does not yet exist; authoring it is the immediate follow-up. The intended contents:
+- **Install dependencies:** Driven by the `requirements` file declared in `pyve.toml`
+  (`tests/integration/env/torch.txt`). Pyve `pip install -r`s it on first targeted use.
+- **Managed dependencies (`pip`):** As of this document's draft date the requirements file
+  does not yet exist; authoring it is the immediate follow-up (story F.f.3; `optuna` added by
+  F.g). The intended contents:
 
   | Package | Version pin | Source class | Purpose |
   |---------|-------------|--------------|---------|
-  | `python` | `=3.12.13` | `runtime` (conda channel pin) | Pinned interpreter (matches the shipped-payload manifest) |
-  | `pytorch` | `>=2.5` | `conda` (conda-forge) | The framework under test; MPS-enabled on macOS arm64 |
-  | `numpy` | unpinned | `conda` (conda-forge) | Tensor data setup for the smoke |
-  | `pytest` | unpinned | `conda` (conda-forge) | Test runner |
+  | _(interpreter)_ | project Python (≥3.12.13) | `runtime` | venv inherits the project interpreter |
+  | `torch` | `>=2.5` | `pip` (PyPI) | Framework under test + HF/Optuna backend; macOS arm64 wheel is MPS-enabled (pip name `torch`, not conda's `pytorch`) |
+  | `transformers` | unpinned | `pip` (PyPI) | HuggingFace library under test (F.f) |
+  | `datasets` | unpinned | `pip` (PyPI) | Tiny synthetic Dataset for the HF smoke |
+  | `peft` | unpinned | `pip` (PyPI) | LoRA adapter for the HF forward-pass test |
+  | `sentencepiece` | unpinned | `pip` (PyPI) | Tokenizer dep (arm64 wheel) |
+  | `protobuf` | unpinned | `pip` (PyPI) | Tokenizer dep |
+  | `tiktoken` | unpinned | `pip` (PyPI) | Tokenizer dep (Rust wheel) |
+  | `optuna` | unpinned | `pip` (PyPI) | Hyperparameter search (F.g); added when F.g lands |
+  | `numpy` | unpinned | `pip` (PyPI) | Tensor / data setup |
+  | `pytest` | unpinned | `pip` (PyPI) | Test runner |
 
-  **Deliberately absent:** `tensorflow*`, `keras` (standalone), `transformers`, `datasets`,
-  `peft`. Their absence is what guarantees no PyTorch-MPS / TensorFlow-Metal co-residence
-  inside this env.
-- **System / external dependencies:** `micromamba` (system; see root §5.0).
-- **Lock / reproducibility strategy:** Per-env `conda-lock.yml` via `pyve lock --env
-  smoke-pytorch` is the v2.8+ workflow; lockfile generation for the smoke envs is **not yet
-  enforced for v0.x**. Tracked as a Phase H follow-up; the immediate priority is the manifest
-  itself.
+  **Deliberately absent:** `tensorflow*` and standalone `keras`. Their absence guarantees no
+  PyTorch-MPS / TensorFlow-Metal co-residence inside this env (the F.f.1 SIGBUS boundary), and —
+  with no TensorFlow present — there is no TF-bundled Keras for any transitive standalone
+  `keras` to conflict with. Under pip, a base `transformers` install pulls neither TensorFlow
+  nor `keras` anyway (optional `[tf]` extras), so the F.f.2 contamination cannot occur here.
+- **System / external dependencies:** None beyond root's (`git`). No `micromamba` — this env is `venv`/pip.
+- **Lock / reproducibility strategy:** Per-env hashed `requirements.txt` (pip-tools
+  `pip-compile --generate-hashes`) is the venv lock path; lockfile generation for the smoke
+  envs is **not yet enforced for v0.x**. Tracked as a Phase H follow-up; the immediate
+  priority is the requirements file itself.
 - **How to run the tests this env owns:**
   ```bash
-  pyve test --env smoke-pytorch tests/integration/test_e2e_pytorch.py -m hardware
+  pyve test --env smoke-torch tests/integration/test_e2e_pytorch.py     -m hardware
+  pyve test --env smoke-torch tests/integration/test_e2e_huggingface.py -m hardware
+  pyve test --env smoke-torch tests/integration/test_e2e_optuna.py      -m hardware   # once F.g lands
   ```
+  Run **one file per process** (each `pyve test` is its own process). Torch and TF never
+  co-reside because TF isn't in this env, but one-file-per-process stays the documented norm
+  for all hardware smokes.
 - **Verification (smoke test):**
   ```bash
-  pyve testenv run --env smoke-pytorch python -c "import torch; print(torch.backends.mps.is_available())"
+  pyve testenv run --env smoke-torch python -c "import torch; print(torch.backends.mps.is_available())"
+  pyve testenv run --env smoke-torch python -c "from transformers import AutoTokenizer; print('OK')"
   ```
 - **CI parity notes:** Not run in CI. Hardware smokes are manual, developer-Apple-Silicon
   only, per release. CI requires `-m 'not hardware'` (the `pyproject.toml` default `addopts`).
@@ -580,26 +606,27 @@ LearningFoundry curriculum reuse it twice.
   distribution is present (`go.md` § "No standalone `keras` package").
 - **Attributes:** app_type `none`; frameworks `[pytest]`; languages `[python]`; packaging
   `none`.
-- **Backend & rationale:** `micromamba` — TensorFlow's Apple Silicon distribution is
-  pip-only (Apple ships `tensorflow-macos` and `tensorflow-metal` via PyPI, not conda-forge),
-  but the env is conda-backed so it can pin Python exactly via `python=3.12.13` and use
-  conda-forge for `numpy` + `pytest`. The pip block carries the Apple TF distribution.
-  Matches the structure of the shipped-payload manifest's framework section.
+- **Backend & rationale:** `venv` — TensorFlow's Apple Silicon distribution is pip-only anyway
+  (Apple ships `tensorflow-macos` and `tensorflow-metal` via PyPI, not conda-forge), so the
+  framework under test installs via pip regardless of backend. The only thing micromamba added
+  was an exact `python=3.12.13` pin plus conda-forge `numpy`/`pytest` — all of which venv covers
+  (project interpreter + pip wheels). venv removes the awkward conda-shell-around-a-pip-block
+  split entirely.
 - **Test categories covered:** hardware-smoke — TensorFlow, hardware-smoke — Keras (see §6).
 - **Language runtime / pins:** `python=3.12.13` (exact).
 - **Bootstrap (one-time):** Lazy-provisioned. Explicit form:
   ```bash
   pyve testenv init smoke-tensorflow
   ```
-- **Install dependencies:** Driven by `tests/integration/env/tensorflow.yml` (declared in
-  `pyve.toml`; file pending).
-- **Managed dependencies (`pip` / `conda`):** Intended contents of the manifest:
+- **Install dependencies:** Driven by `tests/integration/env/tensorflow.txt` (declared via
+  `requirements` in `pyve.toml`; file pending, authored in F.f.3).
+- **Managed dependencies (`pip`):** Intended contents of the requirements file:
 
   | Package | Version pin | Source class | Purpose |
   |---------|-------------|--------------|---------|
-  | `python` | `=3.12.13` | `runtime` | Pinned interpreter |
-  | `numpy` | unpinned | `conda` (conda-forge) | Tensor data setup |
-  | `pytest` | unpinned | `conda` (conda-forge) | Test runner |
+  | _(interpreter)_ | project Python (≥3.12.13) | `runtime` | venv inherits the project interpreter |
+  | `numpy` | unpinned | `pip` (PyPI) | Tensor data setup |
+  | `pytest` | unpinned | `pip` (PyPI) | Test runner |
   | `tensorflow-macos` | `>=2.16` | `pip` (PyPI) | Apple Silicon TF distribution; ships Keras 3 bundled |
   | `tensorflow-metal` | `>=1.1` | `pip` (PyPI) | Metal acceleration plugin |
 
@@ -609,9 +636,9 @@ LearningFoundry curriculum reuse it twice.
   fix to story F.f.2 — conda-forge HuggingFace pulls a parallel standalone `keras`
   transitively; with HF absent here, that contamination cannot occur, and the F.e hygiene
   guard passes by construction.
-- **System / external dependencies:** `micromamba`.
-- **Lock / reproducibility strategy:** Same as smoke-pytorch (per-env conda-lock deferred to
-  Phase H).
+- **System / external dependencies:** None beyond root's (`git`). No `micromamba` — this env is `venv`/pip.
+- **Lock / reproducibility strategy:** Same as smoke-torch (per-env hashed requirements,
+  deferred to Phase H).
 - **How to run the tests this env owns:**
   ```bash
   pyve test --env smoke-tensorflow tests/integration/test_e2e_tensorflow.py -m hardware
@@ -628,59 +655,14 @@ LearningFoundry curriculum reuse it twice.
 
 ---
 
-### 5.4 Environment: `smoke-huggingface` (purpose: `test`)
+### 5.4 (merged into §5.2) — HuggingFace smoke moved to `smoke-torch`
 
-- **Purpose (surface):** `test` — hosts the HuggingFace hardware smoke (story F.f,
-  `tests/integration/test_e2e_huggingface.py`). Validates `transformers` + `datasets` +
-  `peft` against a small pretrained model running on PyTorch's MPS backend.
-- **Attributes:** app_type `none`; frameworks `[pytest]`; languages `[python]`; packaging
-  `none`.
-- **Backend & rationale:** `micromamba` — the HuggingFace stack on conda-forge ships
-  `transformers`, `datasets`, `peft`, `sentencepiece`, `protobuf`, `tiktoken` with their
-  native deps cleanly resolved. Same pattern as the shipped payload's `# huggingface`
-  section.
-- **Test categories covered:** hardware-smoke — HuggingFace (see §6).
-- **Language runtime / pins:** `python=3.12.13` (exact).
-- **Bootstrap (one-time):** Lazy-provisioned. Explicit form:
-  ```bash
-  pyve testenv init smoke-huggingface
-  ```
-- **Install dependencies:** Driven by `tests/integration/env/huggingface.yml` (declared in
-  `pyve.toml`; file pending).
-- **Managed dependencies (`pip` / `conda`):** Intended contents:
-
-  | Package | Version pin | Source class | Purpose |
-  |---------|-------------|--------------|---------|
-  | `python` | `=3.12.13` | `runtime` | Pinned interpreter |
-  | `pytorch` | `>=2.5` | `conda` (conda-forge) | Default backend for transformers in nbfoundry's smokes |
-  | `transformers` | unpinned | `conda` (conda-forge) | The library under test |
-  | `datasets` | unpinned | `conda` (conda-forge) | Tiny synthetic Dataset for the smoke |
-  | `peft` | unpinned | `conda` (conda-forge) | LoRA adapter for the smoke's forward-pass test |
-  | `sentencepiece` | unpinned | `conda` (conda-forge) | Tokenizer dep |
-  | `protobuf` | unpinned | `conda` (conda-forge) | Tokenizer dep |
-  | `tiktoken` | unpinned | `conda` (conda-forge) | Tokenizer dep |
-  | `numpy` | unpinned | `conda` (conda-forge) | Data setup |
-  | `pytest` | unpinned | `conda` (conda-forge) | Test runner |
-
-  **Deliberately absent:** `tensorflow*` (HuggingFace's TF backend is not exercised here; the
-  smoke uses torch). The standalone-keras transitive that contaminated the bundled-payload
-  env in F.f.2 may still appear in this env (because HuggingFace conda-forge recipes pull it)
-  — but since no `tensorflow` is present, there is no TF-bundled Keras to conflict with, and
-  the standalone keras is benign here. F.e's hygiene guard does not run against this env.
-- **System / external dependencies:** `micromamba`.
-- **Lock / reproducibility strategy:** Same as smoke-pytorch (per-env conda-lock deferred to
-  Phase H).
-- **How to run the tests this env owns:**
-  ```bash
-  pyve test --env smoke-huggingface tests/integration/test_e2e_huggingface.py -m hardware
-  ```
-- **Verification (smoke test):**
-  ```bash
-  pyve testenv run --env smoke-huggingface python -c "from transformers import AutoTokenizer; print('OK')"
-  pyve testenv run --env smoke-huggingface python -c "import torch; print(torch.backends.mps.is_available())"
-  ```
-- **CI parity notes:** Not run in CI (hardware-only). First-run cost includes a small
-  pretrained-model download (~5 MB cached under `~/.cache/huggingface/hub`).
+The former `smoke-huggingface` environment was **merged into `smoke-torch` (§5.2)** on
+2026-06-13. HuggingFace rides the torch backend and brings no TensorFlow, so it shares the
+torch-family env with raw PyTorch and Optuna without conflict — collapsing the two torch-based
+smoke envs into one (see §4.1, "Why two smoke envs and not one, three, or more"). The
+consolidated spec, dependency table (including `transformers`/`datasets`/`peft` + the tokenizer
+deps), run commands, and the first-run model-download caveat all live in **§5.2**.
 
 ---
 
@@ -690,24 +672,25 @@ LearningFoundry curriculum reuse it twice.
 |---------------|---------|--------------------|----------|-------|
 | Static analysis / lint | `ruff check` | `testenv` | yes | Rule set: E, F, W, B, I, UP, SIM, RUF (`pyproject.toml`) |
 | Formatting | `ruff format --check` | `testenv` | yes | Same tool as lint |
-| Type checking | `mypy --strict` over `src/nbfoundry/` | `testenv` | yes | `tech-spec.md` QR-4 |
+| Type checking | `mypy --strict` over `src/nbfoundry/` (`templates/` **excluded**) | `testenv` | yes | Typed surface is ML-free; templates are author scaffolds excluded like ruff, so no heavy deps. `tech-spec.md` QR-4 |
 | Unit tests | `pytest` (`tests/unit/`) | `testenv` | yes | 8 modules per `tech-spec.md` Package Structure; hardware-independent |
 | Integration tests (non-hardware) | `pytest` (`tests/integration/test_cli_*.py`, `test_determinism.py`, `test_no_network.py`, `test_aggregate_tree.py`) | `testenv` | yes | Exercise the CLI surface against the editable install |
 | Coverage measurement | `pytest-cov` | `testenv` | yes | Target ≥85% on public `nbfoundry` modules (`tech-spec.md`) |
-| Hardware smoke — PyTorch | `pytest -m hardware` (`tests/integration/test_e2e_pytorch.py`) | `smoke-pytorch` | yes | Story F.d; Apple Silicon MPS |
+| Hardware smoke — PyTorch | `pytest -m hardware` (`tests/integration/test_e2e_pytorch.py`) | `smoke-torch` | yes | Story F.d; Apple Silicon MPS |
 | Hardware smoke — TensorFlow | `pytest -m hardware` (`tests/integration/test_e2e_tensorflow.py`) | `smoke-tensorflow` | yes | Story F.c; tensorflow-macos + tensorflow-metal |
 | Hardware smoke — Keras | `pytest -m hardware` (`tests/integration/test_e2e_keras.py`) | `smoke-tensorflow` | yes | Story F.e; Keras 3 via the TF-bundled namespace + hygiene guard |
-| Hardware smoke — HuggingFace | `pytest -m hardware` (`tests/integration/test_e2e_huggingface.py`) | `smoke-huggingface` | yes | Story F.f; transformers + datasets + peft on torch backend |
+| Hardware smoke — HuggingFace | `pytest -m hardware` (`tests/integration/test_e2e_huggingface.py`) | `smoke-torch` | yes | Story F.f; transformers + datasets + peft on torch backend |
 | Packaging / distribution | `hatch build` + PyPI trusted-publish | n/a (GitHub Actions) | yes | `.github/workflows/publish.yml` on `v*` tag; not a pyve env |
 
 **Completeness statement:** every test category the nbfoundry codebase requires today is
-covered by exactly one environment. The hardware-smoke category splits across three envs
-along the framework-family axis, which is the minimum split required to avoid the F.f.1
-co-residence SIGBUS and the F.f.2 transitive-contamination problem; no further split is
-needed (Keras rides with TensorFlow because Keras 3 is TF-bundled). Future stories F.g
-(Optuna) and F.h–F.j (per-template smokes) will fold into one of the three existing smoke
-envs based on which framework family they exercise; no new env is anticipated for them
-unless a future smoke introduces a fourth framework family.
+covered by exactly one environment. The hardware-smoke category splits across **two** envs
+along the single torch-family-vs-TensorFlow boundary — the minimum split required to avoid the
+F.f.1 co-residence SIGBUS (and, with HuggingFace kept in the torch env, the F.f.2
+transitive-contamination problem); no further split is needed (Keras rides with TensorFlow
+because Keras 3 is TF-bundled; HuggingFace and Optuna ride torch). Story F.g (Optuna) folds
+into `smoke-torch`; the framework-agnostic template smokes F.h–F.j run in the light `testenv`
+(no Metal), not a smoke env. No new smoke env is anticipated unless a future smoke introduces a
+third framework family.
 
 ---
 
@@ -731,17 +714,17 @@ pyve testenv run ruff check .                                        # lint clea
 pyve testenv run mypy                                                # type-check clean
 
 # Step 4 (Apple Silicon only, optional, lazy-provisioned on first use):
-pyve test --env smoke-pytorch    tests/integration/test_e2e_pytorch.py    -m hardware
-pyve test --env smoke-tensorflow tests/integration/test_e2e_tensorflow.py -m hardware
-pyve test --env smoke-tensorflow tests/integration/test_e2e_keras.py      -m hardware
-pyve test --env smoke-huggingface tests/integration/test_e2e_huggingface.py -m hardware
+pyve test --env smoke-torch      tests/integration/test_e2e_pytorch.py     -m hardware
+pyve test --env smoke-torch      tests/integration/test_e2e_huggingface.py -m hardware
+pyve test --env smoke-tensorflow tests/integration/test_e2e_tensorflow.py  -m hardware
+pyve test --env smoke-tensorflow tests/integration/test_e2e_keras.py       -m hardware
 ```
 
 - **Files that must be committed for reproducibility:** `pyproject.toml`,
   `requirements-dev.txt`, `pyve.toml`, `src/nbfoundry/templates/environment.yml` (the
-  bundled-payload manifest shipped to learners), `tests/integration/env/pytorch.yml`,
-  `tests/integration/env/tensorflow.yml`, `tests/integration/env/huggingface.yml` (the
-  per-smoke-env manifests; not yet authored — see story F.f.2 follow-up), and
+  bundled-payload conda manifest shipped to learners), `tests/integration/env/torch.txt`,
+  `tests/integration/env/tensorflow.txt` (the per-smoke-env pip requirements; not yet
+  authored — see story F.f.3), and
   `src/nbfoundry/_version.py` (single source of truth for the version string).
 - **Files that must NOT be committed:** `.pyve/envs/`, `.pyve/testenvs/`, `.venv/`, `.env`,
   any `__pycache__/` or `.pytest_cache/` directories, any `*.egg-info/` build artifact.
@@ -777,3 +760,5 @@ the right call.
 |------|---------|--------|--------|--------|
 | 2026-06-13 | 0.1 | Michael Smith | Initial draft — five environments (`root` + `testenv` + three `smoke-*` framework smokes); both canonical backends; no advisory needs. | Draft |
 | 2026-06-13 | 1.0 | Michael Smith | Approved by developer; no structural changes from 0.1. | Approved |
+| 2026-06-13 | 1.1 | Michael Smith | Smoke envs (`smoke-pytorch`/`-tensorflow`/`-huggingface`) switched `micromamba` → `venv`: every dep is a macOS arm64 pip wheel, so conda bought nothing once the smokes decoupled from the conda bundled payload. Per-smoke manifests become `tests/integration/env/<fw>.txt` pip requirements. `micromamba` is no longer used by any `pyve.toml` env (retained out-of-band only for the bundled-payload `scripts/metal_smoke.py` diagnostic). Updated §3, §4, §5.0, §5.2–5.4, §7. | Approved |
+| 2026-06-13 | 1.2 | Michael Smith | Collapsed the two torch-based smoke envs (`smoke-pytorch` + `smoke-huggingface`) into one **`smoke-torch`** (torch + HF + optuna); `smoke-tensorflow` unchanged. The only hard isolation boundary is torch-MPS vs TF-Metal co-residence (F.f.1), and HF/Optuna are torch-family with no TensorFlow, so a separate HF env was organizational, not physical. Result: **four total envs** (`root`, `testenv`, `smoke-torch`, `smoke-tensorflow`); smoke manifests `torch.txt` + `tensorflow.txt`. Updated §4.0/§4.1, §5.2 (merged), §5.4 (pointer), §6, §7. | Approved |

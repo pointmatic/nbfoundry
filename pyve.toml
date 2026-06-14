@@ -15,21 +15,17 @@ backend = "venv"
 default = true
 requirements = ["requirements-dev.txt"]
 
-# Heavy, focused, lazy: hardware smokes, one env per framework.
-[env.smoke-pytorch]
+# Focused, lazy: hardware smokes split on the ONE hard constraint — torch-MPS and
+# TF-Metal cannot co-reside in a process (F.f.1 SIGBUS). Two families, two envs. venv —
+# every dep is a macOS arm64 pip wheel, decoupled from the conda bundled-payload manifest.
+[env.smoke-torch]
 purpose = "test"
-backend = "micromamba"
-manifest = "tests/integration/env/pytorch.yml"   # torch + numpy + pytest only
-lazy = true
+backend = "venv"
+requirements = ["tests/integration/env/torch.txt"]   # torch + HF (transformers/datasets/peft) + optuna + numpy + pytest
+lazy = true                                           # serves F.d PyTorch, F.f HuggingFace, F.g Optuna (all torch-family)
 
 [env.smoke-tensorflow]
 purpose = "test"
-backend = "micromamba"
-manifest = "tests/integration/env/tensorflow.yml"   # tf-macos + tf-metal + numpy + pytest
-lazy = true                                         # serves F.c TF AND F.e Keras (bundled)
-
-[env.smoke-huggingface]
-purpose = "test"
-backend = "micromamba"
-manifest = "tests/integration/env/huggingface.yml"  # transformers + datasets + peft + torch + numpy + pytest
-lazy = true
+backend = "venv"
+requirements = ["tests/integration/env/tensorflow.txt"]   # tf-macos + tf-metal + numpy + pytest
+lazy = true                                               # serves F.c TF AND F.e Keras (bundled)

@@ -1,12 +1,57 @@
 # phase-f-pypi-distribution-and-stack-refresh-plan.md — Phase F Plan
 
-**Status:** Draft for review
+**Status:** Reframed 2026-06-13 for Pyve v3.0.6 named environments (see "Named-Environment Reframe" below); the original single-bundled-env smoke approach is superseded.
 **Phase:** F — PyPI Distribution and Stack Refresh
 **Predecessor:** Phase E (Pinned ML Stack and Five-Stage Templates), shipped through v0.28.0
 **Successor:** Phase G (Testing, Quality, and Documentation)
-**Version range:** v0.29.0 – v0.38.0 (10 stories: F.a–F.j)
+**Version range:** v0.29.0 – v0.38.0 (stories F.a–F.j, plus follow-ups F.f.1–F.f.3)
 
 Phase F establishes nbfoundry as a real installable package, refreshes the template ML stack from the narrow Apple-only PyTorch+TF+Keras pinning to a broader cross-project stack derived from the proven sentiment-poc environment, and demonstrates per-tool and per-template happy paths on developer Apple Silicon hardware. Phase G is then free to focus on edges, quality, and documentation against a known-working stack.
+
+---
+
+## Named-Environment Reframe (Pyve v3.0.6)
+
+**Added 2026-06-13.** Phase F's smoke stories (F.c–F.j) were originally designed against a *single bundled* `src/nbfoundry/templates/environment.yml` that co-located the entire ML stack (PyTorch + TensorFlow-Metal + bundled Keras + HuggingFace + Optuna + dev tools) in one micromamba env, then smoke-tested by hand-building a side directory and running `pyve test --env main` / `pyve run python -m pytest`. That model produced **both** of the phase's debug-cycle bugs (F.f.1 SIGBUS, F.f.2 keras hygiene). Pyve **v3.0.6** shipped the *named test environments* capability (`pyve.toml` `[env.<name>]`, per-env backend + manifest, `lazy = true`) — the exact capability **F.f.2 was blocked on** — so the phase is reframed around it. The `plan_envs` session that motivated this reframe landed `pyve.toml` and the authoritative env spec `docs/specs/env-dependencies.md`.
+
+**New topology** (authoritative spec: `docs/specs/env-dependencies.md`; declared in `pyve.toml`):
+
+| Env | Backend | Purpose | Manifest |
+|---|---|---|---|
+| `root` | venv | utility (nbfoundry + runtime deps) | `pyproject.toml` |
+| `testenv` (default) | venv | light CI: pytest, ruff, mypy | `requirements-dev.txt` |
+| `smoke-torch` | venv, lazy | torch-family: PyTorch (F.d) + HuggingFace (F.f) + Optuna (F.g) | `tests/integration/env/torch.txt` |
+| `smoke-tensorflow` | venv, lazy | TensorFlow (F.c) + Keras (F.e) smokes | `tests/integration/env/tensorflow.txt` |
+
+**Both phase bugs dissolve at the env layer:**
+
+- **F.f.1 SIGBUS** (torch-MPS + TF-Metal co-residence) → impossible by construction; each framework family owns its env. The subprocess isolation in `scripts/metal_smoke.py` stays as belt-and-suspenders, no longer load-bearing.
+- **F.f.2 keras hygiene** (HuggingFace conda transitives pull a standalone `keras` that fights TF's bundled copy) → `smoke-tensorflow` ships TensorFlow only, so F.e's `test_keras_is_the_tf_bundled_namespace` guard passes *by construction*. The constrain-transitives approach is abandoned.
+
+**Story-level changes:**
+
+- **F.f.1** — flipped to `[Done]` (shipped v0.34.1); open follow-ups dispositioned (docstring fix + diagnostics deletion → F.f.3; prevention-scan → resolved-by-topology; apple-metal diagnostic CLI → deferred, see Out of Scope).
+- **F.f.2** — closed as a tombstone, obsoleted by the env split (no code change; the learner-facing bundled-payload hygiene is deferred — see Out of Scope).
+- **F.f.3 (new, v0.34.2)** — the migration unit: author the two `tests/integration/env/*.txt` pip requirements (`torch.txt`, `tensorflow.txt`), migrate the F.c–F.f run-procedure prose to the named-env form, and re-verify F.c/F.d/F.e/F.f green under their named envs on developer hardware (closing F.e's open verify).
+- **F.c / F.d / F.f** — run-procedure prose only (named-env one-liner); smoke code unchanged.
+- **F.g–F.j** — retargeted to the named envs (F.g Optuna → `smoke-torch`; the framework-agnostic F.h–F.j template-smoke env + `@pytest.mark.hardware` marker is finalized when those bodies are implemented — current lean: run in the default `testenv`, no Metal needed).
+
+**Smoke manifests are framework-only.** The F.c–F.f smoke tests `importorskip` only their framework — they never `import nbfoundry` — so the manifests carry framework + numpy + pytest, *not* nbfoundry. PyPI-published-surface validation rides with the F.h–F.j template smokes, which actually invoke `nbfoundry init`.
+
+**New / changed files (beyond the original plan):**
+
+- `tests/integration/env/{torch,tensorflow}.txt` — **new**, the two per-framework-family smoke **venv/pip** requirements (F.f.3; `torch.txt` = torch + HF + optuna). No conda; every dep is a macOS arm64 wheel.
+- `pyve.toml`, `docs/specs/env-dependencies.md` — landed by the motivating `plan_envs` session.
+- The F.c–F.f `tests/integration/test_e2e_*.py` docstrings — run-procedure prose updated (F.f.3).
+- `scripts/keras_metal_{fit_repro,narrow}.py` — **deleted** (F.f.3 housekeeping; regression covered by `tests/unit/test_metal_smoke.py`).
+
+**Acceptance check (revised).** From a fresh clone on Apple Silicon: `pyve init` + `pyve test` (light surface green), then lazily provision and run each hardware smoke via `pyve test --env smoke-<fw> tests/integration/test_e2e_<fw>.py -m hardware` — all green, no SIGBUS, F.e hygiene guard passing. The bundled-payload `pyve init --backend micromamba` learner path remains valid but is no longer the dev-side smoke mechanism.
+
+**Out of Scope (added by this reframe):**
+
+- **Learner-facing bundled `templates/environment.yml` hygiene / per-applied-series split** — the bundled payload still co-locates HF+TF; its split into per-applied-series env recipes is tracked separately per `env-dependencies.md` § "Bundled-payload manifest" and the LearningFoundry applied-exercise architecture. F.f.3 does not touch the bundled payload.
+- **`apple-metal-micromamba-pip.md` spec + platform-detecting diagnostic CLI** — F.f.1's deferred follow-up; the core Metal/micromamba/pip gotchas are captured in `project-essentials.md` (this phase's Step 8), but the CLI is its own future feature.
+- **Per-env hashed `requirements.txt` lock (pip-tools) for the smoke envs** and **CI wiring of the smoke envs** — Phase H.
 
 ---
 
@@ -65,6 +110,8 @@ What Phase F adds (functional):
 
 ### Story breakdown
 
+> **Post-reframe note (2026-06-13):** the table below is the original 10-story plan. Since then F.f.1 (SIGBUS fix, shipped v0.34.1) and F.f.3 (named-env migration, v0.34.2) were added, and F.f.2 was closed as obsolete. See "Named-Environment Reframe" above and `stories.md` for the current sequence; the F.c–F.j *titles/themes* below still hold, but their smoke-env mechanism is the per-framework named envs, not the single bundled env.
+
 | ID | Version | Title | Theme |
 |---|---|---|---|
 | F.a | v0.29.0 | PyPI publish workflow | Tag-triggered build + trusted publish; documented release procedure |
@@ -90,8 +137,8 @@ Already reflected in the developer-edited `stories.md`:
 
 ### Sequencing constraints
 
-- **F.a before F.c–F.j.** Every per-tool / per-template smoke uses `pip install nbfoundry==<published-version>` against a clean checkout, validating the real install path. F.a must publish before any smoke runs.
-- **F.b before F.c–F.j.** Per-tool smokes share the refreshed stack baseline; running them against the pre-refresh env defeats the purpose.
+- **F.a before F.h–F.j.** *(Revised by the named-env reframe.)* The PyPI install path (`pip install nbfoundry==<published-version>`) is exercised by the **template** smokes F.h–F.j, which invoke `nbfoundry init`. The framework smokes F.c–F.g `importorskip` only their framework and never `import nbfoundry`, so they no longer depend on F.a's publish.
+- **F.f.3 before F.c–F.j re-verify.** The per-framework `tests/integration/env/*.txt` pip requirements are authored in F.f.3; no hardware smoke can run under the named-env model until they exist. They are informed by F.b's stack-version choices but are focused venv requirements, not copies of the conda bundled env.
 - **F.c–F.g (per-tool) before F.h–F.j (per-template).** Framework correctness is established before being layered into stage-specific demos.
 
 ### Acceptance check at end of phase
