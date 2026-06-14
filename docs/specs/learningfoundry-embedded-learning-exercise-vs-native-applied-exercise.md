@@ -26,7 +26,7 @@ The decision is forced by three constraints, no two of which can be satisfied wh
 | # | Constraint | Source | Hard? |
 |---|---|---|---|
 | 1 | LF v1 runtime is fully static — no backend, browser-only | `features.md` Non-goals 3 ("No server-side persistence or APIs"), Non-goals 9 (nbfoundry integration out of scope v1); `tech-spec.md` uses `@sveltejs/adapter-static`; Acceptance Criteria 4 | **Hard** — v1 design choice; relaxing it is a major architectural shift |
-| 2 | Deep learning training requires hardware acceleration (GPU / MPS / CUDA) | D802 Deep Learning Essentials is the reference curriculum | Soft — small CPU models are pedagogically valid; the constraint is about *scale*, not *concept* |
+| 2 | Deep learning training requires hardware acceleration (GPU / MPS / CUDA) | "Deep Learning Essentials" is the reference curriculum | Soft — small CPU models are pedagogically valid; the constraint is about *scale*, not *concept* |
 | 3 | In-browser Python = Pyodide (only path; WASM sandbox) | Physical layer — no other path exists | **Hard** — cannot relax |
 
 **The collision:** Pyodide does not include PyTorch, TensorFlow, or Keras-with-TF/PyTorch-backend, and **cannot ever** — Pyodide is WASM, and there is no Metal/CUDA/MPS driver inside a browser sandbox. The DL stack the curriculum requires cannot run in the LF runtime, period.

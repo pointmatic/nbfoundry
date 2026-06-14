@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.34.2] - 2026-06-14
+
+### Added
+- Per-framework smoke-env pip requirements for the Pyve v3.0.6 named test environments declared in `pyve.toml`:
+  - [tests/integration/env/torch.txt](tests/integration/env/torch.txt) — the `smoke-torch` torch-family env (`torch` + `transformers`/`datasets`/`peft` + tokenizer deps + `numpy`/`pytest`); serves the F.d PyTorch, F.f HuggingFace, and (later) F.g Optuna smokes. No TensorFlow / standalone keras.
+  - [tests/integration/env/tensorflow.txt](tests/integration/env/tensorflow.txt) — the `smoke-tensorflow` TensorFlow-family env (`tensorflow-macos`/`tensorflow-metal` + `numpy`/`pytest`); serves the F.c TensorFlow and F.e Keras smokes. No torch/HuggingFace/standalone keras.
+- [tests/unit/test_smoke_env_requirements.py](tests/unit/test_smoke_env_requirements.py): hardware-independent regression tests locking the env-isolation invariants — torch.txt never declares TensorFlow/keras (F.f.1 co-residence boundary), tensorflow.txt never declares torch/HuggingFace/standalone keras (F.f.2 keras-hygiene boundary).
+
+### Changed
+- Migrated the hardware-smoke run procedures from the old single-bundled-env recipe (`mkdir <fw>-smoke && cp environment.yml && pyve init --backend micromamba && pip install nbfoundry==… && pyve test --env main …`) to the named-env one-liner (`pyve test --env smoke-<fw> tests/integration/test_e2e_<fw>.py -m hardware`) in the F.c/F.d/F.e/F.f story bodies and the four `test_e2e_*.py` module docstrings.
+
+### Removed
+- Throwaway debug scratch `scripts/keras_metal_fit_repro.py` and `scripts/keras_metal_narrow.py` (F.f.1 reproduction scripts; the regression is now covered by [tests/unit/test_metal_smoke.py](tests/unit/test_metal_smoke.py)).
+
 ## [0.34.1] - 2026-05-29
 
 ### Fixed

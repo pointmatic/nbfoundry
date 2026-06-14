@@ -3,29 +3,21 @@
 """End-to-end PyTorch happy path on Apple Silicon (Story F.d).
 
 Verifies the refreshed Phase F stack produces a working PyTorch/MPS training
-run when nbfoundry is installed from PyPI against the new shared
-`src/nbfoundry/templates/environment.yml`.
+run on Apple Silicon.
 
 The test is gated behind `@pytest.mark.hardware`, so `pyve test` skips it by
-default (see pyproject.toml `addopts = "-m 'not hardware'"`). Run it
-explicitly on developer Apple Silicon hardware:
+default (see pyproject.toml `addopts = "-m 'not hardware'"`).
 
-    pyve test tests/integration/test_e2e_pytorch.py -m hardware
+Developer-hardware run procedure (one-time per release), on Apple Silicon:
 
-Developer-hardware run procedure (one-time per release):
+    pyve test --env smoke-torch tests/integration/test_e2e_pytorch.py -m hardware
 
-    1. Build a fresh micromamba-backed env from the refreshed templates env:
-           mkdir torch-smoke && cd torch-smoke
-           cp <repo>/src/nbfoundry/templates/environment.yml .
-           pyve init --backend micromamba
-
-    2. Install nbfoundry from PyPI into that env (not editable from the
-       working tree -- per project-essentials, F.c-F.j install from PyPI to
-       validate the published surface):
-           pyve run pip install nbfoundry==<latest-published>
-
-    3. Run the smoke from inside the repo:
-           pyve test tests/integration/test_e2e_pytorch.py -m hardware
+The `smoke-torch` env (declared in `pyve.toml`, deps in
+`tests/integration/env/torch.txt`) is a lazy-provisioned venv that pip-installs
+the torch-family stack on first targeted use. It is the torch-family smoke env
+(no TensorFlow — the F.f.1 co-residence boundary). Run one smoke file per
+process. This test imports only `torch`/`numpy` (via `importorskip`); it does
+not import nbfoundry. See `docs/specs/env-dependencies.md` §5.2.
 
 The test trains a tiny dense classifier on ~100 random samples for 1 epoch
 (batch_size=16, ~6 optimizer steps), records the loss at each step, and

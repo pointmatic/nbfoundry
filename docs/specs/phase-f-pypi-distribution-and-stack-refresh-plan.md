@@ -28,28 +28,32 @@ Phase F establishes nbfoundry as a real installable package, refreshes the templ
 - **F.f.1 SIGBUS** (torch-MPS + TF-Metal co-residence) → impossible by construction; each framework family owns its env. The subprocess isolation in `scripts/metal_smoke.py` stays as belt-and-suspenders, no longer load-bearing.
 - **F.f.2 keras hygiene** (HuggingFace conda transitives pull a standalone `keras` that fights TF's bundled copy) → `smoke-tensorflow` ships TensorFlow only, so F.e's `test_keras_is_the_tf_bundled_namespace` guard passes *by construction*. The constrain-transitives approach is abandoned.
 
+**Conda fully eliminated — learner stack → per-stage venv/pip (F.f.4, added 2026-06-14).** The reframe above moved the dev/smoke envs to venv but initially left the *learner-facing* bundled `templates/environment.yml` as conda. Going **exclusively venv**, F.f.4 converts that payload too: the single conda file becomes three composable pip requirements — `templates/requirements-base.txt` (agnostic core), `requirements-torch.txt` (`-r base` + torch + HF + optuna), `requirements-tf.txt` (`-r base` + tf-macos/metal) — mirroring `testenv` / `smoke-torch` / `smoke-tensorflow`. `nbfoundry init --template <stage>` emits the stage-appropriate file (base for `data_*`, torch for `model_*`). Because `torch` and `tensorflow` are never co-installed, the F.f.1 co-residence SIGBUS becomes impossible for learners too. This **reverses the `concept.md`/`features.md` constraint mandating micromamba** (CR-10 / QR-1 / AC-5 → venv) — F.f.4 carries those edits. `conda-lock` and the conda cross-platform swap comments are dropped; `scripts/metal_smoke.py` is reconciled with per-stage venv (probe each framework venv, or retire it in favor of the named smoke envs). After F.f.4, **nothing in the repo uses conda/micromamba** — every conda reference below this point describes the original (F.b-era) plan and is superseded.
+
 **Story-level changes:**
 
 - **F.f.1** — flipped to `[Done]` (shipped v0.34.1); open follow-ups dispositioned (docstring fix + diagnostics deletion → F.f.3; prevention-scan → resolved-by-topology; apple-metal diagnostic CLI → deferred, see Out of Scope).
 - **F.f.2** — closed as a tombstone, obsoleted by the env split (no code change; the learner-facing bundled-payload hygiene is deferred — see Out of Scope).
 - **F.f.3 (new, v0.34.2)** — the migration unit: author the two `tests/integration/env/*.txt` pip requirements (`torch.txt`, `tensorflow.txt`), migrate the F.c–F.f run-procedure prose to the named-env form, and re-verify F.c/F.d/F.e/F.f green under their named envs on developer hardware (closing F.e's open verify).
 - **F.c / F.d / F.f** — run-procedure prose only (named-env one-liner); smoke code unchanged.
-- **F.g–F.j** — retargeted to the named envs (F.g Optuna → `smoke-torch`; the framework-agnostic F.h–F.j template-smoke env + `@pytest.mark.hardware` marker is finalized when those bodies are implemented — current lean: run in the default `testenv`, no Metal needed).
+- **F.f.4 (new, v0.34.3)** — converts the learner bundled payload from conda `environment.yml` → per-stage venv/pip requirements (`requirements-{base,torch,tf}.txt`) and reverses the micromamba constraint in `concept.md`/`features.md`/`tech-spec.md`/`README.md`. Makes the project **exclusively venv**.
+- **F.g–F.j** — retargeted to the named envs (F.g Optuna → `smoke-torch`; the framework-agnostic F.h–F.j template-smoke env + `@pytest.mark.hardware` marker is finalized when those bodies are implemented — current lean: run in the default `testenv`, or against the F.f.4 per-stage `requirements-base.txt` for payload fidelity; no Metal needed).
 
 **Smoke manifests are framework-only.** The F.c–F.f smoke tests `importorskip` only their framework — they never `import nbfoundry` — so the manifests carry framework + numpy + pytest, *not* nbfoundry. PyPI-published-surface validation rides with the F.h–F.j template smokes, which actually invoke `nbfoundry init`.
 
 **New / changed files (beyond the original plan):**
 
 - `tests/integration/env/{torch,tensorflow}.txt` — **new**, the two per-framework-family smoke **venv/pip** requirements (F.f.3; `torch.txt` = torch + HF + optuna). No conda; every dep is a macOS arm64 wheel.
+- `src/nbfoundry/templates/requirements-{base,torch,tf}.txt` — **new** (F.f.4); the conda `templates/environment.yml` is **deleted**. `concept.md`/`features.md`/`tech-spec.md`/`README.md` carry the micromamba→venv constraint reversal (F.f.4); `scripts/metal_smoke.py` reconciled or retired (F.f.4).
 - `pyve.toml`, `docs/specs/env-dependencies.md` — landed by the motivating `plan_envs` session.
 - The F.c–F.f `tests/integration/test_e2e_*.py` docstrings — run-procedure prose updated (F.f.3).
 - `scripts/keras_metal_{fit_repro,narrow}.py` — **deleted** (F.f.3 housekeeping; regression covered by `tests/unit/test_metal_smoke.py`).
 
-**Acceptance check (revised).** From a fresh clone on Apple Silicon: `pyve init` + `pyve test` (light surface green), then lazily provision and run each hardware smoke via `pyve test --env smoke-<fw> tests/integration/test_e2e_<fw>.py -m hardware` — all green, no SIGBUS, F.e hygiene guard passing. The bundled-payload `pyve init --backend micromamba` learner path remains valid but is no longer the dev-side smoke mechanism.
+**Acceptance check (revised).** From a fresh clone on Apple Silicon: `pyve init` + `pyve test` (light surface green), then lazily provision and run each hardware smoke via `pyve test --env smoke-<fw> tests/integration/test_e2e_<fw>.py -m hardware` — all green, no SIGBUS, F.e hygiene guard passing. After F.f.4 the **learner path is exclusively venv**: `pyve init` (venv) + `pip install -r templates/requirements-<stage>.txt` — no conda/micromamba anywhere.
 
 **Out of Scope (added by this reframe):**
 
-- **Learner-facing bundled `templates/environment.yml` hygiene / per-applied-series split** — the bundled payload still co-locates HF+TF; its split into per-applied-series env recipes is tracked separately per `env-dependencies.md` § "Bundled-payload manifest" and the LearningFoundry applied-exercise architecture. F.f.3 does not touch the bundled payload.
+- **Learner-side per-applied-series env recipes** — F.f.4 converts the bundled payload's *format* (conda → per-stage venv) and de-co-locates torch/TF, but the further decomposition into per-applied-series recipes (LearningFoundry applied-exercise architecture) remains a separate future track per `env-dependencies.md` § "Bundled-payload manifest".
 - **`apple-metal-micromamba-pip.md` spec + platform-detecting diagnostic CLI** — F.f.1's deferred follow-up; the core Metal/micromamba/pip gotchas are captured in `project-essentials.md` (this phase's Step 8), but the CLI is its own future feature.
 - **Per-env hashed `requirements.txt` lock (pip-tools) for the smoke envs** and **CI wiring of the smoke envs** — Phase H.
 
@@ -143,10 +147,10 @@ Already reflected in the developer-edited `stories.md`:
 
 ### Acceptance check at end of phase
 
-A clean Apple Silicon machine can:
-1. `pyve init --backend micromamba` against the new `environment.yml`
-2. `pip install nbfoundry==v0.38.0` from PyPI
-3. `nbfoundry init demo --template <each>` for each of the five templates
+A clean Apple Silicon machine can (post-F.f.4, exclusively venv):
+1. `pip install nbfoundry==v0.38.0` from PyPI
+2. `nbfoundry init demo --template <each>` for each of the five templates
+3. For each scaffold: `pyve init` (venv) + `pip install -r requirements-<stage>.txt` — no conda/micromamba
 4. Run each scaffolded notebook to completion with the relevant tool exercised
 
 Each story carries its own minimal pass/fail check; the phase-level acceptance check is the integral of the per-story checks.
@@ -157,8 +161,8 @@ Each story carries its own minimal pass/fail check; the phase-level acceptance c
 
 Confirmed with developer at plan time; each item is genuinely deferrable, not a hidden requirement.
 
-- **Per-platform lockfiles** (`conda-lock.yml` for cpu / gpu / metal). Deferred — revisit when full CI on Linux/CUDA is in place. `conda-lock` is included in the env so users can generate their own locally.
-- **One-shot installer / `nbfoundry env install`.** Deferred — once the env stabilizes, an installer wrapping `pyve init --backend micromamba` is a candidate enhancement.
+- **Per-platform lockfiles** — hashed `requirements.txt` (pip-tools `pip-compile --generate-hashes`) for cpu / gpu / metal. Deferred — revisit when full CI on Linux/CUDA is in place. *(Supersedes the original `conda-lock.yml` plan; `conda-lock` is dropped in F.f.4.)*
+- **One-shot installer / `nbfoundry env install`.** Deferred — once the env stabilizes, an installer wrapping `pyve init` + `pip install -r requirements-<stage>.txt` is a candidate enhancement.
 - **CUDA / Linux execution validation.** Tech-spec QR-3 keeps Linux/CUDA "best-effort" through v1; the env has documented CUDA swap-points but no smokes target CUDA hardware in this phase.
 - **Edge cases, error paths, validator coverage, mypy --strict, ≥85% coverage.** All Phase G work.
 - **CI lint/test workflow, coverage badge.** Phase H work.

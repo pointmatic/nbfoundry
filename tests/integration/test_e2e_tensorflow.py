@@ -2,30 +2,23 @@
 # SPDX-License-Identifier: Apache-2.0
 """End-to-end TensorFlow happy path on Apple Silicon (Story F.c).
 
-Verifies the refreshed Phase F stack produces a working TF/MPS training run
-when nbfoundry is installed from PyPI against the new shared
-`src/nbfoundry/templates/environment.yml`.
+Verifies the refreshed Phase F stack produces a working TF/MPS training run on
+Apple Silicon.
 
 The test is gated behind `@pytest.mark.hardware`, so `pyve test` skips it by
-default (see pyproject.toml `addopts = "-m 'not hardware'"`). Run it
-explicitly on developer Apple Silicon hardware:
+default (see pyproject.toml `addopts = "-m 'not hardware'"`).
 
-    pyve test tests/integration/test_e2e_tensorflow.py -m hardware
+Developer-hardware run procedure (one-time per release), on Apple Silicon:
 
-Developer-hardware run procedure (one-time per release):
+    pyve test --env smoke-tensorflow tests/integration/test_e2e_tensorflow.py -m hardware
 
-    1. Build a fresh micromamba-backed env from the refreshed templates env:
-           mkdir tf-smoke && cd tf-smoke
-           cp <repo>/src/nbfoundry/templates/environment.yml .
-           pyve init --backend micromamba
-
-    2. Install nbfoundry from PyPI into that env (not editable from the
-       working tree -- per project-essentials, F.c-F.j install from PyPI to
-       validate the published surface):
-           pyve run pip install nbfoundry==<latest-published>
-
-    3. Run the smoke from inside the repo:
-           pyve test tests/integration/test_e2e_tensorflow.py -m hardware
+The `smoke-tensorflow` env (declared in `pyve.toml`, deps in
+`tests/integration/env/tensorflow.txt`) is a lazy-provisioned venv that
+pip-installs `tensorflow-macos` + `tensorflow-metal` on first targeted use. It
+is the TensorFlow-family smoke env (no torch — the F.f.1 co-residence boundary;
+no standalone keras — the F.f.2 hygiene boundary). Run one smoke file per
+process. This test imports only `tensorflow`/`numpy` (via `importorskip`); it
+does not import nbfoundry. See `docs/specs/env-dependencies.md` §5.3.
 
 Budget: under 60s on M-series silicon.
 """

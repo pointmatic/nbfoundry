@@ -1,0 +1,38 @@
+# Copyright (c) 2026 Pointmatic
+# SPDX-License-Identifier: Apache-2.0
+#
+# smoke-torch — torch-family hardware-smoke env (Story F.f.3).
+# Declared in pyve.toml as `[env.smoke-torch] requirements`; lazy-provisioned
+# (venv) on first `pyve test --env smoke-torch ...`. Serves the torch-family
+# hardware smokes:
+#   - F.d  tests/integration/test_e2e_pytorch.py      (PyTorch / MPS)
+#   - F.f  tests/integration/test_e2e_huggingface.py  (transformers/datasets/peft, torch backend)
+#   - F.g  tests/integration/test_e2e_optuna.py       (Optuna, torch objective — `optuna` added by F.g)
+#
+# Every dependency is a macOS arm64 pip wheel: torch's wheel is the MPS-enabled
+# build (PyTorch's own recommended Mac install); transformers/datasets/peft are
+# pure-Python; sentencepiece/protobuf/tiktoken ship arm64 + py3.12 wheels.
+#
+# Deliberately ABSENT: tensorflow* and standalone keras. PyTorch-MPS and
+# TensorFlow-Metal cannot co-reside in one process on Apple Silicon (F.f.1
+# SIGBUS), so the two framework families live in separate envs. With no
+# TensorFlow here there is no TF-bundled Keras for a transitive standalone
+# `keras` to fight (F.f.2) — and a base `transformers` install pulls neither
+# TensorFlow nor keras anyway (those are optional `[tf]` extras).
+#
+# Cross-platform note: torch's CUDA builds install via an index URL, e.g.
+#   pip install torch --index-url https://download.pytorch.org/whl/cu128
+# (cpu / cu126 / cu128). The bare `torch` below resolves to the MPS wheel on
+# macOS arm64, which is what these smokes target.
+#
+# See docs/specs/env-dependencies.md §5.2.
+
+torch>=2.5
+transformers
+datasets
+peft
+sentencepiece
+protobuf
+tiktoken
+numpy
+pytest

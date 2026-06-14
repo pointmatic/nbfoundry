@@ -6,7 +6,7 @@ This document defines what learningfoundry **requires** from nbfoundry — the c
 
 ## Role in learningfoundry
 
-nbfoundry is the **experiential content provider**. It produces interactive, executable notebook-based exercises that learners complete within the curriculum. In the D802 Deep Learning Essentials curriculum, these exercises involve building neural networks, training models, and analyzing results — with nbfoundry handling the scaffolding (data loading, training loops, evaluation) and providing explicit insertion points where the learner writes code.
+nbfoundry is the **experiential content provider**. It produces interactive, executable notebook-based exercises that learners complete within the curriculum. In the "Deep Learning Essentials" curriculum, these exercises involve building neural networks, training models, and analyzing results — with nbfoundry handling the scaffolding (data loading, training loops, evaluation) and providing explicit insertion points where the learner writes code.
 
 nbfoundry depends on **modelfoundry** internally for data preparation, model training, optimization, and evaluation scaffolding. learningfoundry does not interact with modelfoundry directly — it is an implementation detail of nbfoundry.
 

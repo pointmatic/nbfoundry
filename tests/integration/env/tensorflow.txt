@@ -1,0 +1,31 @@
+# Copyright (c) 2026 Pointmatic
+# SPDX-License-Identifier: Apache-2.0
+#
+# smoke-tensorflow — TensorFlow-family hardware-smoke env (Story F.f.3).
+# Declared in pyve.toml as `[env.smoke-tensorflow] requirements`;
+# lazy-provisioned (venv) on first `pyve test --env smoke-tensorflow ...`.
+# Serves the TensorFlow-family hardware smokes:
+#   - F.c  tests/integration/test_e2e_tensorflow.py  (tensorflow-macos + tensorflow-metal)
+#   - F.e  tests/integration/test_e2e_keras.py        (Keras 3 via the TF-bundled namespace + hygiene guard)
+#
+# Apple ships tensorflow-macos and tensorflow-metal as pip wheels (not
+# conda-forge), so the framework under test installs via pip regardless of
+# backend — venv is the natural fit.
+#
+# Deliberately ABSENT: standalone keras (Keras 3 is bundled inside TF 2.16+ and
+# exposed as both `tf.keras` and the bare `keras` namespace; a separate pin
+# pulls a parallel minor that fights TF's bundled copy), and torch / the
+# HuggingFace stack. Keeping torch out preserves the F.f.1 isolation boundary;
+# keeping HuggingFace out is what makes F.e's `test_keras_is_the_tf_bundled_namespace`
+# guard pass by construction (F.f.2) — conda-forge HF transitively pulled a
+# standalone keras, and that contamination cannot occur when HF is absent.
+#
+# Cross-platform note: on non-Mac hosts swap the two Apple wheels for
+# `tensorflow` (CPU/GPU) or `tensorflow[and-cuda]` (CUDA).
+#
+# See docs/specs/env-dependencies.md §5.3.
+
+tensorflow-macos>=2.16
+tensorflow-metal>=1.1
+numpy
+pytest

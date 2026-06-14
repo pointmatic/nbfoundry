@@ -207,12 +207,14 @@ focused-manifest topology recorded here. The detailed reasoning lives in
   `pyve test --env <smoke-env> <file> -m hardware`. The hardware smokes live under
   `tests/integration/test_e2e_*.py` (Phase F stories F.c–F.j) and own the three `smoke-*`
   environments enumerated in §4.
-- **Bundled-payload manifest** — `src/nbfoundry/templates/environment.yml`, the conda
-  manifest *shipped to learners* as the runtime stack for scaffolded projects. Distinct from
-  the dev-side smoke manifests under `tests/integration/env/` which target *focused, per-
-  framework dev-side testing*. The applied-exercise architecture
+- **Bundled-payload manifest** — the runtime stack *shipped to learners* for scaffolded
+  projects. Originally a single conda `src/nbfoundry/templates/environment.yml`; **story F.f.4
+  converts it to per-stage venv/pip requirements** (`requirements-base.txt` /
+  `requirements-torch.txt` / `requirements-tf.txt`), making the project **exclusively venv**.
+  Distinct from the dev-side smoke requirements under `tests/integration/env/` which target
+  *focused, per-framework dev-side testing*. The applied-exercise architecture
   (`docs/specs/learningfoundry-embedded-learning-exercise-vs-native-applied-exercise.md`) calls
-  for the bundled-payload manifest to split into per-applied-series recipes; that work is
+  for the bundled payload to further split into per-applied-series recipes; that work is
   tracked separately in `stories.md` and does not change this document's env topology.
 
 ---
@@ -448,7 +450,7 @@ LearningFoundry curriculum reuse it twice.
   | Dependency | Version | Source class | Install method | Why not in the managed env |
   |------------|---------|--------------|----------------|----------------------------|
   | `git` | — | `system` | OS-provided | Source control; not a Python package |
-  | `micromamba` | `>=1` | `system` | Pyve bootstrap or `brew install micromamba` | **Optional, out-of-band only.** Used to build the conda **bundled-payload** env (`templates/environment.yml`) for the `scripts/metal_smoke.py` diagnostic and to validate the learner install path. **Not** required for the smoke testenvs (#2–4), which are now `venv`, nor a runtime dep of nbfoundry itself |
+  | `micromamba` | `>=1` | `system` | Pyve bootstrap or `brew install micromamba` | **Optional, out-of-band only.** Used to build the conda **bundled-payload** env (`templates/environment.yml`) for the `scripts/metal_smoke.py` diagnostic and to validate the learner install path. **Not** required for the smoke testenvs (#2–4), which are now `venv`, nor a runtime dep of nbfoundry itself. *(Story F.f.4 converts the bundled payload to venv and removes this last conda use — see §2.)* |
 
 - **Lock / reproducibility strategy:** `pyproject.toml` declares loose pins; the wheel
   hatchling builds is what ships to PyPI. Exact-pin lockfiles for the root env are not
@@ -762,3 +764,4 @@ the right call.
 | 2026-06-13 | 1.0 | Michael Smith | Approved by developer; no structural changes from 0.1. | Approved |
 | 2026-06-13 | 1.1 | Michael Smith | Smoke envs (`smoke-pytorch`/`-tensorflow`/`-huggingface`) switched `micromamba` → `venv`: every dep is a macOS arm64 pip wheel, so conda bought nothing once the smokes decoupled from the conda bundled payload. Per-smoke manifests become `tests/integration/env/<fw>.txt` pip requirements. `micromamba` is no longer used by any `pyve.toml` env (retained out-of-band only for the bundled-payload `scripts/metal_smoke.py` diagnostic). Updated §3, §4, §5.0, §5.2–5.4, §7. | Approved |
 | 2026-06-13 | 1.2 | Michael Smith | Collapsed the two torch-based smoke envs (`smoke-pytorch` + `smoke-huggingface`) into one **`smoke-torch`** (torch + HF + optuna); `smoke-tensorflow` unchanged. The only hard isolation boundary is torch-MPS vs TF-Metal co-residence (F.f.1), and HF/Optuna are torch-family with no TensorFlow, so a separate HF env was organizational, not physical. Result: **four total envs** (`root`, `testenv`, `smoke-torch`, `smoke-tensorflow`); smoke manifests `torch.txt` + `tensorflow.txt`. Updated §4.0/§4.1, §5.2 (merged), §5.4 (pointer), §6, §7. | Approved |
+| 2026-06-14 | 1.3 | Michael Smith | Recorded that the learner bundled payload moves off conda → per-stage venv/pip requirements (`requirements-{base,torch,tf}.txt`, story F.f.4) — the project becomes **exclusively venv**; no `pyve.toml` env and no learner stack uses conda/micromamba. Updated §2 "Bundled-payload manifest" and the §5.0 micromamba note. | Approved |

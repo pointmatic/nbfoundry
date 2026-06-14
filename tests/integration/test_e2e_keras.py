@@ -9,29 +9,24 @@ and a parallel install silently fights TF's bundled copy.
 
 This test also guards against accidental reintroduction of the standalone
 pin: it asserts that the installed `keras` module resolves to the TF-bundled
-namespace, not a separately-installed package. If a future env-edit puts
-`keras` back in `templates/environment.yml`, this assertion fails loudly.
+namespace, not a separately-installed package. Under the named-env reframe
+(F.f.3) this guard passes *by construction*: `smoke-tensorflow` ships
+TensorFlow only — no HuggingFace — so the transitive that used to pull a
+standalone `keras` is simply not present.
 
 The test is gated behind `@pytest.mark.hardware`; `pyve test` skips it by
-default (see pyproject.toml `addopts = "-m 'not hardware'"`). Run it
-explicitly on developer Apple Silicon hardware:
+default (see pyproject.toml `addopts = "-m 'not hardware'"`).
 
-    pyve test tests/integration/test_e2e_keras.py -m hardware
+Developer-hardware run procedure (one-time per release), on Apple Silicon:
 
-Developer-hardware run procedure (one-time per release):
+    pyve test --env smoke-tensorflow tests/integration/test_e2e_keras.py -m hardware
 
-    1. Build a fresh micromamba-backed env from the refreshed templates env:
-           mkdir keras-smoke && cd keras-smoke
-           cp <repo>/src/nbfoundry/templates/environment.yml .
-           pyve init --backend micromamba
-
-    2. Install nbfoundry from PyPI into that env (not editable from the
-       working tree -- per project-essentials, F.c-F.j install from PyPI to
-       validate the published surface):
-           pyve run pip install nbfoundry==<latest-published>
-
-    3. Run the smoke from inside the repo:
-           pyve test tests/integration/test_e2e_keras.py -m hardware
+The `smoke-tensorflow` env (declared in `pyve.toml`, deps in
+`tests/integration/env/tensorflow.txt`) is a lazy-provisioned venv that
+pip-installs `tensorflow-macos` + `tensorflow-metal` on first targeted use —
+no torch, no HuggingFace, no standalone keras. Run one smoke file per process.
+This test imports only the `keras`/`tensorflow` namespace (via `importorskip`);
+it does not import nbfoundry. See `docs/specs/env-dependencies.md` §5.3.
 
 Budget: under 60s on M-series silicon.
 """

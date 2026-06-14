@@ -90,3 +90,84 @@ the local source, use the editable install path (the testenv default). If
 it should also catch *packaging* regressions — missing files in the wheel,
 broken entry points, install-time failures — install from PyPI like the
 existing `test_e2e_*.py` smokes do.
+
+### Exclusively venv/pip — no conda or micromamba anywhere
+
+This project uses **Pyve + `venv`** exclusively. No environment in the repo —
+the `root` utility env, the default `testenv`, the `smoke-torch` /
+`smoke-tensorflow` hardware-smoke envs, **and** the learner-facing bundled
+stack — uses conda or micromamba. The entire Metal ML stack is pip-installable
+on Apple Silicon: `torch`'s macOS arm64 wheel is MPS-enabled (PyTorch's own
+recommended Mac install), Apple ships `tensorflow-macos` + `tensorflow-metal`
+on PyPI, and the HuggingFace stack (`transformers`/`datasets`/`peft`/
+`sentencepiece`/`protobuf`/`tiktoken`) plus `optuna` are all pip wheels. conda
+bought nothing for the Apple-Silicon-first target, so it was dropped (stories
+F.f.3 dev side, F.f.4 learner side).
+
+**This supersedes any reference to `templates/environment.yml`** elsewhere in
+this file or the specs: F.f.4 **deletes** that conda manifest and replaces it
+with per-stage pip requirements `templates/requirements-{base,torch,tf}.txt`.
+The `pyve.toml` smoke envs use `requirements = [...]`
+(`tests/integration/env/{torch,tensorflow}.txt`), never a conda `manifest`.
+
+**Naming gotchas:** the pip distribution is **`torch`** (not conda's
+`pytorch`) — use `torch` in any `requirements*.txt`. And `ml-datarefinery`
+installs under the **distribution** name `ml-datarefinery` but **imports** as
+`datarefinery` (sklearn-style); a probe using the wrong name silently no-ops.
+
+### Env topology and the one hard isolation boundary (torch ≠ TensorFlow in a process)
+
+Four dev environments (`pyve.toml`): **`root`** (venv, utility — editable
+nbfoundry + runtime deps), **`testenv`** (venv, default, light —
+`pytest`/`ruff`/`mypy`, all hardware-independent tests), and two lazy
+hardware-smoke envs **`smoke-torch`** and **`smoke-tensorflow`** (venv,
+`@pytest.mark.hardware`, Apple-Silicon-only, never materialized in CI).
+
+The split into exactly those two smoke envs rests on **one hard physical
+constraint**: **PyTorch-MPS and TensorFlow-Metal cannot coexist in one process
+on Apple Silicon** — they SIGBUS (story F.f.1: `torch` claims the Metal device,
+then TF-Metal's Grappler faults). So the **torch-family** (`torch` +
+HuggingFace + `optuna`) and the **TensorFlow-family** (`tensorflow-macos`/
+`tensorflow-metal` + bundled Keras) live in **separate envs and are never
+co-installed**. The learner stack mirrors this exactly: `requirements-torch.txt`
+and `requirements-tf.txt` never share a venv, so a learner can't hit the SIGBUS
+either.
+
+**How to apply:** never create a "both frameworks" env or requirements file;
+never add `tensorflow*` to a torch env (or vice versa). HuggingFace and Optuna
+are torch-family → they ride with `torch`. A new env is warranted only if a
+future smoke introduces a third framework *family* (e.g. JAX); otherwise fold
+new smokes into one of the two existing families.
+
+### mypy's typed surface is ML-free — `templates/` is excluded, no heavy env
+
+nbfoundry's actual typed surface (the compiler, CLI, schema, validators under
+`src/nbfoundry/*.py`) imports **zero** ML stack by design (FR-7: the compiler
+operates on notebook source as text/AST). So `mypy --strict` needs **no** ML
+dependencies and runs in the light `testenv`. `[tool.mypy]` **excludes
+`src/nbfoundry/templates/`** (mirroring the existing `[tool.ruff]
+extend-exclude`): the template notebooks import `numpy`/`pandas`/`sklearn`/
+`torch` only as *example* code and are intentionally full of unannotated marimo
+cells — they are not part of nbfoundry's typed API, and their correctness is
+covered by the F.h–F.j template smokes, not by strict typing.
+
+**How to apply:** if `mypy` reports `import-not-found` for ML packages, the
+cause is a template leaking into the check — **fix it by tightening the
+`templates/` exclude, never by adding the ML stack to `testenv` or standing up
+a separate "mypy" env.** The real package modules are already strict-clean;
+only the excluded templates aren't.
+
+### The framework smokes don't import nbfoundry — PyPI-install applies only to the template smokes
+
+The hardware **framework** smokes
+`tests/integration/test_e2e_{pytorch,tensorflow,keras,huggingface,optuna}.py`
+(stories F.c–F.g) `pytest.importorskip` **only their framework** and never
+`import nbfoundry` — they validate the *shipped ML stack on Metal*, not
+nbfoundry's code. Their envs (`smoke-torch` / `smoke-tensorflow`) are therefore
+**framework-only**: nbfoundry is not installed into them.
+
+This refines the "*End-to-end smoke tests install nbfoundry from PyPI*" note
+above: the **published-surface / PyPI-install** convention applies specifically
+to the **template** smokes F.h–F.j (`test_e2e_template_*.py`), which actually
+invoke `nbfoundry init` and thus exercise the packaged wheel + entry points.
+The framework smokes F.c–F.g neither need nor install the published nbfoundry.

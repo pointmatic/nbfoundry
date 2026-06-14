@@ -8,25 +8,18 @@ with a `peft` LoRA adapter, builds a synthetic 3-example `datasets.Dataset`,
 and runs one forward pass.
 
 The test is gated behind `@pytest.mark.hardware`; `pyve test` skips it by
-default (see pyproject.toml `addopts = "-m 'not hardware'"`). Run it
-explicitly on developer Apple Silicon hardware:
+default (see pyproject.toml `addopts = "-m 'not hardware'"`).
 
-    pyve test tests/integration/test_e2e_huggingface.py -m hardware
+Developer-hardware run procedure (one-time per release), on Apple Silicon:
 
-Developer-hardware run procedure (one-time per release):
+    pyve test --env smoke-torch tests/integration/test_e2e_huggingface.py -m hardware
 
-    1. Build a fresh micromamba-backed env from the refreshed templates env:
-           mkdir hf-smoke && cd hf-smoke
-           cp <repo>/src/nbfoundry/templates/environment.yml .
-           pyve init --backend micromamba
-
-    2. Install nbfoundry from PyPI into that env (not editable from the
-       working tree -- per project-essentials, F.c-F.j install from PyPI to
-       validate the published surface):
-           pyve run pip install nbfoundry==<latest-published>
-
-    3. Run the smoke from inside the repo:
-           pyve test tests/integration/test_e2e_huggingface.py -m hardware
+HuggingFace rides the torch backend, so it lives in the `smoke-torch` env
+(declared in `pyve.toml`, deps in `tests/integration/env/torch.txt`) alongside
+PyTorch and Optuna — a lazy-provisioned venv, no TensorFlow (the F.f.1
+co-residence boundary). Run one smoke file per process. This test imports only
+`transformers`/`datasets`/`peft`/`torch` (via `importorskip`); it does not
+import nbfoundry. See `docs/specs/env-dependencies.md` §5.2.
 
 Budget: under 90s on M-series silicon. The first run downloads the model
 (~5MB) into `~/.cache/huggingface/hub`; subsequent runs read from cache and

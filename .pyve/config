@@ -1,4 +1,0 @@
-pyve_version: "3.0.6"
-backend: micromamba
-micromamba:
-  env_name: nbfoundry
