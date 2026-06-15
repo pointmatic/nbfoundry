@@ -398,21 +398,21 @@ TR-1 / TR-8 — exhaustive unit coverage of the public API and primitives.
 
 > **Scope note:** the invalid-permutation matrix is covered by **direct model construction** in `test_schema.py` (one assertion per branch) rather than one YAML file per case — the G.a `invalid_*.yaml` corpus carries the representative file-based rejections that the validator/integration layers consume. The two approaches are complementary, not duplicative.
 
-### Story G.c: v0.41.0 Integration test sweep [Planned]
+### Story G.c: v0.41.0 Integration test sweep [Done]
 
 TR-2 / TR-3 / OR-5 / AC-9 — end-to-end behaviors via the CLI and library surface.
 
-- [ ] `tests/integration/test_cli_init.py` — scaffolds each of the five templates
-- [ ] `tests/integration/test_cli_compile.py` — standalone artifact end-to-end
-- [ ] `tests/integration/test_cli_compile_exercise.py` — JSON to stdout / `--out`
-- [ ] `tests/integration/test_cli_validate.py` — exit codes
-- [ ] `tests/integration/test_determinism.py` — two runs produce byte-identical JSON
-- [ ] `tests/integration/test_no_network.py` — monkey-patched `socket.socket.connect` raises; compile/validate succeed
-- [ ] `tests/integration/test_aggregate_tree.py` — tree → single dict; tree-external references reject
-- [ ] `tests/integration/test_schema_fidelity.py` — `valid_graded.yaml` round-trips to `valid_graded.json` byte-for-byte (modulo path normalization)
-- [ ] Bump version to v0.41.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: `pyve test tests/integration/` passes; AC-9 sandbox test fails-closed if a network call sneaks in
+- [x] `tests/integration/test_cli_init.py` — scaffolds each of the five templates (+ default, unknown-template error, existing-path error)
+- [x] `tests/integration/test_cli_compile.py` — standalone artifact end-to-end (notebook + launch.py + requirements-base.txt; refuses existing output)
+- [x] `tests/integration/test_cli_compile_exercise.py` — JSON to stdout / `--out`; invalid → non-zero exit
+- [x] `tests/integration/test_cli_validate.py` — exit codes (0 clean / 1 with errors; reports all errors)
+- [x] `tests/integration/test_determinism.py` — two runs produce byte-identical JSON (+ fresh-base copy)
+- [x] `tests/integration/test_no_network.py` — monkey-patched `socket.socket.connect`/`connect_ex` raise; compile/validate succeed; sandbox self-check fails closed
+- [x] `tests/integration/test_aggregate_tree.py` — tree → single dict with inlined notebooks; tree-external (`..`) references reject
+- [x] `tests/integration/test_schema_fidelity.py` — `valid_graded.yaml` → `valid_graded.json` as a dict AND byte-for-byte via CLI `--out`
+- [x] Bump version to v0.41.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `pyve test tests/integration/` passes; AC-9 sandbox fails-closed if a network call sneaks in — verified 2026-06-14 (35 selected pass; `test_sandbox_blocks_real_connections` proves fail-closed). `ruff check` clean. No product bugs surfaced.
 
 ### Story G.d: v0.42.0 mypy --strict pass [Planned]
 

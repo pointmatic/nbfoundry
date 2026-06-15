@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.41.0] - 2026-06-14
+
+### Added
+- **Integration test sweep** (Story G.c, TR-2/TR-3/OR-5/AC-9) — eight modules exercising the CLI + library surface end-to-end:
+  - `test_cli_init.py` — scaffolds each of the five templates (+ default template, unknown-template error, existing-path error).
+  - `test_cli_compile.py` — standalone artifact emits `notebook.py` + `launch.py` + `requirements-base.txt` (no `environment.yml`); refuses existing output.
+  - `test_cli_compile_exercise.py` — JSON to stdout; `--out` writes a file; invalid input exits non-zero.
+  - `test_cli_validate.py` — exit 0/clean on valid, exit 1 with errors on invalid, all errors reported.
+  - `test_determinism.py` — repeated and fresh-base compiles are byte-stable (OR-5).
+  - `test_no_network.py` — socket-level sandbox (`socket.socket.connect`/`connect_ex` patched to raise) fails closed, and `compile_exercise`/`validate_exercise` succeed under it (AC-9/SC-2).
+  - `test_aggregate_tree.py` — a notebook-tree exercise compiles to a single dict with tree-internal notebooks inlined; a tree-external (`..`) reference is rejected (FR-6).
+  - `test_schema_fidelity.py` — `valid_graded.yaml` compiles to `golden/valid_graded.json` both as a dict and byte-for-byte via the CLI `--out` path (TR-2/QR-5).
+
 ## [0.40.0] - 2026-06-14
 
 ### Added
