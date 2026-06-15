@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Note
 - Because `--cov-fail-under` is in the default `addopts`, a single-file `pyve test <one_file>` run will under-report total coverage and fail the gate; pass `--no-cov` for focused single-file runs.
 
+### Documentation
+- Expanded `README.md` (Story G.f): replaced the stale "CLI lands across Phase D" placeholder with a real four-command quickstart (`init` / `compile` / `compile-exercise` / `validate`), an example exercise YAML, and the AC-3 two-surface demonstration (one notebook source → standalone app **and** embeddable exercise). Added a "Further reading" cross-link block (concept / features / tech-spec / learningfoundry dependency-spec / env-dependencies) and refreshed the dev-setup commands to the non-deprecated `pyve env` forms. All documented commands were dogfooded end-to-end.
+
 ## [0.42.0] - 2026-06-15
 
 ### Changed

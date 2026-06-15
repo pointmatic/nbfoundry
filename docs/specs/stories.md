@@ -438,14 +438,14 @@ TR-6 — `pytest-cov --cov-fail-under=85` on `nbfoundry` public modules.
 
 > **Side-effect note:** `--cov-fail-under` lives in default `addopts`, so a focused single-file `pyve test <file>` under-reports and fails the gate — use `--no-cov` for those runs (also noted in CHANGELOG).
 
-### Story G.f: Documentation polish [Planned]
+### Story G.f: Documentation polish [Done]
 
 Doc-only — no version bump; ships under v0.43.0.
 
-- [ ] Expand `README.md` with: install, scaffold, compile, embed-into-learningfoundry quickstart; AC-3 two-surface demonstration
-- [ ] Cross-link `concept.md`, `features.md`, `tech-spec.md`, `learningfoundry-dependency-spec.md`
-- [ ] Update `CHANGELOG.md` with documentation entry under `0.43.0`
-- [ ] Verify: a fresh reader following only `README.md` on Apple Silicon can scaffold and compile a template within UR-3's "minutes" budget
+- [x] Expand `README.md` with: install, scaffold, compile, embed-into-learningfoundry quickstart; AC-3 two-surface demonstration (new "Usage" section with all four commands + example exercise YAML + the one-source-two-surfaces explanation)
+- [x] Cross-link `concept.md`, `features.md`, `tech-spec.md`, dependency-spec — added a "Further reading" block. **Path note:** the dependency spec lives at `docs/specs/learningfoundry/dependency-spec.md` (not a top-level `learningfoundry-dependency-spec.md`); linked the real path. Also fixed the dev-setup commands from the deprecated `pyve testenv` to `pyve env`.
+- [x] Update `CHANGELOG.md` with a Documentation entry under the existing `0.43.0` (no new version heading — rides G.e's release)
+- [x] Verify: every documented command was **dogfooded end-to-end** on 2026-06-15 (`init` → `compile` → `compile-exercise` → `validate` all succeed against the editable install), so a fresh reader following only `README.md` can scaffold + compile within UR-3's "minutes" budget. No code change; full suite + coverage gate unaffected.
 
 ---
 

@@ -67,15 +67,89 @@ Both notes are documented inline at the top of the relevant requirements file.
 ```bash
 pyve init
 pyve run pip install -e .
-pyve testenv init
-pyve testenv install -r requirements-dev.txt
+pyve env init
+pyve env run pip install -e .
+pyve env install -r requirements-dev.txt
 ```
+
+Run the suite with `pyve test` (lint: `pyve env run ruff check .`; types:
+`pyve env run mypy`). Hardware smokes are opt-in: `pyve test --env smoke-torch …`
+/ `--env smoke-tensorflow … -m hardware`.
 
 ## Usage
 
-The CLI surface (`nbfoundry init`, `compile`, `compile-exercise`, `validate`) lands
-across Phase D. See [`docs/specs/stories.md`](docs/specs/stories.md) for the
-implementation roadmap.
+`nbfoundry` exposes four commands. Compile and validate are **offline,
+deterministic, and side-effect-free** — they read only the files you point them at
+and never touch the network.
+
+### 1. Scaffold a notebook — `init`
+
+```bash
+nbfoundry init demo --template data_exploration
+```
+
+`--template` is one of the five lifecycle stages: `data_exploration`,
+`data_preparation`, `model_experimentation`, `model_optimization`,
+`model_evaluation` (defaults to `data_exploration`). The scaffold contains a
+reactive Marimo `notebook.py` plus the stage-appropriate `requirements-*.txt`.
+
+### 2. Run it as a standalone app — `compile`
+
+```bash
+nbfoundry compile demo --out dist
+```
+
+Produces a self-contained artifact directory (the compiled notebook(s), the
+`requirements-*.txt`, and a `launch.py` entry point) that runs locally with no
+server or cloud dependency.
+
+### 3. Compile to a learningfoundry exercise — `compile-exercise`
+
+Author an exercise YAML whose sections carry (or reference, via `code_file`) the
+notebook code, plus instructional metadata:
+
+```yaml
+# exercise.yaml
+title: Explore a dataset
+description: Load, describe, and visualize the data.
+sections:
+  - title: Load
+    description: Read the CSV into a DataFrame.
+    code: |
+      import pandas as pd
+      df = pd.read_csv("data.csv")
+```
+
+```bash
+nbfoundry compile-exercise exercise.yaml --out exercise.json   # or omit --out for stdout
+```
+
+The output is an `ExerciseBlock`-compatible dict (the BR-1 wire shape) that drops
+into a learningfoundry curriculum. The full schema — instructions, hints,
+expected outputs, and the BR-4 `submission` block with client-side grading — is
+defined in [`docs/specs/learningfoundry/dependency-spec.md`](docs/specs/learningfoundry/dependency-spec.md).
+
+### 4. Validate without compiling — `validate`
+
+```bash
+nbfoundry validate exercise.yaml   # exit 0 when clean; exit 1 with all errors on stdout
+```
+
+### Two surfaces from one source (AC-3)
+
+The same notebook source feeds **both** outputs: `compile` turns it into a
+runnable standalone app, while `compile-exercise` (whose sections reference that
+same notebook via `code_file`) turns it into an embeddable curriculum exercise —
+no rewrite when the purpose shifts. That dual-surface compile is the core of
+nbfoundry's value (see [`docs/specs/concept.md`](docs/specs/concept.md)).
+
+## Further reading
+
+- [`docs/specs/concept.md`](docs/specs/concept.md) — why nbfoundry exists (problem/solution space).
+- [`docs/specs/features.md`](docs/specs/features.md) — what it does (requirements, behavior, acceptance criteria).
+- [`docs/specs/tech-spec.md`](docs/specs/tech-spec.md) — how it is built (architecture, dependencies, testing strategy).
+- [`docs/specs/learningfoundry/dependency-spec.md`](docs/specs/learningfoundry/dependency-spec.md) — the `ExerciseBlock` contract the compiled exercise targets.
+- [`docs/specs/env-dependencies.md`](docs/specs/env-dependencies.md) — the dev/test environment topology.
 
 ## Releasing to PyPI
 
