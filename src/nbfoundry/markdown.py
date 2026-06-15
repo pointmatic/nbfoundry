@@ -20,4 +20,5 @@ def _build(flavor: MarkdownFlavor) -> MarkdownIt:
 
 
 def render(text: str, flavor: MarkdownFlavor) -> str:
-    return _build(flavor).render(text).rstrip()
+    html: str = _build(flavor).render(text)
+    return html.rstrip()

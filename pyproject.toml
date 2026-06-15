@@ -67,6 +67,20 @@ python_version = "3.12"
 strict = true
 mypy_path = "src"
 packages = ["nbfoundry"]
+# The author notebook templates import the ML stack only as example code and are
+# full of intentional unannotated marimo cells — they are not part of nbfoundry's
+# typed surface (FR-7) and are covered by the F.h–F.j template smokes, not strict
+# typing. Excluded here (mirrors [tool.ruff] extend-exclude) so the typecheck env
+# stays ML-free and light. See env-dependencies.md §5.1 "mypy scope".
+exclude = '^src/nbfoundry/templates/'
+
+# modelfoundry is an optional, not-yet-published internal dependency reached only
+# through the thin `_modelfoundry.get_adapter()` adapter (raises a clear error
+# when absent). It ships no type stubs and is not installed, so tell mypy not to
+# error on the missing import; the adapter's own return is already `# type: ignore`d.
+[[tool.mypy.overrides]]
+module = "modelfoundry"
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

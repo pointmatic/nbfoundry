@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.42.0] - 2026-06-15
+
+### Changed
+- **`mypy --strict` now passes clean on nbfoundry's typed surface** (Story G.d, QR-4/TR-5). Added a `templates/` exclude to `[tool.mypy]` (`exclude = '^src/nbfoundry/templates/'`, mirroring `[tool.ruff] extend-exclude`) so the author notebook scaffolds — ML example code with intentional unannotated marimo cells — are not strict-typed; their correctness is covered by the F.h–F.j template smokes. The typecheck stays ML-free and runs in the light `testenv`.
+- Resolved the two real strict-mode errors that the exclude surfaced on the package modules:
+  - [markdown.py](src/nbfoundry/markdown.py): annotate the `markdown_it` render result (`html: str = …`) before `.rstrip()` to fix `no-any-return`.
+  - Added a `[[tool.mypy.overrides]]` for the optional, stub-less `modelfoundry` import (`ignore_missing_imports = true`) — it is reached only through the `_modelfoundry.get_adapter()` adapter and is not installed.
+
 ## [0.41.0] - 2026-06-14
 
 ### Added

@@ -414,16 +414,16 @@ TR-2 / TR-3 / OR-5 / AC-9 — end-to-end behaviors via the CLI and library surfa
 - [x] Update CHANGELOG.md
 - [x] Verify: `pyve test tests/integration/` passes; AC-9 sandbox fails-closed if a network call sneaks in — verified 2026-06-14 (35 selected pass; `test_sandbox_blocks_real_connections` proves fail-closed). `ruff check` clean. No product bugs surfaced.
 
-### Story G.d: v0.42.0 mypy --strict pass [Planned]
+### Story G.d: v0.42.0 mypy --strict pass [Done]
 
 QR-4 / TR-5 — strict typing across nbfoundry's **typed surface** (the ML-free compiler/CLI/schema). The author notebook **templates** are excluded — they import the ML stack only as example code and are full of intentional unannotated marimo cells; their correctness is covered by the F.h–F.j template smokes, not by strict typing. nbfoundry's real surface is ML-free (FR-7), so this runs in the light `testenv` with **no** ML deps — see `env-dependencies.md §5.1` "mypy scope".
 
-- [ ] Configure `[tool.mypy]` in `pyproject.toml` with `strict = true`, `mypy_path = "src"`, `packages = ["nbfoundry"]`, **and `exclude` covering `src/nbfoundry/templates/`** (mirrors the existing `[tool.ruff] extend-exclude`; final regex tuned at implementation). This keeps the typed surface ML-free and the typecheck env light.
-- [ ] Resolve every strict-mode error in `src/nbfoundry/` **excluding `templates/`** (the 13 real package modules already type-clean today; the only pre-existing errors are in the excluded templates). Do **not** add the ML stack to `testenv` to silence template `import-not-found` — exclude the templates.
-- [ ] Add `types-PyYAML` (already in `requirements-dev.txt`); add any further `types-*` stubs the strict pass surfaces
-- [ ] Bump version to v0.42.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: `pyve testenv run mypy` reports zero errors (templates excluded; no heavy deps required)
+- [x] Configure `[tool.mypy]` with `strict = true`, `mypy_path = "src"`, `packages = ["nbfoundry"]` (already present) **and** `exclude = '^src/nbfoundry/templates/'` (mirrors `[tool.ruff] extend-exclude`). Keeps the typed surface ML-free and the typecheck env light.
+- [x] Resolve every strict-mode error in `src/nbfoundry/` excluding `templates/`. **Note:** two real errors surfaced (the "13 modules already clean" assumption was slightly optimistic) — fixed in `markdown.py` (annotate the `markdown_it` render result before `.rstrip()` → `no-any-return`) and via a `[[tool.mypy.overrides]]` for the stub-less optional `modelfoundry` import (`ignore_missing_imports = true`). Did **not** add the ML stack to `testenv`.
+- [x] `types-PyYAML` already in `requirements-dev.txt`; no further `types-*` stubs surfaced.
+- [x] Bump version to v0.42.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `pyve env run mypy` reports zero errors — verified 2026-06-15 (`Success: no issues found in 14 source files`, exit 0; templates excluded, no heavy deps). Full suite still 143 passed; markdown behavior unchanged.
 
 ### Story G.e: v0.43.0 Coverage target ≥85% [Planned]
 
