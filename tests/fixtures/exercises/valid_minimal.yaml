@@ -1,0 +1,10 @@
+# Copyright (c) 2026 Pointmatic
+# SPDX-License-Identifier: Apache-2.0
+# Smallest passing exercise: required keys only (title, description, one section).
+title: Minimal exercise
+description: A minimal exercise.
+sections:
+  - title: Step one
+    description: Do the thing.
+    code: |
+      print("hello")

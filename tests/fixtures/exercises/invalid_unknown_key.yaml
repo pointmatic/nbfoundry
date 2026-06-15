@@ -1,0 +1,11 @@
+# Copyright (c) 2026 Pointmatic
+# SPDX-License-Identifier: Apache-2.0
+# Rejection: unknown top-level key (models are `extra="forbid"`).
+title: Unknown key exercise
+description: Has an unexpected key.
+difficulty: hard
+sections:
+  - title: Step one
+    description: Do the thing.
+    code: |
+      print("hello")

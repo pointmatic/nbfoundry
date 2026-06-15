@@ -1,0 +1,51 @@
+# Copyright (c) 2026 Pointmatic
+# SPDX-License-Identifier: Apache-2.0
+# Full BR-4 submission block: all three rule types (range/contains_all/equals),
+# both field types (number/text), weight, placeholder, plus a text expected
+# output, hints, and an environment block. Paired with golden/valid_graded.json.
+title: Graded exercise
+description: A graded exercise with a submission block.
+sections:
+  - title: Compute the mean
+    description: Compute the mean of the `x` column.
+    code: |
+      mean = df["x"].mean()
+    editable: true
+expected_outputs:
+  - description: The printed mean.
+    type: text
+    content: "mean = 0.5"
+hints:
+  - Use pandas `.mean()`.
+  - Watch for NaNs.
+submission:
+  pass_threshold: 0.8
+  fields:
+    - name: mean_value
+      type: number
+      label: Mean value
+      placeholder: "e.g. 0.5"
+      expected:
+        type: range
+        min: 0.0
+        max: 1.0
+        weight: 2
+    - name: method_name
+      type: text
+      label: Method used
+      expected:
+        type: contains_all
+        values:
+          - mean
+    - name: exact_count
+      type: number
+      label: Row count
+      expected:
+        type: equals
+        value: 100
+environment:
+  python_version: "3.12.13"
+  dependencies:
+    - pandas
+    - numpy
+  setup_instructions: "pip install -r requirements-base.txt"

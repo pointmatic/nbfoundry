@@ -1,0 +1,16 @@
+# Copyright (c) 2026 Pointmatic
+# SPDX-License-Identifier: Apache-2.0
+# Image expected_output (path-only, BR-5). The referenced asset must exist
+# under base_dir; see assets/plot.png alongside this file.
+title: Assets exercise
+description: An exercise with an image expected output.
+sections:
+  - title: Plot it
+    description: Produce the scatter plot.
+    code: |
+      plot(df)
+expected_outputs:
+  - description: A scatter plot of the two features.
+    type: image
+    path: assets/plot.png
+    alt: Scatter plot of feature_a vs feature_b

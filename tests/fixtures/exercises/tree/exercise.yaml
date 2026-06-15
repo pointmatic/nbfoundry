@@ -1,0 +1,13 @@
+# Copyright (c) 2026 Pointmatic
+# SPDX-License-Identifier: Apache-2.0
+# Multi-notebook tree fixture (FR-6): sections pull code from tree-internal
+# marimo notebooks via code_file. Compile with base_dir = this tree/ directory.
+title: Tree exercise
+description: An exercise assembled from a tree of notebooks.
+sections:
+  - title: Step 1 — load
+    description: Load the data.
+    code_file: notebooks/step1.py
+  - title: Step 2 — summarize
+    description: Summarize the data.
+    code_file: notebooks/step2.py

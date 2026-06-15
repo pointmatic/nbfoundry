@@ -1,0 +1,9 @@
+# Copyright (c) 2026 Pointmatic
+# SPDX-License-Identifier: Apache-2.0
+# Rejection (SC-3): code_file path escapes base_dir via `..`.
+title: Path escape exercise
+description: References a file outside base_dir.
+sections:
+  - title: Step one
+    description: Do the thing.
+    code_file: ../../../etc/passwd.py

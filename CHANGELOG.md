@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.39.0] - 2026-06-14
+
+### Added
+- **Test fixture corpus** under `tests/fixtures/` (Story G.a, start of Phase G) — the shared inputs the G.b/G.c sweeps consume:
+  - Valid exercises: `valid_minimal.yaml`, `valid_graded.yaml` (full BR-4 submission: all three rule types, both field types, weight/placeholder, plus text expected-output, hints, environment), `valid_with_assets.yaml` (image expected-output, BR-5) + a real 1×1 `assets/plot.png`.
+  - 12 `invalid_<reason>.yaml` fixtures, one per validator rejection (missing title, unknown key, empty sections, code/code_file XOR, image-missing-alt, pass_threshold out of range, duplicate field name, range-rule-on-text-field, YAML syntax error, top-level-not-mapping, missing asset, SC-3 path escape).
+  - `tree/` multi-notebook fixture (FR-6): an exercise YAML pulling section code from two tree-internal marimo notebooks.
+  - `golden/valid_graded.json` — byte-for-byte golden generated from the real compiler (TR-2).
+  - `tests/conftest.py` shared fixtures: `tmp_base_dir` (writable copy of the corpus as a compile base), `sample_yaml`, `golden_dict` (+ `fixtures_dir`/`exercises_dir` helpers).
+- `tests/unit/test_fixtures_corpus.py`: G.a verify smoke — asserts the corpus is real (valid fixtures compile clean, all invalid fixtures reject, the tree inlines, and `compile_exercise(sample_yaml)` equals the golden) and the conftest fixtures are usable.
+
 ## [0.38.0] - 2026-06-14
 
 ### Changed

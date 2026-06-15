@@ -364,20 +364,20 @@ Each story above carries its own minimal pass/fail check; the phase-level accept
 
 Hardening: fixtures, comprehensive test suite, type strictness, coverage target, and docs polish. DataRefinery bugs or small improvements that surface during Phase G testing work (Phase F adds `ml-datarefinery` to the template env but no nbfoundry-side integration code) may be addressed as additional G.* stories at the developer's discretion — Phase G is the quality phase and DataRefinery quality issues that span the nbfoundry boundary are in scope here. Full DataRefinery adapter + template integration remains deferred to a future Phase I.
 
-### Story G.a: v0.39.0 Test fixtures [Planned]
+### Story G.a: v0.39.0 Test fixtures [Done]
 
 Establish the fixture corpus that downstream test stories consume.
 
-- [ ] `tests/fixtures/exercises/valid_minimal.yaml` — smallest passing exercise
-- [ ] `tests/fixtures/exercises/valid_graded.yaml` — full BR-4 submission block
-- [ ] `tests/fixtures/exercises/valid_with_assets.yaml` — image expected_outputs (path-only, BR-5)
-- [ ] One `invalid_<reason>.yaml` per validator rejection (named per `tech-spec.md` Testing Strategy)
-- [ ] `tests/fixtures/exercises/tree/` — multi-notebook tree fixture
-- [ ] `tests/fixtures/golden/valid_graded.json` — TR-2 byte-for-byte golden
-- [ ] `tests/conftest.py` shared fixtures: `tmp_base_dir`, `sample_yaml`, `golden_dict`
-- [ ] Bump version to v0.39.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: `pyve test tests/fixtures/` discovers fixture files; conftest fixtures importable from a smoke test
+- [x] `tests/fixtures/exercises/valid_minimal.yaml` — smallest passing exercise
+- [x] `tests/fixtures/exercises/valid_graded.yaml` — full BR-4 submission block (all three rule types, both field types, weight/placeholder, + text expected-output, hints, environment)
+- [x] `tests/fixtures/exercises/valid_with_assets.yaml` — image expected_outputs (path-only, BR-5) + real `assets/plot.png` (1×1 PNG)
+- [x] One `invalid_<reason>.yaml` per validator rejection (named per `tech-spec.md` Testing Strategy) — 12 fixtures: `invalid_{missing_title,unknown_key,empty_sections,section_code_xor,image_missing_alt,pass_threshold_out_of_range,duplicate_field_name,range_on_text_field,yaml_syntax,top_level_not_mapping,missing_asset,path_escape}.yaml`. Covers the schema/submission/expected-output/parse/asset/path-escape rejection layers; fine-grained per-branch Pydantic permutations are left to G.b's direct-construction matrix (the shared corpus carries the representative rejections the validator/integration tests consume).
+- [x] `tests/fixtures/exercises/tree/` — multi-notebook tree fixture (`exercise.yaml` + `notebooks/step1.py` + `notebooks/step2.py`, FR-6)
+- [x] `tests/fixtures/golden/valid_graded.json` — TR-2 byte-for-byte golden, **generated from the real compiler** with the CLI's JSON serialization (so G.c fidelity/determinism compare against actual output, not a hand-written guess)
+- [x] `tests/conftest.py` shared fixtures: `tmp_base_dir`, `sample_yaml`, `golden_dict` (+ `fixtures_dir` / `exercises_dir` helpers)
+- [x] Bump version to v0.39.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `pyve test tests/fixtures/` collects cleanly (0 tests, no errors); `tests/unit/test_fixtures_corpus.py` exercises the conftest fixtures — valid compile clean, all invalid reject, tree inlines, and `compile_exercise(sample_yaml) == golden_dict`. Verified 2026-06-14 (5 passed). No hardware needed.
 
 ### Story G.b: v0.40.0 Unit test sweep [Planned]
 

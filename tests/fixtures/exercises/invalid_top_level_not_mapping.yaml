@@ -1,0 +1,7 @@
+# Copyright (c) 2026 Pointmatic
+# SPDX-License-Identifier: Apache-2.0
+# Rejection: exercise YAML must be a mapping at the top level; this is a list.
+- title: Step one
+  description: Do the thing.
+- title: Step two
+  description: Do the other thing.
