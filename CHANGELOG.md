@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.40.0] - 2026-06-14
+
+### Added
+- **Unit test sweep** (Story G.b, TR-1/TR-8) — nine modules under `tests/unit/`, ~70 new tests covering the public API and primitives:
+  - `test_schema.py` — every Pydantic accept/reject permutation + the full BR-4 rule/type compatibility matrix (range/equals/contains_all × number/text), weight positivity, pass_threshold bounds, duplicate-field detection.
+  - `test_compiler.py` — `compile_exercise` happy-path wire shape, markdown rendering, code_file inlining, section-indexed errors, asset enumeration.
+  - `test_validator.py` — `validate_exercise` collect-all semantics, empty-on-valid, YAML-parse / non-mapping / missing-file short-circuits.
+  - `test_assets.py` — BR-5 enumeration (sorted/unique/image-only), missing-asset + URL rejection, size warn/error thresholds, `allow_large` bypass.
+  - `test_paths.py` — SC-3 path-escape: absolute, `..`, symlink-escape, mixed-separator, nonexistent.
+  - `test_errors.py` — `ExerciseError` / `ErrorDetail` string shapes; `from_pydantic` loc→pointer/section-index mapping + scalar-input augmentation.
+  - `test_config.py` — defaults, toml load, CLI>toml>defaults precedence, unknown-key tolerance, `merge_cli` None-skip.
+  - `test_markdown.py` — commonmark vs gfm divergence (tables, strikethrough) + rstrip.
+  - `test_modelfoundry_adapter.py` — extended: `get_adapter` returns the module when importable, and the Protocol is runtime-checkable (in addition to the existing raises-when-missing + AST no-import-in-core checks).
+
 ## [0.39.0] - 2026-06-14
 
 ### Added

@@ -379,22 +379,24 @@ Establish the fixture corpus that downstream test stories consume.
 - [x] Update CHANGELOG.md
 - [x] Verify: `pyve test tests/fixtures/` collects cleanly (0 tests, no errors); `tests/unit/test_fixtures_corpus.py` exercises the conftest fixtures — valid compile clean, all invalid reject, tree inlines, and `compile_exercise(sample_yaml) == golden_dict`. Verified 2026-06-14 (5 passed). No hardware needed.
 
-### Story G.b: v0.40.0 Unit test sweep [Planned]
+### Story G.b: v0.40.0 Unit test sweep [Done]
 
 TR-1 / TR-8 — exhaustive unit coverage of the public API and primitives.
 
-- [ ] `tests/unit/test_schema.py` — every Pydantic accept/reject permutation; BR-4 rule/type matrix
-- [ ] `tests/unit/test_compiler.py` — FR-3 happy path; markdown rendering; code/code_file mutual exclusion
-- [ ] `tests/unit/test_validator.py` — collects all errors; YAML-parse short-circuit
-- [ ] `tests/unit/test_assets.py` — BR-5 enumeration; missing-asset rejection; size warn/error thresholds; `--allow-large-assets`
-- [ ] `tests/unit/test_paths.py` — SC-3: `..`, absolute, symlinks, mixed separators
-- [ ] `tests/unit/test_errors.py` — `ExerciseError` shape; Pydantic → ExerciseError mapping
-- [ ] `tests/unit/test_modelfoundry_adapter.py` — raises when missing; AST-scan asserts compiler core does not import the adapter
-- [ ] `tests/unit/test_config.py` — precedence; missing toml; bad keys
-- [ ] `tests/unit/test_markdown.py` — commonmark vs gfm divergence
-- [ ] Bump version to v0.40.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: `pyve test tests/unit/` passes
+- [x] `tests/unit/test_schema.py` — every Pydantic accept/reject permutation; BR-4 rule/type matrix (37 tests)
+- [x] `tests/unit/test_compiler.py` — FR-3 happy path; markdown rendering; code/code_file inlining; section-indexed errors
+- [x] `tests/unit/test_validator.py` — collects all errors; YAML-parse / non-mapping / missing-file short-circuit
+- [x] `tests/unit/test_assets.py` — BR-5 enumeration; missing-asset + URL rejection; size warn/error thresholds; `allow_large` bypass
+- [x] `tests/unit/test_paths.py` — SC-3: `..`, absolute, symlinks, mixed separators, nonexistent
+- [x] `tests/unit/test_errors.py` — `ExerciseError`/`ErrorDetail` shape; Pydantic → ExerciseError mapping + scalar augmentation
+- [x] `tests/unit/test_modelfoundry_adapter.py` — extended: raises when missing; AST-scan (pre-existing) **plus** returns module when importable + Protocol runtime-checkable
+- [x] `tests/unit/test_config.py` — precedence (CLI>toml>defaults); missing toml; bad keys ignored; `merge_cli` None-skip
+- [x] `tests/unit/test_markdown.py` — commonmark vs gfm divergence (tables, strikethrough) + rstrip
+- [x] Bump version to v0.40.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `pyve test tests/unit/` passes — verified 2026-06-14 (108 unit tests pass). No product bugs surfaced (one test-only fixture-path mistake found and fixed during authoring). `ruff check` clean.
+
+> **Scope note:** the invalid-permutation matrix is covered by **direct model construction** in `test_schema.py` (one assertion per branch) rather than one YAML file per case — the G.a `invalid_*.yaml` corpus carries the representative file-based rejections that the validator/integration layers consume. The two approaches are complementary, not duplicative.
 
 ### Story G.c: v0.41.0 Integration test sweep [Planned]
 
