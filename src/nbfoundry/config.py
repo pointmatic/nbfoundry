@@ -80,16 +80,17 @@ def merge_cli(config: Config, **overrides: Any) -> Config:
     `max_single_asset_mb`, `warn_single_asset_mb`, `allow_large_assets`.
     Values that are `None` are treated as "flag not provided" and skipped.
     """
+
     def _picked(*keys: str) -> dict[str, Any]:
         return {k: overrides[k] for k in keys if overrides.get(k) is not None}
 
     out = config
-    if (compile_o := _picked("default_out")):
+    if compile_o := _picked("default_out"):
         out = replace(out, compile=replace(out.compile, **compile_o))
-    if (exercise_o := _picked("markdown_flavor")):
+    if exercise_o := _picked("markdown_flavor"):
         out = replace(out, exercise=replace(out.exercise, **exercise_o))
-    if (env_o := _picked("spec_path")):
+    if env_o := _picked("spec_path"):
         out = replace(out, environment=replace(out.environment, **env_o))
-    if (assets_o := _picked("max_single_asset_mb", "warn_single_asset_mb", "allow_large_assets")):
+    if assets_o := _picked("max_single_asset_mb", "warn_single_asset_mb", "allow_large_assets"):
         out = replace(out, assets=replace(out.assets, **assets_o))
     return out

@@ -453,18 +453,20 @@ Doc-only — no version bump; ships under v0.43.0.
 
 Automation. Add lint/test to CI; add coverage badge. A v1.0.0 production release is intentionally not scheduled here — it lives in `## Future` as a deferred story, to be promoted to its own phase if/when project posture warrants.
 
-### Story H.a: v0.44.0 CI lint + test workflow [Planned]
+### Story H.a: v0.44.0 CI lint + test workflow [Done]
 
 Added later per project direction — runs `ruff`, `mypy`, and `pytest` on every push and PR.
 
-- [ ] `.github/workflows/ci.yml` triggered on push and pull_request
-- [ ] Matrix: macOS-latest (Apple Silicon runner) primary; ubuntu-latest stretch
-- [ ] Steps: install pyve + testenv, `ruff check`, `ruff format --check`, `mypy src/nbfoundry/`, `pyve test`
-- [ ] Cache the testenv to keep CI under a few minutes
-- [ ] Status badges in `README.md` for the `ci` workflow
-- [ ] Bump version to v0.44.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: a deliberately broken commit fails CI; a clean commit passes on both runners
+- [x] `.github/workflows/ci.yml` triggered on push and pull_request
+- [x] Matrix: macOS-latest (Apple Silicon runner) primary; ubuntu-latest stretch (`continue-on-error` on the non-primary leg — runs but does not block)
+- [x] Steps: install pyve + testenv, `ruff check`, `ruff format --check`, `mypy`, `pyve test` — **pyve-in-CI decision:** clone the pinned pyve release (`PYVE_REF` = `v3.0.7`) and run `pyve.sh self install` to `~/.local/bin`, bypassing Homebrew and the name-conflicting PyPI `pyve`. Keeps one idiom (CI runs the same `pyve` commands as local dev) while staying reproducible/tap-independent. mypy is run bare (`pyve env run mypy`) so it honors the `[tool.mypy]` `packages`/`exclude` config rather than re-including templates via a path arg.
+  - **Non-obvious CI/pyve interactions worth recording.** (1) The clone's entry point is `pyve.sh` at the repo root — **not** `bin/pyve` (that wrapper exists only in the Homebrew install layout), so CI invokes `"$RUNNER_TEMP/pyve/pyve.sh" self install`. (2) `PYVE_REF` must be **≥ v3.0.7**: in v3.0.6 `self install` omitted `lib/ui/`, yielding an `~/.local/bin/pyve` that died sourcing `lib/ui/core.sh`; v3.0.7 copies the complete `lib/` tree. Do not lower the pin below v3.0.7. (3) **pyve's venv backend provisions Python through a version manager (asdf/pyenv), not from `PATH`** — runners have neither, and `pyve init` hard-gates on it (`detect_version_manager`), then on a missing version *auto-installs via the manager when `CI` is set* (`ensure_python_version_installed`, env_detect.sh: `[[ -n "${CI:-}" ]]` → "Auto-installing"). So CI installs **pyenv** and compiles the project Python (cached under `~/.pyenv`), then runs `pyve init --backend venv --python-version 3.12.13 --no-project-guide --no-direnv` (+ `PYVE_INIT_NONINTERACTIVE=1`). (4) The pin is **`3.12.13`**, not pyve's 3.14.x default, because `pyproject.toml` requires `>=3.12.13,<3.14` — a 3.14 venv would fail `pip install -e .`. (5) `--no-direnv` skips pyve's direnv requirement (also absent on runners). A future pyve `--use-system-python` would let CI skip the pyenv compile and reuse `setup-python`; until then the compile is inherent to the venv backend. Earlier red runs walked this exact gate chain (TTY → version-manager → direnv → manager-provisioned Python) before landing on the pyenv approach.
+- [x] Cache the testenv to keep CI under a few minutes (`actions/cache` on `.pyve`, keyed on dep manifests + pinned pyve)
+- [x] Status badges in `README.md` for the `ci` workflow
+- [x] Bump version to v0.44.0
+- [x] Update CHANGELOG.md
+- [x] **Prerequisite fixed:** reformatted `cli.py`/`compiler.py`/`config.py` (pre-existing `ruff format` drift; pure formatting) so the new format-check gate is green on a clean tree.
+- [ ] Verify: a deliberately broken commit fails CI; a clean commit passes on both runners — **deferred to developer (runs on GitHub Actions).** Confirm a clean commit goes green on both runners, and that an intentionally broken commit fails at a *gate* step (`ruff`/`mypy`/`pyve test`), not at bootstrap.
 
 ### Story H.b: v0.45.0 Coverage badge [Planned]
 

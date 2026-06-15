@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.44.0] - 2026-06-15
+
+### Added
+- CI workflow [.github/workflows/ci.yml](.github/workflows/ci.yml) (Story H.a): runs on every push and pull request across a `macos-latest` (Apple Silicon, primary) + `ubuntu-latest` (stretch, non-blocking) matrix. Steps bootstrap the project and dev environment with **pyve**, then run `ruff check`, `ruff format --check`, `mypy --strict`, and `pyve test` (with the coverage gate). Materialized `.pyve` environments are cached, keyed on the dependency manifests + the pinned pyve release.
+- CI status badge in [README.md](README.md).
+
+### Changed
+- CI installs pyve by cloning the pinned release (`PYVE_REF`, `v3.0.7`) and running `pyve.sh self install` to `~/.local/bin`, bypassing Homebrew and the (name-conflicting) PyPI package. This keeps **one idiom** — CI runs the same `pyve` commands as local development — while staying reproducible and tap-independent. (The repo entry point is `pyve.sh` at the root; the `bin/pyve` wrapper only exists in the Homebrew layout. `self install` requires pyve ≥ v3.0.7, which fixed a v3.0.6 bug where the installer omitted `lib/ui/` and produced a broken install.)
+- CI provides Python via **pyenv**, not `setup-python`: pyve's venv backend provisions the interpreter through a version manager (asdf/pyenv) — absent on GitHub runners — so CI installs pyenv and compiles the project Python (`3.12.13`, cached under `~/.pyenv`). `pyve init` is then run non-interactively (`PYVE_INIT_NONINTERACTIVE=1`, `--backend venv --python-version 3.12.13 --no-project-guide --no-direnv`); because that exact version is already installed, pyve uses it directly (no prompt, no per-run compile). The pin is `3.12.13` because the package requires `>=3.12.13,<3.14`, so pyve's default (3.14.x) would fail `pip install -e .`.
+- Reformatted [src/nbfoundry/cli.py](src/nbfoundry/cli.py), [src/nbfoundry/compiler.py](src/nbfoundry/compiler.py), and [src/nbfoundry/config.py](src/nbfoundry/config.py) to satisfy `ruff format --check` (pure formatting; no behavior change), so the new format-check gate passes on a clean tree.
+
 ## [0.43.0] - 2026-06-15
 
 ### Added

@@ -56,9 +56,13 @@ def _validate(
         return None, yaml_full, [ExerciseError(yaml_full, f"could not read YAML: {e}")]
 
     if not isinstance(raw, dict):
-        return None, yaml_full, [
-            ExerciseError(yaml_full, "exercise YAML must be a mapping at the top level"),
-        ]
+        return (
+            None,
+            yaml_full,
+            [
+                ExerciseError(yaml_full, "exercise YAML must be a mapping at the top level"),
+            ],
+        )
 
     try:
         model = RawExerciseModel.model_validate(raw)
@@ -127,9 +131,7 @@ def compile_exercise(
     *,
     allow_large_assets: bool = False,
 ) -> dict[str, Any]:
-    model, yaml_full, errors = _validate(
-        yaml_path, base_dir, allow_large_assets=allow_large_assets
-    )
+    model, yaml_full, errors = _validate(yaml_path, base_dir, allow_large_assets=allow_large_assets)
     if errors:
         raise errors[0]
     assert model is not None and yaml_full is not None  # no errors → both present

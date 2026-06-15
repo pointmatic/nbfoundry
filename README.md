@@ -1,5 +1,6 @@
 # nbfoundry
 
+[![CI](https://github.com/pointmatic/nbfoundry/actions/workflows/ci.yml/badge.svg)](https://github.com/pointmatic/nbfoundry/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 Marimo-based notebook framework for ML/DS work. One notebook source compiles into two

@@ -98,7 +98,8 @@ def cmd_init(
     template_root = files(_TEMPLATES_PACKAGE).joinpath(template)
     if not template_root.is_dir():
         available = sorted(
-            t.name for t in files(_TEMPLATES_PACKAGE).iterdir()
+            t.name
+            for t in files(_TEMPLATES_PACKAGE).iterdir()
             if t.is_dir() and t.name not in _TEMPLATE_SKIP
         )
         raise ExerciseError(
