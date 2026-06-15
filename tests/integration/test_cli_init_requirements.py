@@ -23,8 +23,9 @@ from nbfoundry.cli import app
 
 runner = CliRunner()
 
-BASE_STAGES = ["data_exploration", "data_preparation"]
-TORCH_STAGES = ["model_experimentation", "model_optimization", "model_evaluation"]
+# model_evaluation is sklearn-based (F.j), so it maps to base, not torch.
+BASE_STAGES = ["data_exploration", "data_preparation", "model_evaluation"]
+TORCH_STAGES = ["model_experimentation", "model_optimization"]
 
 
 @pytest.mark.parametrize("stage", BASE_STAGES)

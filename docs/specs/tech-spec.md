@@ -92,9 +92,10 @@ co-residence SIGBUS (F.f.1) impossible by construction for learners: `torch` and
 | `requirements-torch.txt` | pip (PyPI) | `-r requirements-base.txt` + `torch>=2.5` (MPS wheel default; CUDA via `--index-url` `cu126`/`cu128` documented inline) + `transformers`, `datasets`, `peft`, `sentencepiece`, `protobuf`, `tiktoken` + `optuna` |
 | `requirements-tf.txt` | pip (PyPI) | `-r requirements-base.txt` + `tensorflow-macos>=2.16` + `tensorflow-metal>=1.1` (Apple Silicon default; swap to `tensorflow` or `tensorflow[and-cuda]` documented inline). Keras 3 is the bundled `tf.keras` namespace — **no standalone `keras` pin**. |
 
-Stage → file: `data_exploration` / `data_preparation` → `requirements-base.txt`;
-`model_experimentation` / `model_optimization` / `model_evaluation` →
-`requirements-torch.txt` (all three model templates are torch-based today).
+Stage → file: `data_exploration` / `data_preparation` / `model_evaluation` →
+`requirements-base.txt`; `model_experimentation` / `model_optimization` →
+`requirements-torch.txt`. (`model_evaluation` was reshaped to a scikit-learn
+example in F.j — evaluation is framework-agnostic — so it ships base, not torch.)
 `requirements-tf.txt` is the TF-based-learner option, not bound to a shipped
 template (validated by the `smoke-tensorflow` dev env).
 

@@ -3,10 +3,17 @@
 """model_evaluation lifecycle template — held-out → confusion → calibration.
 
 Reactive Marimo notebook scaffold for the *evaluation* stage of the
-modelfoundry/nbfoundry workflow. Trains a small classifier, evaluates on a
-held-out test split, and produces a classification report, confusion matrix,
-and a calibration curve. Modelfoundry primitives are reached only through
-`nbfoundry._modelfoundry.get_adapter()`.
+modelfoundry/nbfoundry workflow. Fits a small scikit-learn classifier,
+evaluates on a held-out test split, and produces a classification report,
+confusion matrix, and a calibration curve.
+
+Evaluation is the most framework-agnostic stage: the metrics
+(`classification_report`, `confusion_matrix`, `calibration_curve`) operate on
+plain `y_true` / `y_pred` / `y_prob` arrays, so they work unchanged regardless
+of what produced the predictions. This template uses a scikit-learn model as a
+light, hardware-free example; swap the model/predict cells for a PyTorch, Keras,
+or other estimator without touching the evaluation cells. Modelfoundry
+primitives are reached only through `nbfoundry._modelfoundry.get_adapter()`.
 """
 
 import marimo
@@ -25,14 +32,6 @@ def _():
 
 @app.cell
 def _():
-    import torch
-
-    device = torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
-    return device, torch
-
-
-@app.cell
-def _(torch):
     import numpy as np
     from sklearn.model_selection import train_test_split
 
@@ -44,57 +43,24 @@ def _(torch):
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.25, random_state=42, stratify=y
     )
-    return (
-        X,
-        X_test,
-        X_train,
-        np,
-        rng,
-        torch.from_numpy(X_test),
-        torch.from_numpy(X_train),
-        torch.from_numpy(y_test),
-        torch.from_numpy(y_train),
-        y,
-        y_test,
-        y_train,
-    )
+    return X, X_test, X_train, np, rng, train_test_split, y, y_test, y_train
 
 
 @app.cell
-def _(X_train, device, torch, y_train):
-    model = torch.nn.Sequential(
-        torch.nn.Linear(8, 32),
-        torch.nn.ReLU(),
-        torch.nn.Linear(32, 2),
-    ).to(device)
-    opt = torch.optim.Adam(model.parameters(), lr=1e-2)
-    loss_fn = torch.nn.CrossEntropyLoss()
+def _(X_train, y_train):
+    from sklearn.linear_model import LogisticRegression
 
-    Xtr = torch.from_numpy(X_train).to(device)
-    ytr = torch.from_numpy(y_train).to(device)
-
-    for _ in range(50):
-        opt.zero_grad()
-        loss = loss_fn(model(Xtr), ytr)
-        loss.backward()
-        opt.step()
-    return Xtr, loss_fn, model, opt, ytr
+    model = LogisticRegression(max_iter=1000)
+    model.fit(X_train, y_train)
+    return LogisticRegression, model
 
 
 @app.cell
-def _(X_test, device, model, torch, y_test):
-    Xte = torch.from_numpy(X_test).to(device)
-    yte = torch.from_numpy(y_test).to(device)
-
-    with torch.no_grad():
-        logits = model(Xte)
-        probs = torch.softmax(logits, dim=1)
-        preds = logits.argmax(dim=1)
-
-    y_true = yte.cpu().numpy()
-    y_pred = preds.cpu().numpy()
-    y_prob = probs[:, 1].cpu().numpy()
-    return Xte, logits, preds, probs, y_pred, y_prob, y_true, yte
+def _(X_test, model, y_test):
+    y_true = y_test
+    y_pred = model.predict(X_test)
+    y_prob = model.predict_proba(X_test)[:, 1]
+    return y_pred, y_prob, y_true
 
 
 @app.cell
@@ -108,8 +74,8 @@ def _(mo, y_pred, y_true):
 
 @app.cell
 def _(y_pred, y_true):
-    from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
     import matplotlib.pyplot as plt
+    from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
 
     cm = confusion_matrix(y_true, y_pred)
     fig_cm, ax_cm = plt.subplots(figsize=(4, 4))

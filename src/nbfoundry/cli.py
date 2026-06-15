@@ -28,16 +28,17 @@ _TEMPLATES_PACKAGE = "nbfoundry.templates"
 _TEMPLATE_SKIP = {"__init__.py", "__pycache__"}
 
 # Per-stage venv/pip requirements emitted alongside the scaffolded notebook
-# (replaces the conda environment.yml dropped in F.f.4). The model_* stages are
-# torch-based today; the data_* stages need no ML framework. requirements-torch
-# `-r`-includes requirements-base, so the base file ships alongside it.
+# (replaces the conda environment.yml dropped in F.f.4). The data_* stages and
+# model_evaluation (sklearn-based, F.j) need no ML framework → base;
+# model_experimentation / model_optimization are torch-based → torch.
+# requirements-torch `-r`-includes requirements-base, so base ships alongside it.
 _BASE_REQUIREMENTS = "requirements-base.txt"
 _STAGE_REQUIREMENTS = {
     "data_exploration": _BASE_REQUIREMENTS,
     "data_preparation": _BASE_REQUIREMENTS,
     "model_experimentation": "requirements-torch.txt",
     "model_optimization": "requirements-torch.txt",
-    "model_evaluation": "requirements-torch.txt",
+    "model_evaluation": _BASE_REQUIREMENTS,
 }
 
 app = typer.Typer(

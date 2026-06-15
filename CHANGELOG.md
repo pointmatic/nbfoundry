@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.38.0] - 2026-06-14
+
+### Changed
+- **Reshaped the `model_evaluation` template from a PyTorch example to a scikit-learn example** ([src/nbfoundry/templates/model_evaluation/notebook.py](src/nbfoundry/templates/model_evaluation/notebook.py)). Evaluation is the most framework-agnostic stage — the metrics (`classification_report`, `confusion_matrix`, `calibration_curve`) operate on plain `y_true`/`y_pred`/`y_prob` arrays — so the example model is now a `LogisticRegression` rather than a torch NN. The eval cells are unchanged; only the model/predict cells differ. This keeps the template (and its smoke) light, hardware-free, and CI-runnable, and better embodies the "evaluation doesn't bind to a framework" contract.
+- `model_evaluation` now maps to `requirements-base.txt` (no torch) instead of `requirements-torch.txt` in the scaffolder ([cli.py](src/nbfoundry/cli.py) `_STAGE_REQUIREMENTS`); docs (tech-spec stage table, stories F.f.4 mapping) updated to match.
+
+### Added
+- model_evaluation template end-to-end smoke at [tests/integration/test_e2e_template_model_evaluation.py](tests/integration/test_e2e_template_model_evaluation.py): scaffolds the template via `nbfoundry init`, runs the generated marimo notebook end-to-end (`app.run()`), and asserts the held-out evaluation → confusion matrix → calibration flow (a fitted `LogisticRegression`, a 2×2 confusion matrix covering all 256 held-out rows, a confusion-matrix `Figure`, a calibration `Figure`, and a sane accuracy). Runs in the default `testenv`, no `@pytest.mark.hardware`.
+
+### Note
+- This completes Phase F. The phase-level acceptance check in `stories.md` was refreshed off the deleted conda `environment.yml` / micromamba flow onto the per-stage venv/pip path.
+
 ## [0.37.0] - 2026-06-14
 
 ### Added

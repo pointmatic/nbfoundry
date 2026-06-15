@@ -238,7 +238,7 @@ The last conda holdout. F.f.3 and the `plan_envs` reframe moved every `pyve.toml
 | `templates/requirements-torch.txt` | `-r requirements-base.txt` + torch + transformers, datasets, peft, sentencepiece, protobuf, tiktoken + optuna |
 | `templates/requirements-tf.txt` | `-r requirements-base.txt` + tensorflow-macos + tensorflow-metal |
 
-Stage → file: `data_exploration` / `data_preparation` → `requirements-base.txt`; `model_experimentation` / `model_optimization` / `model_evaluation` → `requirements-torch.txt` (all three model templates are torch-based today). `requirements-tf.txt` is not bound to a shipped template — it's the TF-based-learner option, validated by `smoke-tensorflow`.
+Stage → file: `data_exploration` / `data_preparation` / `model_evaluation` → `requirements-base.txt`; `model_experimentation` / `model_optimization` → `requirements-torch.txt`. *(Updated by F.j: `model_evaluation` was reshaped to a scikit-learn example — evaluation is framework-agnostic — so it moved from torch to base.)* `requirements-tf.txt` is not bound to a shipped template — it's the TF-based-learner option, validated by `smoke-tensorflow`.
 
 - [x] Author `templates/requirements-base.txt`, `requirements-torch.txt`, `requirements-tf.txt` (pip; `-r` base includes; Apache-2.0 `#` headers). Carry cross-platform swap guidance as pip comments: torch CUDA via `--index-url`/`--extra-index-url` (cpu/cu126/cu128); `tensorflow-macos`+`tensorflow-metal` → `tensorflow` (or `tensorflow[and-cuda]`) for non-Mac. (Stack follows the F.f.4 table; dev tooling — `ruff`/`mypy`/`pytest` — is **not** carried in the learner stack per the table, a content change from the old conda env; flag at gate if learner dev-tooling is wanted back.)
 - [x] **Delete** `src/nbfoundry/templates/environment.yml` (the conda bundled payload).
@@ -327,26 +327,34 @@ pyve test tests/integration/test_e2e_template_data_preparation.py
 
 Runs as part of a plain `pyve test` (not deselected). Deps (`numpy`/`pandas`/`scikit-learn`) install via `pyve env install -r requirements-dev.txt`.
 
-### Story F.j: v0.38.0 model_evaluation template happy path [Planned]
+### Story F.j: v0.38.0 model_evaluation template happy path [Done]
 
 End-to-end smoke against the scaffolded `model_evaluation` template, exercising the held-out evaluation → confusion matrix → calibration scaffolding.
 
-> **Env/marker:** same framework-agnostic situation as F.h — see F.h's env/marker note (lean: default `testenv`, drop `@pytest.mark.hardware`). Decide and record at this story's gate. As the last Phase F story, this is the natural place to confirm the phase-level acceptance check below passes end-to-end.
+> **Env/marker + template reshape — DECIDED at the gate (2026-06-14):** the shipped `model_evaluation` template was found to be **torch-based** (it trained a torch NN), which would have forced this smoke into the heavy `smoke-torch` env. After discussion, the template was **reshaped to a scikit-learn example** (`LogisticRegression`): evaluation is the most framework-agnostic stage — the metrics operate on plain `y_true`/`y_pred`/`y_prob` arrays, so the example model need not be a DL/Metal implementation to test the eval mechanics. Consequences: (1) the smoke runs in the **default `testenv`**, **no** `@pytest.mark.hardware`, on every `pyve test` and in CI; (2) `model_evaluation` moves from `requirements-torch.txt` → `requirements-base.txt` in the scaffolder mapping (`cli.py`) and the tech-spec / F.f.4 docs. The template **self-generates** synthetic data and **self-fits** the model, so the "provide a pre-trained model + holdout split" sub-task was a no-op (the notebook builds both). Multi-framework template *variants* (torch/Keras evaluation examples) remain unbuilt and unplanned — agnosticism rests on the framework-neutral eval cells + the deferred modelfoundry adapter (concept Constraints; Future § "Modelfoundry contract finalization").
 
-- [ ] Decide the env + marker per F.h's note (lean: `testenv`, no `@pytest.mark.hardware`); record the choice in the body before implementing
-- [ ] `tests/integration/test_e2e_template_model_evaluation.py` (marker per the decision above)
-- [ ] Test procedure: `nbfoundry init demo --template model_evaluation` in a temp dir; provide a pre-trained tiny model + holdout split (synthetic); run the scaffolded notebook end-to-end; assert confusion matrix is rendered and calibration plot is produced
-- [ ] Budget: under 60s on M-series silicon
-- [ ] Apache-2.0 / Pointmatic header
-- [ ] Document the run procedure (named-env form) in the story body
-- [ ] Bump version to v0.38.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify on developer hardware (exact invocation per the env decision) — **deferred to developer hardware**
+- [x] Decide the env + marker — **default `testenv`, no `@pytest.mark.hardware`** (and reshaped the template to sklearn; recorded above)
+- [x] `tests/integration/test_e2e_template_model_evaluation.py` (no `@pytest.mark.hardware`; runs in `testenv`)
+- [x] Test procedure: `nbfoundry init demo --template model_evaluation` in a temp dir; run the scaffolded notebook end-to-end via `app.run()`; assert a fitted `LogisticRegression`, a 2×2 confusion matrix over all 256 held-out rows, a confusion-matrix `Figure`, a calibration `Figure`, and a sane accuracy. *(Template self-generates data + self-fits the model — no external model/holdout fixture created.)*
+- [x] Budget: under 60s on M-series silicon (runs in ~1.9s)
+- [x] Apache-2.0 / Pointmatic header
+- [x] Document the run procedure in the story body
+- [x] Bump version to v0.38.0
+- [x] Update CHANGELOG.md
+- [x] Verify: runs green in the default `testenv` — verified 2026-06-14 (`pyve test tests/integration/test_e2e_template_model_evaluation.py` → 1 passed in 1.92s). No Metal hardware needed; no developer-hardware verify outstanding.
+
+**Run procedure** — default testenv, no hardware marker:
+
+```bash
+pyve test tests/integration/test_e2e_template_model_evaluation.py
+```
+
+Runs as part of a plain `pyve test` (not deselected). Deps (`numpy`/`pandas`/`scikit-learn`/`matplotlib`) install via `pyve env install -r requirements-dev.txt`.
 
 Phase-level acceptance check (covers AC-4 / AC-5 / CR-10 against the refreshed stack), in two parts after the named-env reframe:
 
 - **Dev-side framework smokes (F.c–F.g):** from a fresh clone on Apple Silicon, `pyve init` + `pyve test` pass the light surface, then each hardware smoke runs green via its lazy-provisioned named env — `pyve test --env smoke-torch …` (PyTorch, HuggingFace, Optuna) and `--env smoke-tensorflow …` (TF + Keras) — with no SIGBUS and F.e's keras-hygiene guard passing by construction.
-- **Learner-facing template path (F.h–F.j):** a clean Apple Silicon machine can `pyve init --backend micromamba` against the bundled `templates/environment.yml`, `pip install nbfoundry==v0.38.0` from PyPI, `nbfoundry init demo --template <each>` for all five templates, and run each scaffolded notebook to completion with the relevant tool exercised.
+- **Learner-facing template path (F.h–F.j):** on a clean machine, `nbfoundry init demo --template <each>` for all five templates emits the stage-appropriate `requirements-*.txt` (base for `data_exploration` / `data_preparation` / `model_evaluation`; torch+base for `model_experimentation` / `model_optimization`), and `pyve init` (venv) + `pip install -r requirements-<stage>.txt` builds a working env in which the scaffolded notebook runs to completion. No conda/micromamba anywhere. The three framework-agnostic template smokes (F.h `data_exploration`, F.i `data_preparation`, F.j `model_evaluation` — sklearn-based) run green in the default `testenv` on every `pyve test` and in CI; the two torch-based templates (`model_experimentation` / `model_optimization`) have no Phase F smoke and are exercised via the F.d/F.f/F.g framework smokes.
 
 Each story above carries its own minimal pass/fail check; the phase-level acceptance is the integral of those.
 
