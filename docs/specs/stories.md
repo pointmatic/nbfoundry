@@ -425,16 +425,18 @@ QR-4 / TR-5 — strict typing across nbfoundry's **typed surface** (the ML-free 
 - [x] Update CHANGELOG.md
 - [x] Verify: `pyve env run mypy` reports zero errors — verified 2026-06-15 (`Success: no issues found in 14 source files`, exit 0; templates excluded, no heavy deps). Full suite still 143 passed; markdown behavior unchanged.
 
-### Story G.e: v0.43.0 Coverage target ≥85% [Planned]
+### Story G.e: v0.43.0 Coverage target ≥85% [Done]
 
 TR-6 — `pytest-cov --cov-fail-under=85` on `nbfoundry` public modules.
 
-- [ ] Configure `[tool.pytest.ini_options]` with `--cov=nbfoundry --cov-report=term-missing --cov-fail-under=85`
-- [ ] Exclude `src/nbfoundry/templates/**` and `src/nbfoundry/templates/standalone/launch.py` via `[tool.coverage.run] omit = [...]`
-- [ ] Add tests to close any gaps surfaced by the report
-- [ ] Bump version to v0.43.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: `pyve test` passes with coverage gate satisfied; the report shows ≥85% on public modules
+- [x] Configure `[tool.pytest.ini_options]` `addopts` with `--cov=nbfoundry --cov-report=term-missing --cov-fail-under=85`
+- [x] Exclude templates + launcher via `[tool.coverage.run] omit = ["*/nbfoundry/templates/*", "src/nbfoundry/templates/*"]` (covers `templates/**` incl. `standalone/launch.py`)
+- [x] Add tests to close gaps — added `tests/unit/test_notebooks.py` (9 tests) lifting `notebooks.py` 65% → 92%, the weakest module
+- [x] Bump version to v0.43.0
+- [x] Update CHANGELOG.md
+- [x] Verify: `pyve test` passes with the gate satisfied — verified 2026-06-15 (**152 passed, 7 deselected; total coverage 94.57% ≥ 85%**). `ruff check` clean.
+
+> **Side-effect note:** `--cov-fail-under` lives in default `addopts`, so a focused single-file `pyve test <file>` under-reports and fails the gate — use `--no-cov` for those runs (also noted in CHANGELOG).
 
 ### Story G.f: Documentation polish [Planned]
 

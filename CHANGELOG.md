@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.43.0] - 2026-06-15
+
+### Added
+- **Coverage gate ≥85%** (Story G.e, TR-6). `[tool.pytest.ini_options] addopts` now includes `--cov=nbfoundry --cov-report=term-missing --cov-fail-under=85`, with `[tool.coverage.run] omit` excluding the author notebook templates + embedded launcher (mirroring the ruff/mypy template excludes). Public-module coverage is **94.57%**.
+- `tests/unit/test_notebooks.py`: discovery + parse coverage for `notebooks.py` (entry-point resolution: file / conventional `notebook.py` / single-`.py` / ambiguous / nonexistent; `parse_all`: single file, directory, syntax-error rejection) — lifting the weakest module from 65% to 92%.
+
+### Note
+- Because `--cov-fail-under` is in the default `addopts`, a single-file `pyve test <one_file>` run will under-report total coverage and fail the gate; pass `--no-cov` for focused single-file runs.
+
 ## [0.42.0] - 2026-06-15
 
 ### Changed

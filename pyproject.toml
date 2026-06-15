@@ -85,8 +85,18 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-addopts = "-ra -m 'not hardware'"
+addopts = "-ra -m 'not hardware' --cov=nbfoundry --cov-report=term-missing --cov-fail-under=85"
 markers = [
     "slow: tests that take more than a few seconds",
     "hardware: tests that require Apple Silicon Metal/MPS hardware (opt-in via -m hardware)",
+]
+
+[tool.coverage.run]
+# Coverage gate (TR-6) measures nbfoundry's public modules only. The author
+# notebook templates and the embedded standalone launcher are generated/runtime
+# example files (ML code, never imported by the package surface) and are excluded
+# here, mirroring the ruff/mypy template excludes.
+omit = [
+    "*/nbfoundry/templates/*",
+    "src/nbfoundry/templates/*",
 ]
