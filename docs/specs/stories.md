@@ -466,18 +466,18 @@ Added later per project direction — runs `ruff`, `mypy`, and `pytest` on every
 - [x] Bump version to v0.44.0
 - [x] Update CHANGELOG.md
 - [x] **Prerequisite fixed:** reformatted `cli.py`/`compiler.py`/`config.py` (pre-existing `ruff format` drift; pure formatting) so the new format-check gate is green on a clean tree.
-- [ ] Verify: a deliberately broken commit fails CI; a clean commit passes on both runners — **deferred to developer (runs on GitHub Actions).** Confirm a clean commit goes green on both runners, and that an intentionally broken commit fails at a *gate* step (`ruff`/`mypy`/`pyve test`), not at bootstrap.
+- [x] Verify: a deliberately broken commit fails CI; a clean commit passes on both runners — **clean-commit half confirmed 2026-06-15: both jobs green (`macos-latest` primary + `ubuntu-latest` stretch).** The broken-commit-fails-at-a-*gate* half is optional rigor (the earlier red runs failed at *bootstrap*, which proves CI fails closed but not that a gate catches a code defect); run the throwaway `ci-verify-break` branch if/when that extra assurance is wanted.
 
-### Story H.b: v0.45.0 Coverage badge [Planned]
+### Story H.b: v0.45.0 Coverage badge [Done]
 
 Code coverage reporting + README badge — required before the v1.0.0 production release per project direction.
 
-- [ ] Add coverage upload step to `ci.yml` (Codecov or Coveralls; default Codecov)
-- [ ] Add coverage badge to `README.md` header
-- [ ] Document the coverage gate in `CONTRIBUTING.md` (or README dev section)
-- [ ] Bump version to v0.45.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify: a CI run uploads coverage and the README badge resolves to a current percentage
+- [x] Add coverage upload step to `ci.yml` — `codecov/codecov-action@v5`, **macOS primary leg only** (`if: matrix.primary`; single source of truth, no double-count from the stretch leg), `fail_ci_if_error: false` so reporting never gates the build. Default Codecov. Required prerequisite also added: `--cov-report=xml` in `pyproject.toml` `addopts` so `pyve test` emits `coverage.xml` (already gitignored).
+- [x] Add coverage badge to `README.md` header (Codecov badge, after the CI badge)
+- [x] Document the coverage gate in `CONTRIBUTING.md` — new file: dev setup, the four gates, the ≥85% gate, and the single-file `--no-cov` caveat. (Chose a dedicated CONTRIBUTING.md over a README dev section — cleaner home, and GitHub/Codecov surface it.)
+- [x] Bump version to v0.45.0
+- [x] Update CHANGELOG.md
+- [ ] Verify: a CI run uploads coverage and the README badge resolves to a current percentage — **deferred to developer (GitHub/Codecov-gated).** Local check done: `pyve test` writes a valid `coverage.xml` and the suite passes at 94.57%. The upload + badge resolution need the repo registered on Codecov (tokenless works for public repos; add a `CODECOV_TOKEN` secret for reliability). The badge URL assumes the default branch is `main`.
 
 ---
 

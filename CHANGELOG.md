@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.45.0] - 2026-06-15
+
+### Added
+- Coverage reporting to Codecov (Story H.b): `pyve test` now also writes `coverage.xml` (`--cov-report=xml` added to `pyproject.toml` `addopts`), and [.github/workflows/ci.yml](.github/workflows/ci.yml) uploads it via `codecov/codecov-action@v5` from the macOS primary leg only (single source of truth; `fail_ci_if_error: false` so reporting never gates the build). Works tokenless on the public repo; a `CODECOV_TOKEN` secret makes uploads reliable/rate-limit-free.
+- Coverage badge in [README.md](README.md) header.
+- [CONTRIBUTING.md](CONTRIBUTING.md): development setup, the four quality gates, and the ≥85% coverage gate (including the single-file `--no-cov` caveat).
+
 ## [0.44.0] - 2026-06-15
 
 ### Added

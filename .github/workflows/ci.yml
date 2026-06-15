@@ -120,3 +120,16 @@ jobs:
 
       - name: Test suite (+ coverage gate)
         run: pyve test
+
+      # Upload coverage from the primary (macOS) leg only — single source of
+      # truth, no double-counting from the stretch leg. Works tokenless on a
+      # public repo; add a CODECOV_TOKEN secret for reliable, rate-limit-free
+      # uploads. Never fails the build on an upload hiccup (coverage reporting
+      # must not gate CI).
+      - name: Upload coverage to Codecov
+        if: ${{ matrix.primary }}
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false

@@ -85,7 +85,7 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-addopts = "-ra -m 'not hardware' --cov=nbfoundry --cov-report=term-missing --cov-fail-under=85"
+addopts = "-ra -m 'not hardware' --cov=nbfoundry --cov-report=term-missing --cov-report=xml --cov-fail-under=85"
 markers = [
     "slow: tests that take more than a few seconds",
     "hardware: tests that require Apple Silicon Metal/MPS hardware (opt-in via -m hardware)",
