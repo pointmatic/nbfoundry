@@ -7,7 +7,7 @@
 # hardware smokes:
 #   - F.d  tests/integration/test_e2e_pytorch.py      (PyTorch / MPS)
 #   - F.f  tests/integration/test_e2e_huggingface.py  (transformers/datasets/peft, torch backend)
-#   - F.g  tests/integration/test_e2e_optuna.py       (Optuna, torch objective — `optuna` added by F.g)
+#   - F.g  tests/integration/test_e2e_optuna.py       (Optuna, torch objective)
 #
 # Every dependency is a macOS arm64 pip wheel: torch's wheel is the MPS-enabled
 # build (PyTorch's own recommended Mac install); transformers/datasets/peft are
@@ -34,5 +34,6 @@ peft
 sentencepiece
 protobuf
 tiktoken
+optuna
 numpy
 pytest

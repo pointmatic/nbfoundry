@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-06-14
+
+### Added
+- Optuna hyperparameter-search end-to-end happy-path smoke at [tests/integration/test_e2e_optuna.py](tests/integration/test_e2e_optuna.py): one hardware-gated test (`test_optuna_study_optimizes_a_torch_mps_model`) that runs a 5-trial Optuna study whose objective trains a tiny PyTorch dense classifier on the MPS device (tuning `lr` + `hidden`), then asserts all 5 trials complete, `study.best_trial` is populated, and `best_value` matches the minimum recorded objective.
+- `optuna` added to the `smoke-torch` dev requirements ([tests/integration/env/torch.txt](tests/integration/env/torch.txt)); Optuna is pure-Python and rides the torch family, so no new env (per `env-dependencies.md` §6).
+
+### Note
+- Hardware verification (`pyve test --env smoke-torch tests/integration/test_e2e_optuna.py -m hardware` on Apple Silicon) is deferred to developer hardware; the test is deselected by the default `-m 'not hardware'`.
+
 ## [0.34.3] - 2026-06-14
 
 ### Changed

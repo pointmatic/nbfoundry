@@ -257,19 +257,27 @@ Stage → file: `data_exploration` / `data_preparation` → `requirements-base.t
 
 **Out of scope (unchanged):** the learner-side *per-applied-series* env recipes (LearningFoundry applied-exercise architecture) remain a separate future track — this story changes only the *format* (conda → per-stage venv) of the existing bundled payload, not the per-series decomposition. The latent same-process torch+tf footgun is now structurally removed for learners (the two are never co-installed).
 
-### Story F.g: v0.35.0 Optuna hyperparameter search happy path [Planned]
+### Story F.g: v0.35.0 Optuna hyperparameter search happy path [Done]
 
 End-to-end smoke running a small `optuna` study against a tiny PyTorch model. Runs in the **`smoke-torch`** named env (Optuna rides the torch family), per `env-dependencies.md §6` ("F.g folds into `smoke-torch`").
 
-- [ ] Add `optuna` to `tests/integration/env/torch.txt` (extends the `smoke-torch` pip requirements authored in F.f.3; Optuna is pure-Python and rides torch — no co-residence concern)
-- [ ] `tests/integration/test_e2e_optuna.py` marked `@pytest.mark.slow` and `@pytest.mark.hardware`
-- [ ] Test procedure: define a small objective (1–2 hyperparameters) wrapping a tiny PyTorch model on MPS; run a 5-trial Optuna study; assert study completes, `study.best_trial` is populated, and trial history is accessible
-- [ ] Budget: under 60s on M-series silicon (5 tiny trials)
-- [ ] Apache-2.0 / Pointmatic header
-- [ ] Document the named-env run procedure in the story body and the test-module docstring
-- [ ] Bump version to v0.35.0
-- [ ] Update CHANGELOG.md
+- [x] Add `optuna` to `tests/integration/env/torch.txt` (extends the `smoke-torch` pip requirements authored in F.f.3; Optuna is pure-Python and rides torch — no co-residence concern)
+- [x] `tests/integration/test_e2e_optuna.py` marked `@pytest.mark.slow` and `@pytest.mark.hardware`
+- [x] Test procedure: define a small objective (2 hyperparameters — `lr`, `hidden`) wrapping a tiny PyTorch model on MPS; run a 5-trial Optuna study; assert all 5 trials complete, `study.best_trial` is populated, and `best_value` matches the minimum recorded objective (trial history accessible)
+- [x] Budget: under 60s on M-series silicon (5 tiny trials)
+- [x] Apache-2.0 / Pointmatic header
+- [x] Document the named-env run procedure in the story body and the test-module docstring
+- [x] Bump version to v0.35.0
+- [x] Update CHANGELOG.md
 - [ ] Verify: `pyve test --env smoke-torch tests/integration/test_e2e_optuna.py -m hardware` passes on developer Apple Silicon — **deferred to developer hardware**
+
+**Run procedure** — named-env model, on developer Apple Silicon:
+
+```bash
+pyve test --env smoke-torch tests/integration/test_e2e_optuna.py -m hardware
+```
+
+Optuna rides the torch family, so it runs in `smoke-torch` (deps in `tests/integration/env/torch.txt`, which now includes `optuna`) alongside PyTorch and HuggingFace. One smoke file per process. The test is deselected by the default `-m 'not hardware'`; opt in with `-m hardware`.
 
 ### Story F.h: v0.36.0 data_exploration template happy path [Planned]
 
