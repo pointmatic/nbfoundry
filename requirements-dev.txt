@@ -17,3 +17,4 @@ types-PyYAML
 numpy
 pandas
 matplotlib
+scikit-learn

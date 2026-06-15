@@ -303,21 +303,29 @@ pyve test tests/integration/test_e2e_template_data_exploration.py
 
 It runs as part of a plain `pyve test` (not deselected — there is no `@pytest.mark.hardware`). The light deps (`numpy`/`pandas`/`matplotlib`) are installed via `pyve env install -r requirements-dev.txt`.
 
-### Story F.i: v0.37.0 data_preparation template happy path [Planned]
+### Story F.i: v0.37.0 data_preparation template happy path [Done]
 
 End-to-end smoke against the scaffolded `data_preparation` template, exercising the cleaning → feature engineering → split scaffolding.
 
-> **Env/marker:** same framework-agnostic situation as F.h — see F.h's env/marker note (lean: default `testenv`, drop `@pytest.mark.hardware`). Decide and record at this story's gate.
+> **Env/marker — DECIDED (per F.h gate, 2026-06-14):** default **`testenv`**, **no** `@pytest.mark.hardware`. The template's split cell uses `sklearn.model_selection.train_test_split`, so `scikit-learn` joins the template-smoke deps in `requirements-dev.txt`. The template **self-generates** its data (NaNs injected to demo cleaning), so the "create synthetic input data" sub-task was a no-op.
 
-- [ ] Decide the env + marker per F.h's note (lean: `testenv`, no `@pytest.mark.hardware`); record the choice in the body before implementing
-- [ ] `tests/integration/test_e2e_template_data_preparation.py` (marker per the decision above)
-- [ ] Test procedure: `nbfoundry init demo --template data_preparation` in a temp dir; create synthetic input data; run the scaffolded notebook end-to-end; assert clean splits are produced with the expected shapes and class balance
-- [ ] Budget: under 60s on M-series silicon
-- [ ] Apache-2.0 / Pointmatic header
-- [ ] Document the run procedure (named-env form) in the story body
-- [ ] Bump version to v0.37.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify on developer hardware (exact invocation per the env decision) — **deferred to developer hardware**
+- [x] Decide the env + marker per F.h's note — **default `testenv`, no `@pytest.mark.hardware`**
+- [x] `tests/integration/test_e2e_template_data_preparation.py` (no `@pytest.mark.hardware`; runs in `testenv`)
+- [x] Test procedure: `nbfoundry init demo --template data_preparation` in a temp dir; run the scaffolded notebook end-to-end via `app.run()`; assert clean stratified splits with expected shapes and class balance (200 → 190 after NaN drop, no NaNs remain; 152/38 train/test; one-hot `category_*` + `feature_a_x_b` features; both label classes {0,1} in each split). *(Template self-generates its data — no external input created.)*
+- [x] Budget: under 60s on M-series silicon (runs in ~1.8s)
+- [x] Apache-2.0 / Pointmatic header
+- [x] Document the run procedure in the story body
+- [x] Bump version to v0.37.0
+- [x] Update CHANGELOG.md
+- [x] Verify: runs green in the default `testenv` — verified 2026-06-14 (`pyve test tests/integration/test_e2e_template_data_preparation.py` → 1 passed in 1.83s). No Metal hardware needed; no developer-hardware verify outstanding.
+
+**Run procedure** — default testenv, no hardware marker:
+
+```bash
+pyve test tests/integration/test_e2e_template_data_preparation.py
+```
+
+Runs as part of a plain `pyve test` (not deselected). Deps (`numpy`/`pandas`/`scikit-learn`) install via `pyve env install -r requirements-dev.txt`.
 
 ### Story F.j: v0.38.0 model_evaluation template happy path [Planned]
 

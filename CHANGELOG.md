@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.37.0] - 2026-06-14
+
+### Added
+- data_preparation template end-to-end smoke at [tests/integration/test_e2e_template_data_preparation.py](tests/integration/test_e2e_template_data_preparation.py): scaffolds the template via `nbfoundry init`, runs the generated marimo notebook end-to-end (`app.run()`), and asserts the clean → engineer → split flow produces clean stratified splits (200 → 190 after NaN drop; 152/38 train/test; one-hot + interaction features; both label classes present in each split).
+- `scikit-learn` added to the template-smoke deps in [requirements-dev.txt](requirements-dev.txt) (the template's split cell uses `sklearn.model_selection.train_test_split`).
+
 ## [0.36.0] - 2026-06-14
 
 ### Added
