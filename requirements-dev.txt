@@ -1,10 +1,19 @@
 # Copyright (c) 2026 Pointmatic
 # SPDX-License-Identifier: Apache-2.0
 #
-# Dev tooling for the pyve testenv (.pyve/testenv/venv/).
-# Install with: pyve testenv --install -r requirements-dev.txt
+# Dev tooling for the pyve testenv (.pyve/testenvs/testenv/venv/).
+# Install with: pyve env install -r requirements-dev.txt
 ruff
 mypy
 pytest
 pytest-cov
 types-PyYAML
+
+# Framework-agnostic template-smoke deps (F.h–F.j). These light, hardware-free
+# packages let the data_exploration / data_preparation / model_evaluation
+# template smokes run the scaffolded marimo notebooks end-to-end in the default
+# testenv (no @pytest.mark.hardware, runs in CI). Kept out of the heavy smoke
+# envs — these are pure-CPU and tiny.
+numpy
+pandas
+matplotlib

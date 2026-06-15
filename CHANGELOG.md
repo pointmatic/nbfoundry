@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.36.0] - 2026-06-14
+
+### Added
+- data_exploration template end-to-end smoke at [tests/integration/test_e2e_template_data_exploration.py](tests/integration/test_e2e_template_data_exploration.py): scaffolds the template via `nbfoundry init`, runs the generated marimo notebook end-to-end (`app.run()`), and asserts the load → describe → visualize flow produces its outputs (synthetic 200×3 DataFrame, `describe()` summary, 3-class label balance, and a matplotlib `Figure`). Also checks the scaffolder emits `requirements-base.txt`. This is the first smoke that exercises the packaged template + `nbfoundry init` surface.
+- Framework-agnostic template-smoke deps (`numpy`, `pandas`, `matplotlib`) added to [requirements-dev.txt](requirements-dev.txt).
+
+### Note
+- **Env/marker decision (F.h gate):** the framework-agnostic template smokes (F.h–F.j) run in the default `testenv` with **no** `@pytest.mark.hardware` — they execute on every `pyve test` run and in CI, rather than in a per-framework smoke env. They are pure-CPU and need no Metal hardware.
+
 ## [0.35.0] - 2026-06-14
 
 ### Added

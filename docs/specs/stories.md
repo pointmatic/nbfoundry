@@ -279,21 +279,29 @@ pyve test --env smoke-torch tests/integration/test_e2e_optuna.py -m hardware
 
 Optuna rides the torch family, so it runs in `smoke-torch` (deps in `tests/integration/env/torch.txt`, which now includes `optuna`) alongside PyTorch and HuggingFace. One smoke file per process. The test is deselected by the default `-m 'not hardware'`; opt in with `-m hardware`.
 
-### Story F.h: v0.36.0 data_exploration template happy path [Planned]
+### Story F.h: v0.36.0 data_exploration template happy path [Done]
 
 End-to-end smoke against the scaffolded `data_exploration` template, exercising the framework-agnostic load → describe → visualize flow on synthetic data.
 
-> **Env/marker (named-env reframe — finalize when this body is implemented):** this template is framework-agnostic (pandas / scikit-learn / matplotlib / marimo + `nbfoundry`, no torch/TF/Metal), so it does **not** fit either per-framework-family `smoke-*` env and likely needs no Metal hardware. **Current lean:** drop `@pytest.mark.hardware` and run it in the default **`testenv`** (which already CLI-tests the editable `nbfoundry`), adding the template's light deps there — rather than spawning a third smoke env. Unlike F.c–F.f, this smoke **does** invoke `nbfoundry init`, so it is also where published-surface validation lives if run against the PyPI install. **Payload-fidelity option (after F.f.4):** build the stage's shipped `templates/requirements-base.txt` in a dedicated lazy env and run the smoke against *exactly what ships* — higher fidelity than adding ad-hoc deps to `testenv`. Decision surfaced at this story's gate.
+> **Env/marker — DECIDED at the gate (2026-06-14):** run in the default **`testenv`**, **no** `@pytest.mark.hardware`. The template is framework-agnostic (pandas / matplotlib / marimo + `nbfoundry`, no torch/TF/Metal), so it executes on every `pyve test` run and in CI, and the light deps (`numpy`, `pandas`, `matplotlib`) live in `requirements-dev.txt`. The payload-fidelity option (a dedicated lazy env built from the shipped `templates/requirements-base.txt`) was considered and **declined** for F.h–F.j: it keeps `testenv` lighter but adds a new env and is heavier/manual; the ad-hoc-deps weight here is small (pure-CPU, tiny). This smoke also invokes `nbfoundry init`, so it exercises the packaged template + scaffolder surface. (The template **self-generates** its synthetic data, so the "create synthetic input data" sub-task was a no-op — no external input needed.)
 
-- [ ] Decide the env + marker per the note above (lean: `testenv`, no `@pytest.mark.hardware`); record the choice in the body before implementing
-- [ ] `tests/integration/test_e2e_template_data_exploration.py` (marker per the decision above)
-- [ ] Test procedure: `nbfoundry init demo --template data_exploration` in a temp dir; create synthetic input data the template expects; run the scaffolded notebook end-to-end (via `marimo edit --headless` or equivalent); assert each cell completes and the expected describe/visualize outputs are produced
-- [ ] Budget: under 60s on M-series silicon
-- [ ] Apache-2.0 / Pointmatic header
-- [ ] Document the run procedure (named-env form) in the story body
-- [ ] Bump version to v0.36.0
-- [ ] Update CHANGELOG.md
-- [ ] Verify on developer hardware (exact invocation per the env decision; e.g. `pyve test --env testenv tests/integration/test_e2e_template_data_exploration.py`) — **deferred to developer hardware**
+- [x] Decide the env + marker per the note above — **DECIDED: default `testenv`, no `@pytest.mark.hardware`** (recorded above)
+- [x] `tests/integration/test_e2e_template_data_exploration.py` (no `@pytest.mark.hardware`; runs in `testenv`)
+- [x] Test procedure: `nbfoundry init demo --template data_exploration` in a temp dir; run the scaffolded notebook end-to-end via marimo's `app.run()`; assert each cell completes (5 outputs) and the expected outputs are produced (synthetic 200×3 DataFrame, `describe()` summary, 3-class label balance, matplotlib `Figure`). *(Template self-generates its data — no external input created.)*
+- [x] Budget: under 60s on M-series silicon (runs in ~1s)
+- [x] Apache-2.0 / Pointmatic header
+- [x] Document the run procedure in the story body
+- [x] Bump version to v0.36.0
+- [x] Update CHANGELOG.md
+- [x] Verify: runs green in the default `testenv` — verified 2026-06-14 (`pyve test tests/integration/test_e2e_template_data_exploration.py` → 1 passed in 0.96s). No Metal hardware needed; no developer-hardware verify outstanding.
+
+**Run procedure** — default testenv, no hardware marker:
+
+```bash
+pyve test tests/integration/test_e2e_template_data_exploration.py
+```
+
+It runs as part of a plain `pyve test` (not deselected — there is no `@pytest.mark.hardware`). The light deps (`numpy`/`pandas`/`matplotlib`) are installed via `pyve env install -r requirements-dev.txt`.
 
 ### Story F.i: v0.37.0 data_preparation template happy path [Planned]
 
