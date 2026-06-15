@@ -27,6 +27,19 @@ from nbfoundry.standalone import compile as compile_standalone
 _TEMPLATES_PACKAGE = "nbfoundry.templates"
 _TEMPLATE_SKIP = {"__init__.py", "__pycache__"}
 
+# Per-stage venv/pip requirements emitted alongside the scaffolded notebook
+# (replaces the conda environment.yml dropped in F.f.4). The model_* stages are
+# torch-based today; the data_* stages need no ML framework. requirements-torch
+# `-r`-includes requirements-base, so the base file ships alongside it.
+_BASE_REQUIREMENTS = "requirements-base.txt"
+_STAGE_REQUIREMENTS = {
+    "data_exploration": _BASE_REQUIREMENTS,
+    "data_preparation": _BASE_REQUIREMENTS,
+    "model_experimentation": "requirements-torch.txt",
+    "model_optimization": "requirements-torch.txt",
+    "model_evaluation": "requirements-torch.txt",
+}
+
 app = typer.Typer(
     name="nbfoundry",
     help="Marimo-based notebook framework for ML/DS work.",
@@ -94,16 +107,24 @@ def cmd_init(
 
     target.mkdir(parents=True)
     _copy_template_tree(template_root, target)
-    _emit_shared_env(target)
+    _emit_stage_requirements(target, template)
     typer.echo(str(target))
 
 
-def _emit_shared_env(target: Path) -> None:
-    env_dst = target / "environment.yml"
-    if env_dst.exists():
-        return
-    shared_env = files(_TEMPLATES_PACKAGE).joinpath("environment.yml")
-    env_dst.write_text(shared_env.read_text(encoding="utf-8"), encoding="utf-8")
+def _emit_stage_requirements(target: Path, template: str) -> None:
+    """Copy the stage-appropriate pip requirements into the scaffolded project.
+
+    The base requirements always ship; a framework file (currently torch) ships
+    on top for the model_* stages and `-r`-includes the base.
+    """
+    stage_file = _STAGE_REQUIREMENTS.get(template, _BASE_REQUIREMENTS)
+    needed = {_BASE_REQUIREMENTS, stage_file}
+    for name in sorted(needed):
+        dst = target / name
+        if dst.exists():
+            continue
+        src = files(_TEMPLATES_PACKAGE).joinpath(name)
+        dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
 
 
 def _copy_template_tree(src: Traversable, dst: Path) -> None:

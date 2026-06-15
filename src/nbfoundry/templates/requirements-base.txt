@@ -1,0 +1,27 @@
+# Copyright (c) 2026 Pointmatic
+# SPDX-License-Identifier: Apache-2.0
+#
+# Framework-agnostic core for nbfoundry scaffolded projects (venv/pip).
+# Shipped by `nbfoundry init` for the data_exploration / data_preparation
+# stages, and `-r`-included by the framework requirements files below.
+# Install with:  pyve init && pip install -r requirements-base.txt
+# (Pure pip — no conda/micromamba anywhere.)
+
+numpy
+scipy
+pandas
+pyarrow
+matplotlib
+seaborn
+plotly
+scikit-learn>=1.5
+pillow
+h5py
+marimo
+pyyaml
+click
+rich
+python-dotenv
+# ml-datarefinery is Pointmatic-internal (pip-only). Phase F only ensures it
+# installs alongside nbfoundry; the adapter + template wiring lands in Phase I.
+ml-datarefinery

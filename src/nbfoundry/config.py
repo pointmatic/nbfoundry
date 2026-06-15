@@ -23,7 +23,7 @@ class ExerciseConfig:
 
 @dataclass(frozen=True, slots=True)
 class EnvironmentConfig:
-    spec_path: str = "environment.yml"
+    spec_path: str = "requirements-base.txt"
 
 
 @dataclass(frozen=True, slots=True)

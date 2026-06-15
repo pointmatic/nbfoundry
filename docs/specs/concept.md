@@ -72,7 +72,7 @@ nbfoundry is a Marimo-based notebook framework built specifically for ML/DS work
 - **Lower the ramp for newcomers** by shipping opinionated five-stage lifecycle templates that work end-to-end out of the box on Apple Silicon.
 - **One source, two surfaces**: every nbfoundry notebook is simultaneously a standalone tool and an embeddable curriculum exercise — no rewrite required when purpose shifts.
 - **Replace Jupyter's brittle execution model** with Marimo's reactive, embeddable, pure-Python substrate.
-- **First-class GPU/Metal acceleration** through a verified Pyve + micromamba + Python 3.12.13 stack with Metal-compatible PyTorch / TensorFlow / Keras.
+- **First-class GPU/Metal acceleration** through a verified Pyve + venv + Python 3.12.13 stack with Metal-compatible PyTorch / TensorFlow / Keras.
 - **Honor the learningfoundry contract** so nbfoundry slots cleanly into the broader ecosystem as the canonical ML/DS exercise provider, with `<ExerciseBlock>` as one (of several) flavors of experiential learning object.
 - **Stay loosely coupled to modelfoundry** so the heavy ML lifting stays where it belongs while nbfoundry remains a thin, opinionated orchestration layer.
 
@@ -85,7 +85,7 @@ nbfoundry is a Marimo-based notebook framework built specifically for ML/DS work
 - Thin orchestration interface to modelfoundry for data prep, training, optimization, and evaluation primitives.
 - v1 static-display embed path (Option B from `learningfoundry-dependency-spec.md`): rendered sections, expected outputs, hints, optional `submission` schema with paste-in fields and client-side grading per BR-4.
 - Aggregate completion event back to learningfoundry — one response regardless of whether the embedded artifact is a single notebook or a tree.
-- Pyve + micromamba + Python 3.12.13 environment with Metal-compatible PyTorch / TensorFlow / Keras pinned for first-class Apple Silicon support.
+- Pyve + venv + Python 3.12.13 environment with Metal-compatible PyTorch / TensorFlow / Keras pinned for first-class Apple Silicon support.
 - Validation API (`compile_exercise`, `validate_exercise`, `ExerciseError`) per dependency-spec BR-1 / BR-2 / BR-3.
 
 **Out of scope (deferred or owned elsewhere):**
@@ -103,7 +103,7 @@ nbfoundry is a Marimo-based notebook framework built specifically for ML/DS work
 
 - **License and copyright**: Apache-2.0; copyright Pointmatic. SPDX identifier `Apache-2.0` on all new source files.
 - **Python version**: 3.12.13 specifically, for verified Metal-acceleration compatibility with PyTorch / TensorFlow / Keras.
-- **Environment manager**: Pyve + micromamba is the required runtime stack — no pip-only or conda-only alternatives.
+- **Environment manager**: Pyve + venv is the required runtime stack. The Metal ML stack is fully pip-installable on Apple Silicon (`tensorflow-macos` / `tensorflow-metal` and torch's MPS build are PyPI wheels), so no conda/micromamba is needed anywhere — neither the dev envs nor the learner-facing scaffolded stack.
 - **Notebook substrate**: Marimo only. No Jupyter or iPython compatibility layer.
 - **v1 embed contract**: locked to `docs/specs/learningfoundry-dependency-spec.md` — `compile_exercise` / `validate_exercise` / `ExerciseError`, `<ExerciseBlock>` props and events, BR-4 submission schema and scoring formula.
 - **Static deployability**: the standalone artifact must run locally without any server infrastructure.
@@ -115,7 +115,7 @@ nbfoundry is a Marimo-based notebook framework built specifically for ML/DS work
 ## Pain Point → Solution Mapping
 
 **tool_friction_over_modeling**:
-  - The Pyve + micromamba + Python 3.12.13 stack is pinned and reproducible, so practitioners stop fighting environments and kernels.
+  - The Pyve + venv + Python 3.12.13 stack is pinned and reproducible, so practitioners stop fighting environments and kernels.
   - Opinionated five-stage lifecycle templates absorb the boilerplate (data loaders, training loops, evaluation harnesses), letting practitioners focus on the modeling decisions that matter.
 
 **steep_newcomer_ramp**:
@@ -132,14 +132,14 @@ nbfoundry is a Marimo-based notebook framework built specifically for ML/DS work
 
 **jupyter_brittleness**:
   - Marimo replaces Jupyter as the substrate: pure Python files, reactive cells, no iPython kernel, no hidden state, no out-of-order execution mysteries.
-  - Notebooks are reproducible from a clean environment via the pinned micromamba stack — what runs on the author's machine runs on the learner's machine.
+  - Notebooks are reproducible from a clean environment via the pinned venv/pip stack — what runs on the author's machine runs on the learner's machine.
 
 **no_embeddable_modularity**:
   - Marimo's clean embedding semantics let nbfoundry compile a single source into both a standalone app and an `<ExerciseBlock>`-compatible artifact, with the same source reusable across both surfaces.
   - The two-surface architecture is built into the compiler from day one, not bolted on later — mirrors the proven Quizazz pattern.
 
 **metal_hostility**:
-  - The pinned Pyve + micromamba + Python 3.12.13 stack provides verified Metal-accelerated PyTorch / TensorFlow / Keras out of the box.
+  - The pinned Pyve + venv + Python 3.12.13 stack provides verified Metal-accelerated PyTorch / TensorFlow / Keras out of the box.
   - Apple Silicon developers are a primary target audience, not an edge case.
 
 **modeling_content_conflation**:

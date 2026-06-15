@@ -1,0 +1,24 @@
+# Copyright (c) 2026 Pointmatic
+# SPDX-License-Identifier: Apache-2.0
+#
+# TensorFlow-family stack for nbfoundry scaffolded projects (venv/pip).
+# The TF-based-learner option — not bound to a shipped template (all three model
+# templates are torch-based today), but validated by the smoke-tensorflow dev
+# env. Install with:
+#     pyve init && pip install -r requirements-tf.txt
+#
+# Default below is Apple's macOS distribution + the Metal acceleration plugin.
+# Cross-platform swap — replace the two tensorflow lines with one of:
+#     tensorflow>=2.16            # CPU-only / generic
+#     tensorflow[and-cuda]>=2.16  # Linux + CUDA
+#
+# Do NOT add a standalone `keras` line: Keras 3 is the bundled `tf.keras`
+# namespace exposed by TF 2.16+ (also importable as bare `keras`). A separate
+# pin pulls a parallel minor that silently fights TF's bundled copy.
+#
+# Torch is never co-installed here (the MPS/Metal co-residence boundary).
+
+-r requirements-base.txt
+
+tensorflow-macos>=2.16
+tensorflow-metal>=1.1

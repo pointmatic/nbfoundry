@@ -226,7 +226,7 @@ Stand up the Pyve v3.0.6 named test environments for the hardware smokes and mig
 
 **Note on `scripts/metal_smoke.py`:** unchanged by this story. It remains a standalone full-stack diagnostic (the subprocess-isolated driver/worker from F.f.1) run against a bundled-payload micromamba env; it is **not** one of the named pytest smoke envs and keeps its own run procedure. *(F.f.4 then converts that bundled payload to venv and reconciles/retires this script.)*
 
-### Story F.f.4: v0.34.3 Convert learner stack from conda environment.yml → per-stage venv/pip requirements [Planned]
+### Story F.f.4: v0.34.3 Convert learner stack from conda environment.yml → per-stage venv/pip requirements [Done]
 
 The last conda holdout. F.f.3 and the `plan_envs` reframe moved every `pyve.toml` env to `venv`; this story moves the **learner-facing** stack — the bundled `src/nbfoundry/templates/environment.yml` shipped into every scaffolded project — off conda/micromamba and onto per-stage venv/pip requirements, making the project **exclusively venv**. The per-stage split (vs. one combined file) gives learners the same co-residence-impossible-by-construction property the dev smoke envs got: `torch` and `tensorflow` are never installed into the same venv, so a learner cannot hit the F.f.1 SIGBUS. See `docs/specs/env-dependencies.md` and the plan doc's "Named-Environment Reframe → Conda fully eliminated (F.f.4)" subsection.
 
@@ -240,20 +240,20 @@ The last conda holdout. F.f.3 and the `plan_envs` reframe moved every `pyve.toml
 
 Stage → file: `data_exploration` / `data_preparation` → `requirements-base.txt`; `model_experimentation` / `model_optimization` / `model_evaluation` → `requirements-torch.txt` (all three model templates are torch-based today). `requirements-tf.txt` is not bound to a shipped template — it's the TF-based-learner option, validated by `smoke-tensorflow`.
 
-- [ ] Author `templates/requirements-base.txt`, `requirements-torch.txt`, `requirements-tf.txt` (pip; `-r` base includes; Apache-2.0 `#` headers). Carry cross-platform swap guidance as pip comments: torch CUDA via `--index-url`/`--extra-index-url` (cpu/cu126/cu128); `tensorflow-macos`+`tensorflow-metal` → `tensorflow` (or `tensorflow[and-cuda]`) for non-Mac.
-- [ ] **Delete** `src/nbfoundry/templates/environment.yml` (the conda bundled payload).
-- [ ] Update the scaffolder (`cli.py` `cmd_init` / `_emit_shared_env`): `nbfoundry init <name> --template <stage>` emits the **stage-appropriate** requirements file (base for `data_*`, torch for `model_*`) instead of the shared `environment.yml`.
-- [ ] Update `standalone.py` so `nbfoundry compile` emits the stage-appropriate requirements file into the standalone artifact.
-- [ ] Reconcile `scripts/metal_smoke.py` with per-stage venv (it can no longer build one micromamba env with the whole stack): either **(a)** probe a torch venv (`requirements-torch.txt`) and a tf venv (`requirements-tf.txt`) separately under the existing subprocess-isolated driver, or **(b) retire** it in favor of the named smoke envs (`smoke-torch`/`smoke-tensorflow`), which already validate each framework on Metal via pytest. Decide in-story; document the choice.
-- [ ] Drop `conda-lock` from the stack (pip-tools `pip-compile --generate-hashes` is the venv lock path; lockfile generation itself remains a Phase H follow-up).
-- [ ] **Reverse the micromamba constraint in the foundational docs** (the constraint change that authorizes the whole reframe):
-  - `concept.md` Constraints — "Pyve + micromamba is the required runtime stack — no pip-only … alternatives" → Pyve + **venv**; the Metal stack is pip-installable on Apple Silicon (`tensorflow-macos`/`tensorflow-metal` and torch's MPS build are PyPI wheels).
-  - `features.md` — CR-10 ("Ship a Pyve + micromamba environment specification"), QR-1, AC-5: micromamba → venv/pip.
-  - `tech-spec.md` — env-management + "Pinned ML stack" sections: conda `environment.yml` → per-stage pip requirements; micromamba → venv.
-  - `README.md` — Apple Silicon quickstart: `pyve init --backend micromamba` + `environment.yml` → `pyve init` (venv) + `pip install -r requirements-<stage>.txt`.
-- [ ] Bump version to v0.34.3 (patch; continues the reframe arc — a shipped-template format change, no API change).
-- [ ] Update `CHANGELOG.md`.
-- [ ] Verify on developer Apple Silicon: `nbfoundry init demo --template model_experimentation` emits `requirements-torch.txt`; `pyve init` + `pip install -r requirements-torch.txt` builds a working torch/MPS venv; a `data_*` scaffold emits `requirements-base.txt` and builds with no ML framework present. **No conda/micromamba anywhere in the flow.**
+- [x] Author `templates/requirements-base.txt`, `requirements-torch.txt`, `requirements-tf.txt` (pip; `-r` base includes; Apache-2.0 `#` headers). Carry cross-platform swap guidance as pip comments: torch CUDA via `--index-url`/`--extra-index-url` (cpu/cu126/cu128); `tensorflow-macos`+`tensorflow-metal` → `tensorflow` (or `tensorflow[and-cuda]`) for non-Mac. (Stack follows the F.f.4 table; dev tooling — `ruff`/`mypy`/`pytest` — is **not** carried in the learner stack per the table, a content change from the old conda env; flag at gate if learner dev-tooling is wanted back.)
+- [x] **Delete** `src/nbfoundry/templates/environment.yml` (the conda bundled payload).
+- [x] Update the scaffolder (`cli.py` `cmd_init`): `nbfoundry init <name> --template <stage>` emits the **stage-appropriate** requirements file (base for `data_*`, torch+base for `model_*`) instead of the shared `environment.yml`. `_emit_shared_env` → `_emit_stage_requirements`.
+- [x] Update `standalone.py` so `nbfoundry compile` emits the stage-appropriate requirements file into the standalone artifact (`_ensure_requirements`: preserve any adjacent `requirements*.txt`, fall back to `requirements-base.txt`).
+- [x] Reconcile `scripts/metal_smoke.py` with per-stage venv. **Decided: (b) retire** — the named smoke envs (`smoke-torch`/`smoke-tensorflow`, F.f.3) already validate each framework on Metal via pytest, so a venv-based full-stack diagnostic would just duplicate them. Deleted `scripts/metal_smoke.py` **and** its regression `tests/unit/test_metal_smoke.py` (the subprocess-isolation invariant it guarded is now structurally guaranteed: no env holds both frameworks). `scripts/` is now empty and removed.
+- [x] Drop `conda-lock` from the stack (pip-tools `pip-compile --generate-hashes` is the venv lock path; lockfile generation itself remains a Phase H follow-up). (conda-lock lived only in the deleted `environment.yml`; also struck from the tech-spec stack table.)
+- [x] **Reverse the micromamba constraint in the foundational docs** (the constraint change that authorizes the whole reframe):
+  - `concept.md` Constraints (+ vision/pain-point mentions) — Pyve + micromamba → Pyve + **venv**; the Metal stack is pip-installable on Apple Silicon.
+  - `features.md` — CR-10, QR-1, AC-5, PE-3, env-manifest output, config `spec_path`: micromamba/`environment.yml` → venv/pip requirements.
+  - `tech-spec.md` — env-management row, system-deps, "Pinned ML stack" section, package-structure tree, atomic-write step, config example, distribution row: conda `environment.yml` → per-stage pip requirements; micromamba → venv.
+  - `README.md` — Installation + Apple Silicon quickstart + cross-platform: `pyve init --backend micromamba` + `environment.yml` + `metal_smoke.py` → `nbfoundry init` + `pyve init` (venv) + `pip install -r requirements-<stage>.txt`.
+- [x] Bump version to v0.34.3 (patch; continues the reframe arc — a shipped-template format change, no API change).
+- [x] Update `CHANGELOG.md`.
+- [ ] Verify on developer Apple Silicon: `nbfoundry init demo --template model_experimentation` emits `requirements-torch.txt`; `pyve init` + `pip install -r requirements-torch.txt` builds a working torch/MPS venv; a `data_*` scaffold emits `requirements-base.txt` and builds with no ML framework present. **No conda/micromamba anywhere in the flow.** — **deferred to developer hardware** (the emission half is covered by `tests/integration/test_cli_init_requirements.py`; the venv-build-on-MPS half is the hardware verify).
 
 **Out of scope (unchanged):** the learner-side *per-applied-series* env recipes (LearningFoundry applied-exercise architecture) remain a separate future track — this story changes only the *format* (conda → per-stage venv) of the existing bundled payload, not the per-series decomposition. The latent same-process torch+tf footgun is now structurally removed for learners (the two are never co-installed).
 

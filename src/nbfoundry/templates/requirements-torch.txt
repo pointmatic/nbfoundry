@@ -1,0 +1,29 @@
+# Copyright (c) 2026 Pointmatic
+# SPDX-License-Identifier: Apache-2.0
+#
+# Torch-family stack for nbfoundry scaffolded projects (venv/pip).
+# Shipped by `nbfoundry init` for the model_experimentation / model_optimization
+# / model_evaluation stages. Install with:
+#     pyve init && pip install -r requirements-torch.txt
+#
+# On Apple Silicon the bare `torch` line below resolves to the MPS-enabled wheel
+# (PyTorch's own recommended Mac install). For CUDA, install torch from the
+# PyTorch index instead, e.g.:
+#     pip install torch --index-url https://download.pytorch.org/whl/cu128
+#   (cpu / cu126 / cu128). Do NOT also keep the bare `torch` line — pick one.
+#
+# This stack is torch-only by design: TensorFlow is never co-installed, because
+# PyTorch-MPS and TensorFlow-Metal cannot coexist in one process on Apple
+# Silicon (SIGBUS). A TF-based learner uses requirements-tf.txt in a separate
+# venv.
+
+-r requirements-base.txt
+
+torch>=2.5
+transformers
+datasets
+peft
+sentencepiece
+protobuf
+tiktoken
+optuna

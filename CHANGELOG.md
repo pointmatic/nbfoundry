@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.34.3] - 2026-06-14
+
+### Changed
+- **The learner-facing stack is now exclusively venv/pip — conda/micromamba fully eliminated.** The bundled conda manifest `src/nbfoundry/templates/environment.yml` is replaced by three composable per-stage pip requirements files shipped as package data:
+  - [requirements-base.txt](src/nbfoundry/templates/requirements-base.txt) — framework-agnostic core (`data_*` stages).
+  - [requirements-torch.txt](src/nbfoundry/templates/requirements-torch.txt) — torch-family stack (`model_*` stages); `-r`-includes the base.
+  - [requirements-tf.txt](src/nbfoundry/templates/requirements-tf.txt) — TensorFlow-family option; `-r`-includes the base.
+- `nbfoundry init` now emits the **stage-appropriate** requirements file(s) (`requirements-base.txt` for `data_*`, `requirements-torch.txt` + base for `model_*`) instead of the shared `environment.yml` ([cli.py](src/nbfoundry/cli.py) `_emit_stage_requirements`). The per-stage split makes the F.f.1 torch+TF co-residence SIGBUS impossible by construction for learners — the two frameworks are never co-installed.
+- `nbfoundry compile` now emits venv/pip requirements into the standalone artifact (preserving any `requirements*.txt` the source ships, falling back to `requirements-base.txt`) instead of `environment.yml` ([standalone.py](src/nbfoundry/standalone.py) `_ensure_requirements`).
+- `EnvironmentConfig.spec_path` default changed `environment.yml` → `requirements-base.txt` ([config.py](src/nbfoundry/config.py)).
+- Reversed the micromamba constraint across the foundational specs (`concept.md`, `features.md` CR-10/QR-1/AC-5/PE-3, `tech-spec.md` env-management + Pinned ML stack, `README.md` quickstart): Pyve + micromamba → Pyve + venv.
+
+### Removed
+- `src/nbfoundry/templates/environment.yml` (the conda bundled payload) and `conda-lock` from the stack.
+- `scripts/metal_smoke.py` and `tests/unit/test_metal_smoke.py` — the full-stack micromamba diagnostic is retired in favor of the named smoke envs (`smoke-torch` / `smoke-tensorflow`), which validate each framework on Metal via pytest (Story F.f.4 decision: retire over rework).
+
 ## [0.34.2] - 2026-06-14
 
 ### Added

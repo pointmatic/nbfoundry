@@ -12,55 +12,55 @@ For the why, see [`docs/specs/concept.md`](docs/specs/concept.md). For the what,
 
 ## Installation
 
-`nbfoundry` targets Python 3.12.13 with the pinned Pyve + micromamba environment defined
-in [`src/nbfoundry/templates/environment.yml`](src/nbfoundry/templates/environment.yml).
-That one shared file ships as package data, gets copied into every scaffolded project by
-`nbfoundry init`, and is the same spec the standalone artifact emitter falls back to.
+`nbfoundry` targets Python 3.12.13 with **Pyve + venv** (exclusively — no conda or
+micromamba). The Metal ML stack is fully pip-installable on Apple Silicon, so each
+scaffolded project ships per-stage pip requirements instead of a conda env file:
+
+- [`requirements-base.txt`](src/nbfoundry/templates/requirements-base.txt) — framework-agnostic core (the `data_*` stages).
+- [`requirements-torch.txt`](src/nbfoundry/templates/requirements-torch.txt) — torch-family stack (the `model_*` stages); `-r`-includes the base.
+- [`requirements-tf.txt`](src/nbfoundry/templates/requirements-tf.txt) — TensorFlow-family option; `-r`-includes the base.
+
+These ship as package data: `nbfoundry init` copies the **stage-appropriate** file into
+every scaffolded project, and the standalone artifact emitter falls back to
+`requirements-base.txt` when the source carries none.
 
 ### Apple Silicon quickstart
 
-The pinned stack defaults to Apple Silicon with Metal/MPS acceleration across PyTorch,
-TensorFlow (via `tensorflow-metal`), and the bundled Keras 3 namespace from TF 2.16+.
-It also ships the wider cross-project stack (HuggingFace `transformers` / `datasets` /
-`peft`, Optuna, the plotly/seaborn/pyarrow utility set, dev tooling, and the
-Pointmatic-internal `ml-datarefinery` package).
+The stack defaults to Apple Silicon with Metal/MPS acceleration: PyTorch via the bare
+`torch` MPS wheel, TensorFlow via `tensorflow-macos` + `tensorflow-metal`, and the
+bundled Keras 3 namespace from TF 2.16+. The torch stack also ships the wider
+cross-project set (HuggingFace `transformers` / `datasets` / `peft`, Optuna, the
+plotly/seaborn/pyarrow utility set, and the Pointmatic-internal `ml-datarefinery`).
 
-To verify the stack on a clean Apple Silicon machine, copy the shared env file and
-`scripts/metal_smoke.py` into a fresh directory and let pyve build a micromamba-backed
-env from the spec:
+Scaffold a project and build its venv with plain pip — no micromamba:
 
 ```bash
-mkdir nbfoundry-test && cd nbfoundry-test
-mkdir scripts
-cp <path-to-nbfoundry-root>/src/nbfoundry/templates/environment.yml .
-cp <path-to-nbfoundry-root>/scripts/metal_smoke.py scripts/
-pyve init --backend micromamba
-pyve run python scripts/metal_smoke.py
+nbfoundry init demo --template model_experimentation
+cd demo
+pyve init                                  # creates the project venv
+pip install -r requirements-torch.txt      # torch + HuggingFace + Optuna on MPS
 ```
 
-`pyve init --backend micromamba` reads the local `environment.yml` and provisions the
-runtime env from it. The smoke script exercises PyTorch / TensorFlow / Keras against the
-MPS device and then imports every other package added in Phase F (HuggingFace, Optuna,
-plotly, seaborn, etc.) to assert basic availability — it doesn't import `nbfoundry`
-itself, so no `pip install -e .` step is required for the verify.
+A `data_*` scaffold instead emits `requirements-base.txt` (no ML framework). Because
+`torch` and `tensorflow` are never co-installed in one venv, a learner cannot hit the
+PyTorch-MPS / TensorFlow-Metal co-residence crash.
 
-Successful output ends with `all frameworks ran on MPS ✓`. If any framework or import
-fails, the script reports which one and why (no MPS device, plugin not installed,
-package missing from the env, etc.).
+> **Framework Metal verification** is done dev-side via the lazy named smoke envs
+> (`pyve test --env smoke-torch …` / `--env smoke-tensorflow …`); see
+> [`docs/specs/env-dependencies.md`](docs/specs/env-dependencies.md).
 
 #### Cross-platform users (CUDA / CPU-only)
 
-The shared `environment.yml` ships comment-delimited swap blocks for the framework
-sections:
+The requirements files ship comment-delimited swap guidance:
 
-- **PyTorch CUDA:** drop the `pytorch` conda-forge line and add to the `pip:` block
-  `--extra-index-url https://download.pytorch.org/whl/cu126` + `torch` (or `.../cu128`
-  for CUDA 12.8).
-- **TensorFlow CPU-only or Linux+CUDA:** replace the `tensorflow-macos` /
-  `tensorflow-metal` pip lines with `tensorflow>=2.16` (CPU-only) or
+- **PyTorch CUDA:** install torch from the PyTorch index instead of the bare line, e.g.
+  `pip install torch --index-url https://download.pytorch.org/whl/cu128` (`cpu` / `cu126`
+  / `cu128`).
+- **TensorFlow CPU-only or Linux+CUDA:** in `requirements-tf.txt`, replace the
+  `tensorflow-macos` / `tensorflow-metal` lines with `tensorflow>=2.16` (CPU-only) or
   `tensorflow[and-cuda]>=2.16` (Linux + CUDA).
 
-Both swap blocks are documented inline in the env file at the framework section.
+Both notes are documented inline at the top of the relevant requirements file.
 
 ### Development setup (Pyve two-env)
 

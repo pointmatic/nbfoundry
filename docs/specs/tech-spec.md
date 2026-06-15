@@ -11,8 +11,8 @@ For requirements and behavior, see [`features.md`](features.md). For the impleme
 | Concern | Choice | Rationale |
 |---|---|---|
 | **Language** | Python 3.12.13 (env-pinned) | features.md CR-10; verified Metal-acceleration compatibility. |
-| **`requires-python`** (pyproject.toml) | `>=3.12.13,<3.14` | 3.12.13+ is fine; 3.14.x is incompatible with several ML deps. The exact 3.12.13 pin lives in `environment.yml` (env reproducibility), not in package metadata (PyPI-friendly). |
-| **Environment manager** | Pyve + micromamba | features.md CR-10. Two-environment model: runtime in `.venv/`, dev tools in `.pyve/testenv/venv/`. |
+| **`requires-python`** (pyproject.toml) | `>=3.12.13,<3.14` | 3.12.13+ is fine; 3.14.x is incompatible with several ML deps. The interpreter pin is carried by the project venv (env reproducibility), not in package metadata (PyPI-friendly). |
+| **Environment manager** | Pyve + venv (exclusively) | features.md CR-10. The Metal ML stack is fully pip-installable on Apple Silicon, so no conda/micromamba anywhere. Two-environment model: runtime in `.venv/`, dev tools in the named testenv. |
 | **Build backend** | `hatchling` | Modern PEP 517 backend; first-class src-layout support; minimal config. |
 | **Package layout** | `src/nbfoundry/` (src layout) | Avoids the editable-install footgun called out in `docs/project-guide/go.md` § Pyve Essentials. |
 | **Linter / formatter** | `ruff check` + `ruff format` | Single tool covers lint + format. Default rule set + `B`, `I`, `UP`, `SIM`, `RUF`. |
@@ -57,7 +57,7 @@ pyve testenv --install -r requirements-dev.txt
 
 ### Optional / system dependencies
 
-- **micromamba** — required to install/launch the pinned environment (system-level, not a Python package).
+- **(no system env manager)** — the project is exclusively Pyve + venv; the Metal ML stack is fully pip-installable on Apple Silicon, so no conda/micromamba (or any other system-level env manager) is required.
 - **modelfoundry** — internal dependency, declared via the thin adapter `nbfoundry/_modelfoundry.py`. **Not** pinned in `pyproject.toml [project] dependencies` for v1 (interface TBD per concept.md Constraints); the adapter raises a clear "modelfoundry required" error if not importable. When the modelfoundry contract lands, declare as `nbfoundry[modelfoundry]` extra.
 
 ### Development dependencies (in `requirements-dev.txt`, installed into testenv only)
@@ -70,34 +70,40 @@ pyve testenv --install -r requirements-dev.txt
 | `pytest-cov` | Coverage measurement; fail-under 85 on `nbfoundry` public modules. |
 | `types-PyYAML` | mypy stubs. |
 
-### Pinned ML stack (in `src/nbfoundry/templates/environment.yml`)
+### Pinned ML stack (per-stage venv/pip requirements in `src/nbfoundry/templates/`)
 
-Single sectioned cross-platform stack shipped as package data. `nbfoundry init`
-copies it into every scaffolded project; `nbfoundry compile` emits it into every
-standalone artifact unless the source tree carries its own. Defaults to the
-proven Apple Silicon path (Metal/MPS PyTorch, Apple's TensorFlow distribution +
+Three composable pip requirements files shipped as package data (the conda
+`environment.yml` was deleted in Phase F.f.4 — the project is now exclusively
+venv). `nbfoundry init` copies the **stage-appropriate** file into every
+scaffolded project; `nbfoundry compile` emits the stage-appropriate file into
+every standalone artifact (falling back to `requirements-base.txt` when the
+source tree carries none). Defaults to the proven Apple Silicon path (Metal/MPS
+PyTorch via the bare `torch` wheel, Apple's TensorFlow distribution +
 `tensorflow-metal`, bundled Keras 3 from TF 2.16+). Cross-platform users follow
-documented comment-block swaps inside each framework section.
+documented comment-block swaps inside each file.
 
-Sections (`# core`, `# framework`, `# huggingface`, `# optimization`,
-`# dev tooling`) are comment-delimited within the one shared file. The
-per-template `environment.yml` copies were removed in Phase F.b — one source
-of truth.
+The per-stage split (vs. one combined file) is what makes the torch+TF
+co-residence SIGBUS (F.f.1) impossible by construction for learners: `torch` and
+`tensorflow` are never installed into the same venv.
 
-| Section | Channel | Packages |
+| File | Source class | Packages |
 |---|---|---|
-| core | conda-forge | `python=3.12.13` (exact), `numpy`, `scipy`, `pandas`, `pyarrow`, `matplotlib`, `seaborn`, `plotly`, `scikit-learn>=1.5`, `pillow`, `h5py`, `pyyaml`, `click`, `rich`, `python-dotenv`, `marimo`, `conda-lock` |
-| core (pip) | pypi | `ml-datarefinery` (Pointmatic-internal; adapter + template integration deferred to a future Phase I) |
-| framework | conda-forge | `pytorch>=2.5` (MPS default; cross-platform swap to `cu126` / `cu128` pip wheels documented inline) |
-| framework (pip) | pypi | `tensorflow-macos>=2.16` + `tensorflow-metal>=1.1` (Apple Silicon default; swap to `tensorflow` or `tensorflow[and-cuda]` documented inline). Keras 3 is the bundled `tf.keras` namespace — **no standalone `keras` pin**. |
-| huggingface | conda-forge | `transformers`, `datasets`, `peft`, `sentencepiece`, `protobuf`, `tiktoken` |
-| optimization | conda-forge | `optuna` |
-| dev tooling | conda-forge | `ruff`, `mypy`, `pytest`, `pytest-cov` (so scaffolded student projects ship dev-tool-complete) |
+| `requirements-base.txt` | pip (PyPI) | `numpy`, `scipy`, `pandas`, `pyarrow`, `matplotlib`, `seaborn`, `plotly`, `scikit-learn>=1.5`, `pillow`, `h5py`, `pyyaml`, `click`, `rich`, `python-dotenv`, `marimo`, `ml-datarefinery` (Pointmatic-internal; adapter + template integration deferred to a future Phase I) |
+| `requirements-torch.txt` | pip (PyPI) | `-r requirements-base.txt` + `torch>=2.5` (MPS wheel default; CUDA via `--index-url` `cu126`/`cu128` documented inline) + `transformers`, `datasets`, `peft`, `sentencepiece`, `protobuf`, `tiktoken` + `optuna` |
+| `requirements-tf.txt` | pip (PyPI) | `-r requirements-base.txt` + `tensorflow-macos>=2.16` + `tensorflow-metal>=1.1` (Apple Silicon default; swap to `tensorflow` or `tensorflow[and-cuda]` documented inline). Keras 3 is the bundled `tf.keras` namespace — **no standalone `keras` pin**. |
+
+Stage → file: `data_exploration` / `data_preparation` → `requirements-base.txt`;
+`model_experimentation` / `model_optimization` / `model_evaluation` →
+`requirements-torch.txt` (all three model templates are torch-based today).
+`requirements-tf.txt` is the TF-based-learner option, not bound to a shipped
+template (validated by the `smoke-tensorflow` dev env).
 
 **Phase F dropped (do not reintroduce):** `jupyterlab`, `ipykernel`, `ipywidgets`
 (Marimo replaces them); standalone `keras>=3.x` (Keras 3 ships bundled with TF
 2.16+ and is exposed as both `tf.keras` and bare `keras`; a separate pin pulls a
-parallel minor and silently fights TF's bundled copy).
+parallel minor and silently fights TF's bundled copy); `conda-lock` (no conda —
+pip-tools `pip-compile --generate-hashes` is the venv lock path, deferred to
+Phase H).
 
 ---
 
@@ -109,7 +115,6 @@ Source layout, with one-line descriptions per file:
 nbfoundry/                                    # repo root
 ├── pyproject.toml                            # build backend (hatchling), deps, console script, ruff/mypy/pytest config
 ├── requirements-dev.txt                      # dev tools for testenv (ruff, mypy, pytest, pytest-cov, type stubs)
-├── environment.yml                           # pinned Pyve + micromamba runtime env (Python 3.12.13 + ML stack)
 ├── README.md                                 # quickstart: install, scaffold, compile, embed
 ├── LICENSE                                   # Apache-2.0
 ├── .github/
@@ -130,13 +135,15 @@ nbfoundry/                                    # repo root
 │       ├── errors.py                         # ExerciseError dataclass + helpers; maps Pydantic errors → ExerciseError list
 │       ├── logging_setup.py                  # stdlib logging configuration; --verbose/--quiet wiring
 │       ├── config.py                         # nbfoundry.toml loader; precedence: CLI > toml > defaults
-│       ├── standalone.py                     # `nbfoundry compile` artifact emitter (notebook + env spec + launch.py)
+│       ├── standalone.py                     # `nbfoundry compile` artifact emitter (notebook + requirements-*.txt + launch.py)
 │       ├── notebooks.py                      # Marimo notebook discovery, parse, tree walking; entry-point detection
 │       ├── _modelfoundry.py                  # thin adapter Protocol; raises clear error when modelfoundry not importable
 │       └── templates/
 │           ├── __init__.py                   # importlib.resources entry point
-│           ├── environment.yml               # single shared sectioned ML stack (replaces per-template copies as of F.b)
-│           ├── data_exploration/             # five-stage lifecycle template (Marimo .py only; env from shared file)
+│           ├── requirements-base.txt         # agnostic core (data_* stages); -r-included by the framework files
+│           ├── requirements-torch.txt        # torch-family stack (model_* stages); -r requirements-base.txt
+│           ├── requirements-tf.txt           # TF-family stack (TF-learner option); -r requirements-base.txt
+│           ├── data_exploration/             # five-stage lifecycle template (Marimo .py only; stage requirements emitted by init)
 │           ├── data_preparation/
 │           ├── model_experimentation/
 │           ├── model_optimization/
@@ -186,7 +193,7 @@ nbfoundry/                                    # repo root
 | **Python modules** | Underscores (PEP 8) | `compiler.py`, `logging_setup.py`, `_modelfoundry.py` |
 | **Python packages / template dirs** | Underscores (PEP 8) | `data_exploration/`, `model_experimentation/`, `templates/` |
 | **YAML fixtures** | Underscores (mirrors Python) | `valid_minimal.yaml`, `invalid_missing_title.yaml` |
-| **Configuration files** | Hyphens or dots | `pyproject.toml`, `environment.yml`, `requirements-dev.txt`, `.gitignore` |
+| **Configuration files** | Hyphens or dots | `pyproject.toml`, `requirements-base.txt`, `requirements-dev.txt`, `.gitignore` |
 
 Private modules use a leading `_` (e.g., `_modelfoundry.py`, `_version.py`).
 
@@ -270,7 +277,7 @@ Subcommands and flags: see `## CLI Design` below. Each subcommand is a thin adap
 `compile(notebook_or_dir: Path, out: Path) -> Path`:
 1. `notebooks.discover_entry(notebook_or_dir)` — single file or root-of-tree.
 2. `notebooks.parse_all(...)` — uses `marimo` parser; aggregates parse failures with file/line.
-3. **Atomic write:** stage output into `tempfile.mkdtemp(dir=out.parent)`; copy notebooks, write `environment.yml`, write `launch.py`; `os.replace(tmp, out)` on success. Partial output never visible.
+3. **Atomic write:** stage output into `tempfile.mkdtemp(dir=out.parent)`; copy notebooks, write the stage `requirements-*.txt` (fallback `requirements-base.txt`), write `launch.py`; `os.replace(tmp, out)` on success. Partial output never visible.
 4. Return `out`.
 
 `launch.py` (shipped from `templates/standalone/launch.py`) shells out to `marimo edit` (or `marimo run` if a `--run` flag is later added) against the entry-point notebook, using the active environment.
@@ -465,7 +472,7 @@ default_out = "dist/"
 markdown_flavor = "commonmark"   # commonmark | gfm
 
 [environment]
-spec_path = "environment.yml"
+spec_path = "requirements-base.txt"
 
 [assets]
 max_single_asset_mb = 10         # error threshold
@@ -584,4 +591,4 @@ Tests live under `tests/`, run via `pyve test` (which invokes the testenv's pyte
 | **Optional extras** | `[project.optional-dependencies] modelfoundry = ["modelfoundry>=TBD"]` — wired but not pinned for v1. Future: `wasm = ["marimo[wasm]"]` if Marimo WASM lands. |
 | **Release process (v1)** | Manual: tag `vX.Y.Z` → GHA `publish.yml` builds sdist + wheel via `hatch build` → `twine upload`. Trusted publishing via PyPI's OIDC (no long-lived tokens). |
 | **Versioning** | Semver. Start at `0.1.0`; minor versions can grow large (`0.11.x`, `0.167.x`). `1.0.0` reserved for stable, production-quality, feature-complete release per AC-1..AC-10. |
-| **`environment.yml` distribution** | Shipped as package data so `nbfoundry init` can copy it alongside the scaffolded notebook (FR-1) and so compiled standalone artifacts (FR-2) include a copy for reproducibility (CR-7). |
+| **`requirements-*.txt` distribution** | The per-stage pip requirements (`requirements-base.txt` / `requirements-torch.txt` / `requirements-tf.txt`) ship as package data so `nbfoundry init` copies the stage-appropriate file alongside the scaffolded notebook (FR-1) and compiled standalone artifacts (FR-2) include a copy for reproducibility (CR-7). |

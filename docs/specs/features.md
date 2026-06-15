@@ -21,7 +21,7 @@ nbfoundry is a Marimo-based ML/DS notebook framework that lets practitioners aut
 - **CR-7: Standalone artifact.** The standalone app produced by the compiler must run locally with no server infrastructure -- a single command starts the Marimo notebook with the pinned environment.
 - **CR-8: Aggregate completion event.** A compiled exercise representing a tree of notebooks emits a single aggregate completion event back to learningfoundry, not one event per leaf notebook.
 - **CR-9: Modelfoundry orchestration boundary.** Internally delegate data prep, training, optimization, and evaluation primitives to modelfoundry through a clearly bounded interface so the two-surface compiler is insulated from modelfoundry's internal evolution.
-- **CR-10: Pinned Apple Silicon stack.** Ship a Pyve + micromamba environment specification pinned to Python 3.12.13 with Metal-compatible PyTorch / TensorFlow / Keras / Scikit-learn versions verified to accelerate on Apple Silicon out of the box.
+- **CR-10: Pinned Apple Silicon stack.** Ship Pyve + venv per-stage pip requirements (`requirements-base.txt` / `requirements-torch.txt` / `requirements-tf.txt`) targeting Python 3.12.13 with Metal-compatible PyTorch / TensorFlow / Keras / Scikit-learn verified to accelerate on Apple Silicon out of the box. (The Metal stack is fully pip-installable — `tensorflow-macos` / `tensorflow-metal` and torch's MPS build are PyPI wheels — so no conda/micromamba is required.)
 
 ### Operational Requirements
 
@@ -35,7 +35,7 @@ nbfoundry is a Marimo-based ML/DS notebook framework that lets practitioners aut
 
 ### Quality Requirements
 
-- **QR-1: Reproducibility.** A notebook authored on one Apple Silicon machine runs deterministically on another after a single `pyve` + micromamba environment install step.
+- **QR-1: Reproducibility.** A notebook authored on one Apple Silicon machine runs deterministically on another after a single `pyve init` + `pip install -r requirements-<stage>.txt` step.
 - **QR-2: Minimal runtime dependencies.** The runtime package depends only on what is needed to compile and run notebooks (Marimo, the pinned ML stack via the environment spec, and a small set of utility libraries). Dev / test dependencies are isolated to the testenv.
 - **QR-3: Cross-platform compile, Apple-Silicon-first runtime.** The compiler itself runs on macOS (Apple Silicon), Linux, and Windows. The runtime acceleration story is verified specifically on Apple Silicon for v1; CUDA-on-Linux is best-effort and not the primary target.
 - **QR-4: Type safety.** The public Python API (`compile_exercise`, `validate_exercise`, `ExerciseError`) is fully type-annotated and passes `mypy --strict` (or project-equivalent) on the public surface.
@@ -73,7 +73,7 @@ nbfoundry is a Marimo-based ML/DS notebook framework that lets practitioners aut
 - `sections[].code_file` paths are resolved relative to `base_dir`.
 
 **Environment manifest:**
-- A pinned Pyve + micromamba environment spec (Python 3.12.13, Metal-compatible PyTorch / TensorFlow / Keras / Scikit-learn). Authors do not edit this directly; they install via the documented one-step command.
+- Pinned Pyve + venv per-stage pip requirements (`requirements-base.txt` / `requirements-torch.txt` / `requirements-tf.txt`; Python 3.12.13, Metal-compatible PyTorch / TensorFlow / Keras / Scikit-learn). Authors do not edit these directly; they install via the documented one-step command.
 
 **CLI flags / arguments:**
 - `nbfoundry compile <notebook-or-dir> [--out <path>]`
@@ -89,7 +89,7 @@ nbfoundry is a Marimo-based ML/DS notebook framework that lets practitioners aut
 ## Outputs
 
 **Standalone artifact:**
-- A self-contained directory containing the compiled Marimo notebook(s), an `environment.yml` (or equivalent micromamba spec), and a launch entry point. Running the entry point starts the notebook locally; no server, no cloud dependency.
+- A self-contained directory containing the compiled Marimo notebook(s), the stage-appropriate pip requirements (`requirements-*.txt`), and a launch entry point. Running the entry point starts the notebook locally; no server, no cloud dependency.
 
 **Compiled exercise dict (BR-1):**
 - A JSON-serializable Python dict matching the §BR-1 schema:
@@ -269,10 +269,10 @@ default_out = "dist/"
 markdown_flavor = "commonmark"   # commonmark | gfm
 
 [environment]
-spec_path = "environment.yml"     # path to the pinned micromamba env, relative to base_dir
+spec_path = "requirements-base.txt"   # path to the pinned venv/pip requirements, relative to base_dir
 ```
 
-**Defaults if no config file:** `default_out = "dist/"`, `markdown_flavor = "commonmark"`, `spec_path = "environment.yml"`.
+**Defaults if no config file:** `default_out = "dist/"`, `markdown_flavor = "commonmark"`, `spec_path = "requirements-base.txt"`.
 
 **Environment variables:** none required for v1. (No telemetry, no network, no auth.)
 
@@ -306,7 +306,7 @@ spec_path = "environment.yml"     # path to the pinned micromamba env, relative 
 
 - **PE-1: `compile_exercise` latency.** ≤ 1 second for a typical single-notebook exercise on Apple Silicon (M-series), ≤ 5 seconds for a small notebook tree (≤ 10 notebooks). These are user-facing budgets, not micro-benchmark targets.
 - **PE-2: `validate_exercise` latency.** ≤ 500 ms for a typical single-notebook exercise.
-- **PE-3: Standalone artifact cold start.** Launching the compiled standalone app takes ≤ 10 seconds on a warm environment (dependencies already installed); first-time install of the pinned micromamba environment is bounded by the upstream stack and is not constrained here.
+- **PE-3: Standalone artifact cold start.** Launching the compiled standalone app takes ≤ 10 seconds on a warm environment (dependencies already installed); first-time install of the pinned venv/pip requirements is bounded by the upstream stack and is not constrained here.
 - **PE-4: GPU/Metal acceleration.** PyTorch / TensorFlow / Keras / Scikit-learn workloads in the standalone artifact use Metal acceleration on Apple Silicon out of the box; a smoke benchmark must show non-trivial GPU utilization on a small training step.
 - **PE-5: Compiler is offline.** Compile operations make zero network calls; latency is entirely local I/O bound.
 
@@ -320,7 +320,7 @@ The project is "done" for v1 when **all** of the following hold:
 2. **AC-2: BR-4 submission schema fully supported.** Every validator requirement in §BR-4 is enforced; a representative graded exercise fixture compiles to a dict that drives `ExerciseBlock`'s graded path correctly (verified against learningfoundry's component test suite).
 3. **AC-3: Two-surface compile.** A single notebook source compiles to both a runnable standalone app and an `ExerciseBlock`-compatible dict from the same source, demonstrated by an end-to-end fixture.
 4. **AC-4: Five-stage templates ship and run.** All five lifecycle templates (data exploration, data preparation, model experimentation, model optimization, model evaluation) are scaffoldable via `nbfoundry init` and run end-to-end on Apple Silicon with Metal acceleration.
-5. **AC-5: Pinned environment reproduces.** A fresh `pyve` + micromamba install on a clean Apple Silicon machine produces a working PyTorch / TensorFlow / Keras / Scikit-learn stack on Python 3.12.13 with verifiable Metal acceleration.
+5. **AC-5: Pinned environment reproduces.** A fresh `pyve init` + `pip install -r requirements-<stage>.txt` on a clean Apple Silicon machine produces a working PyTorch / TensorFlow / Keras / Scikit-learn stack on Python 3.12.13 with verifiable Metal acceleration.
 6. **AC-6: CLI is usable.** `nbfoundry init`, `compile`, `compile-exercise`, and `validate` all run successfully against the documented sample, with concise stdout output and structured errors on stderr.
 7. **AC-7: Tests and types pass.** Unit + integration tests pass under `pyve test`; mypy passes on the public surface; coverage on public modules is ≥ 85%.
 8. **AC-8: License hygiene.** Every new source file in the package and templates carries the Apache-2.0 / Pointmatic SPDX header.
