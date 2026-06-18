@@ -89,7 +89,7 @@ Pyve is a command-line tool that provides a single, declarative entry point for 
 | `--strict` | Enforce the lock requirement and opt out of scaffolding/inference | `pyve init --strict` |
 | `--no-lock` | Resolve from `environment.yml`, ignore any present lock (never deletes it), skip the requirement (beats `--strict`), omit `conda-lock` from a fresh scaffold | `pyve init --no-lock` |
 | `--allow-synced-dir` | Bypass the cloud-synced directory check | `pyve init --allow-synced-dir` |
-| `--keep-testenv` | Preserve test/utility environments during purge | `pyve purge --keep-testenv` |
+| `--keep-testenv` | Preserve the other declared envs (test/utility/temp) during purge, to save a rebuild | `pyve purge --keep-testenv` |
 | `--project-guide` / `--no-project-guide` | Force / skip the project-guide hook (overrides auto-detection) | `pyve init --no-project-guide` |
 | `--project-guide-completion` / `--no-project-guide-completion` | Force / skip shell-completion wiring | `pyve init --project-guide-completion` |
 | `--env <name>` | (test/lock/package) target a named environment | `pyve test --env smoke` |
@@ -183,6 +183,17 @@ Every `[env.<name>]` carries a `purpose` from the closed set `{run, test, utilit
 - When `purpose` is omitted, a name-based default applies: `testenv → test`, `root → utility`, otherwise `utility`. Explicit declaration always wins.
 - The resolver is the single gate purpose-keyed selectors consult.
 
+**What each purpose protects (durability model).** Durability is *not* a "survives `pyve purge`" ranking — an environment is a pure function of its declaration, so purging is lossy only to the degree rebuild is costly or unfaithful. *Irreproducibility is the bug: an env you are afraid to rebuild is a defect, not an asset.* Each purpose names which precious resource, if any, preservation protects:
+
+| purpose | precious resource | consequence |
+|---|---|---|
+| `utility` | ~nothing (ad-hoc dev tooling: ruff/mypy/scratch) | freely disposable; rebuild is the model |
+| `temp` | nothing (one-shot) | ephemeral; auto-pruned |
+| `test` | mostly reconstruction **cost** + fast iteration | cacheable; reproducible; low drift stakes |
+| `run` | upstream-churn insulation + **validated identity** | reproducibility mandate; lock + artifact-promotion target |
+
+Preservation is therefore two independent levers, not a permanence flag: **recovery fidelity** (make rebuild always faithful — a complete declaration) and **recovery cost** (a cache with declaration-hash invalidation; `run`/`test` rank higher, `utility`/`temp` little or none). For `run`, the durable thing lives *outside* the fragile env directory as a lockfile + promoted artifact (built wheelhouse/image), because the most-preserved env is paradoxically the most rot-prone. *(The cache-with-invalidation and artifact-promotion mechanics are the Phase P direction, not shipped in v3.0; the `purpose` vocabulary and the `pyve test --env` gate ship today.)*
+
 **Edge cases:**
 - `pyve test --env <name>` restricts to `purpose = "test"` envs; selecting any other purpose hard-errors with a precise "use `pyve env run <name> -- <command>`" hint.
 - `pyve test --env root` is handled before the gate (delegates to running pytest in the root env), preserving the route-to-root selector semantics.
@@ -261,7 +272,8 @@ Execute commands inside the right environment without manual activation.
 **`pyve check`** diagnoses environment problems and suggests one actionable remediation per failure.
 - Composed across plugins with a worst-severity roll-up. Exit codes: 0 (all pass) / 1 (errors — broken for `run`/`test`) / 2 (warnings only — drifting but working). Safe for CI gating.
 - Every failure points at exactly one remediation command. Status indicators: ✓ / ⚠ / ✗ / plain info.
-- Health checks probe runnability (executing the artifact), not just file existence.
+- Health checks probe runnability (executing the artifact), not just file existence — a dangling symlink or dead-shebang script is reported broken, never rubber-stamped.
+- **Resolution reasoning (Phase P roadmap, not shipped in v3.0):** for each managed command, report *where* it resolves and *why* — PATH-slot order, a venv shadowing a version-manager pin, reachability under the active pin, venv↔pin interpreter drift — and classify runnability failures (dead interpreter, asdf "no version set", dangling symlink, missing command, version-manager-not-installed). See [FR-22](#fr-22-environment-resolution-reasoning--healing).
 
 **`pyve status`** is a read-only "what is this project?" snapshot — sectioned Project / Environment(s) / Integrations, per-plugin. Always exits 0 unless Pyve itself errors. No remediation text.
 
@@ -272,7 +284,7 @@ Remove all Pyve-created artifacts from the current directory, composed across pl
 **Behavior:**
 - Each plugin smart-removes its generated environments and directories; version-manager pins and `.envrc` are removed; `.env` is removed only if empty (preserved with a warning if non-empty).
 - The Pyve-managed `.gitignore` section is cleaned; committed artifacts (`conda-lock.yml`, `environment.yml`, `package.json`, lockfiles) are never removed.
-- `--keep-testenv` preserves test/utility environments.
+- `--keep-testenv` preserves the project's other declared environments (test / utility / temp) so purging the run environment doesn't force a costly rebuild of the rest — a reconstruction-cost convenience, not a claim that those envs are precious (see [FR-3](#fr-3-named-environments--purposes)).
 
 **Edge cases:**
 - No environment found → informational message, no error.
@@ -387,6 +399,20 @@ When Pyve runs under asdf-managed Python, prevent asdf's Python plugin from resh
 
 **Behavior:**
 - Only when asdf is the active version manager and `PYVE_NO_ASDF_COMPAT=1` is not set, Pyve sets `ASDF_PYTHON_PLUGIN_DISABLE_RESHIM=1` at two layers: a sentinel-commented block appended to `.envrc`, and an export in `pyve run` (defense-in-depth for `--no-direnv` / CI). `PYVE_NO_ASDF_COMPAT=1` suppresses both.
+
+### FR-22: Environment Resolution Reasoning & Healing
+
+*Roadmap — Phase P, not shipped in v3.0.*
+
+Make Pyve's own substrate bulletproof: explain *why* a command resolves the way it does, and repair broken Pyve-managed state instead of leaving the developer (or LLM) to hand-trace and hand-fix it. This is the "calm the chaos" mission applied to Pyve's own substrate.
+
+**Behavior (roadmap):**
+- **Resolution reasoning** extends `pyve check` ([FR-9](#fr-9-diagnostics--status-pyve-check-pyve-status)): for each managed command, narrate *where* it resolves and *why* — PATH-slot ordering, a venv shadowing a version-manager pin, reachability under the active pin, venv↔pin interpreter drift. The check should be able to say, unprompted: "`python` resolves from `.venv` (3.14.4), shadowing the asdf pin (3.12.13); `project-guide` falls through to the asdf shim under that pin, which has no project-guide → install it into 3.12.13 or repoint the pin."
+- **Runnability classification** — probes execute the artifact and classify the failure: dead interpreter, asdf "no version set", dangling symlink, missing command, version-manager-not-installed. (The existence-≠-runnability principle is already in force for v3.0 health code; this generalizes it across hosting/health code.)
+- **Healing (`pyve heal`, or `pyve check --fix`)** — safe, idempotent, **confirm-before-destroy** repairs for each detected failure class: rebuild a toolchain venv with a dead interpreter; re-link a dangling `~/.local/bin` shim; rebuild a `.venv` whose interpreter drifted from the pin (destructive → explicit confirmation); install a missing managed command into the *selected* interpreter. Reversible and re-runnable; never silently mutates without first surfacing what it will do.
+- **Close the upstream cause** — the integration test harness must never mutate the developer's real `~/.asdf` / `~/.local` (the test-isolation leak that manufactured the triggering incident); provisioning tests run against a fully self-contained fake `$HOME` or stub provisioning entirely.
+
+**Roadmap:** ships in the Phase P v3.x line; the exact release tag and the full story breakdown are deferred to the subphase plan. Builds on the v3.0 runnability override seam (`PYVE_PROJECT_GUIDE_BIN`) and the `pyve self provision --status` hosting-readiness contract.
 
 ---
 

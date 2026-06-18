@@ -13,11 +13,11 @@ For requirements and behavior (what), see [`features.md`](features.md). For impl
 
 ### Problem Statement
 
-Getting from an empty directory to a clean, secure, ready-to-code environment requires the same fiddly setup tasks every single time — and every language ecosystem reinvents them. Python has asdf/pyenv, venv/conda/poetry/uv, and direnv; Node has nvm/fnm/volta and npm/pnpm/yarn; each tool carries its own quirks and none of them converge. In the LLM era — when a working single-purpose backend can be built in 6–12 hours — spending 30 minutes wrestling with environment setup is a disproportionate tax. Polyglot projects multiply it: a Python API beside a SvelteKit front end means coordinating two ecosystems' version managers, two activation models, and two teardown stories by hand. The false starts, gotchas, and ongoing friction also break the smooth coding flow state that makes LLM-assisted development productive in the first place.
+Getting from an empty directory to a clean, secure, ready-to-code environment requires many of the same fiddly setup tasks every single time — and every language ecosystem reinvents them. Python has asdf/pyenv, venv/conda/poetry/uv, and manual environment activations; Node has nvm/fnm/volta and npm/pnpm/yarn; each tool carries its own quirks and none of them converge. In the LLM era — when a working single-purpose backend can be built in 6–12 hours — spending 30 minutes wrestling with environment setup is a disproportionate tax. Polyglot projects multiply it: a Python API beside a SvelteKit front end means coordinating two ecosystems' version managers, two activation models, and two teardown stories by hand. The false starts, gotchas, and ongoing friction also break the smooth coding flow state that makes LLM-assisted development productive in the first place. And when an environment misbehaves later, the cause is rarely where you look — it hides across PATH ordering, version-manager pins, and interpreter symlinks, so diagnosis becomes a hand-trace through layers no single tool surfaces.
 
 **Why this problem exists:**
 
-Most language ecosystems are not opinionated about environment setup, and their broad audiences — ML engineers, data scientists, analysts, hobbyists, and business users alongside professional developers — skew away from the enterprise, hyper-tooled culture that produces convergent toolchains. The result is tool overlap without convergence: multiple version managers, multiple environment backends, and direnv bolted on top, each behaving a little differently. AI agents now take on more of the coding work without feeling the human-side friction, so the pain isn't surfaced to the people building the next generation of tools. Polyglot projects fall between the cracks entirely — single-ecosystem tools each own their slice and none orchestrates the whole. Together these forces have prevented any single "magical" project-setup tool from emerging.
+Most language ecosystems are not opinionated about environment setup, and their broad audiences — ML engineers, data scientists, analysts, hobbyists, and business users alongside professional developers — skew away from the enterprise, hyper-tooled culture that produces convergent toolchains. The result is tool overlap without convergence: multiple version managers, multiple environment backends, and possibly direnv bolted on top, each behaving a little differently. AI agents now take on more of the coding work without feeling the human-side friction, so the pain isn't surfaced to the people building the next generation of tools. Polyglot projects fall between the cracks entirely — single-ecosystem tools each own their slice and none orchestrates the whole. Together these forces have prevented any single "magical" project-setup tool from emerging. We could "just tell the LLM to set it up" but that's exactly the problem — the LLM doesn't know what "it" means in this context, and it does it a little bit differently each time, sometimes better, sometimes worse.
 
 ### Pain Points
 
@@ -29,6 +29,8 @@ Most language ecosystems are not opinionated about environment setup, and their 
 - **cross_stack_coordination**: Polyglot projects must compose two ecosystems' activation, ignore rules, and teardown by hand, where it's easy to get subtly wrong (PATH ordering, double-activation, half-purges).
 - **per_ecosystem_relearning**: Every new language means relearning a different set of version managers and backends from scratch.
 - **machine_inconsistency**: Setups drift across machines and CI; the "perfect" recipe from one project is hard to find, copy, and apply consistently to the next.
+- **env_opacity**: When an environment misbehaves, the cause is buried across PATH ordering, version-manager pins, and venv/interpreter symlinks — diagnosing it means hand-tracing (or LLM-scouring) layers no single tool surfaces, and repairing broken managed state means manual (or LLM-repeated) surgery.
+- **fear_of_rebuild**: Environments accrete undeclared state (an ad-hoc `pip install`, an editable source link), so rebuilding feels risky — the "working" environment becomes something to guard rather than something reproducible from its declaration.
 - **secret_safety**: Accidental secret commits and lost `.env` files on teardown are real risks.
 - **cloud_sync_corruption**: Cloud-sync daemons (iCloud, Dropbox, OneDrive, Google Drive) silently corrupt conda environments — projects "break for no reason."
 - **reinit_footguns**: Re-initializing a project can wipe test environments or leave lock files drifted from environment files.
@@ -71,6 +73,8 @@ With one command (`pyve init`), Pyve auto-detects each stack, pins language vers
 - **Unify interactive and CI/CD workflows** so the same tool that helps a developer locally also runs reliably in pipelines via non-interactive flags and `pyve run`.
 - **Refuse known footguns loudly** (cloud-synced directories, stale lock files, reserved names, backend conflicts) instead of allowing silent corruption.
 - **Provide health visibility** through `pyve check` and `pyve status` so developers can diagnose drift, corruption, or misconfiguration without tribal knowledge.
+- **Make environment resolution explainable and self-healing** — when a command resolves to an unexpected interpreter or a managed artifact breaks, Pyve names *where* it resolved and *why* (PATH-slot order, version-manager pin, venv↔pin interpreter drift) instead of leaving the developer to hand-trace, and repairs its own managed state safely, reversibly, and confirm-before-destroy.
+- **Make environments faithfully reproducible** so the developer never fears a rebuild — an environment is a pure function of its declaration; Pyve preserves one only to save reconstruction cost or hold a validated snapshot, never because it is irreplaceable.
 - **Offer a clean upgrade path** — `pyve self migrate` moves existing projects onto the v3 manifest deterministically, so adopting improvements never means a hand-edit.
 
 ### Scope
@@ -87,7 +91,8 @@ With one command (`pyve init`), Pyve auto-detects each stack, pins language vers
 - Self-healing `.gitignore` template management.
 - Secure `.env` lifecycle (creation, preservation, smart purge).
 - Smart re-init (`pyve update`, `pyve init --force`) and conflict detection.
-- Isolated test / utility environments that survive `pyve init --force`.
+- Per-purpose environments in separate state (`.pyve/envs/<name>/<backend>/`) so rebuilding one (`pyve init --force`) never disturbs another — not because any env is precious, but because each is independently materialized from the manifest.
+- Explainable environment resolution (`pyve check` reports where and why each managed command resolves) and a healing path (`pyve heal` / `pyve check --fix`) that repairs broken managed state with confirm-before-destroy.
 - CI/CD-friendly non-interactive flags (`--no-direnv`, `--auto-bootstrap`, `--strict`, …).
 - Cloud-synced directory detection.
 - Micromamba bootstrap (project or user sandbox).
@@ -114,6 +119,8 @@ With one command (`pyve init`), Pyve auto-detects each stack, pins language vers
 - **Orchestrate, don't replace** — must defer to existing tools where they already work
 - **Idempotent** — every operation must produce the same result on repeated runs
 - **Never destroy user data** — non-empty `.env` files, user code, git history, `package.json`, and lockfiles are inviolable
+- **Reproducibility is the durability mechanism** — Pyve preserves an environment only to save reconstruction cost or to hold a validated snapshot, never because it is irreplaceable; an environment you cannot safely rebuild is a defect to fix (irreproducibility is the bug), not an asset to protect
+- **Existence is not runnability** — health and readiness checks execute the artifact (`python --version`, `project-guide --version`) rather than stat its file, so a dangling symlink or dead-shebang script is reported as broken, never rubber-stamped
 - **Asks before invasive actions** — networked installs of non-critical dependencies (micromamba, pytest) require confirmation in interactive mode
 - **Apache 2.0 licensed**
 
@@ -165,10 +172,19 @@ With one command (`pyve init`), Pyve auto-detects each stack, pins language vers
   - Error messages include the detected sync provider, a recommended `mv` command, and an `--allow-synced-dir` override for users who have disabled sync on the directory
 
 **reinit_footguns**:
-  - Test and utility environments are declared in `pyve.toml` and materialize under `.pyve/envs/<name>/<backend>/`, separate from the run environment, so `pyve init --force` cannot wipe them
+  - Every environment is declared in `pyve.toml` and materialized independently under `.pyve/envs/<name>/<backend>/`, so rebuilding the run environment (`pyve init --force`) never disturbs the others — each is a pure function of its declaration, not an irreplaceable directory
   - `pyve update` rejects backend changes that would require a destructive rebuild
   - `pyve init --force` requires interactive confirmation before purging
   - `pyve check` and `--strict` mode surface stale `conda-lock.yml` files before they cause divergence
 
 **upgrade_friction**:
   - `pyve self migrate` reads a project's legacy v2 sources, writes the equivalent `pyve.toml`, backs the old files up, and rebuilds the environments at the v3 layout — deterministically and idempotently, with `--dry-run` / `--no-rebuild` to preview
+
+**env_opacity**:
+  - `pyve check` turns the manual trace into narrative: for each managed command it reports where it resolves and why — PATH-slot order, a venv shadowing a version-manager pin, interpreter drift between a venv and its pin — in the plain language a developer would otherwise have to reconstruct by hand
+  - `pyve heal` (and `pyve check --fix`) repair broken managed state — a dead toolchain interpreter, a dangling `~/.local/bin` shim, a venv whose interpreter drifted from the pin — safely, idempotently, and confirm-before-destroy
+  - Health checks probe runnability by executing the artifact rather than testing for its file, so a dangling symlink or dead-shebang script is surfaced as broken instead of rubber-stamped
+
+**fear_of_rebuild**:
+  - Because every environment is a pure function of its `pyve.toml` declaration, the durable, precious thing is the declaration (and, for a `run` env, a lockfile + promoted artifact) — not the mutable env directory, which is freely rebuildable
+  - Undeclared, out-of-band state (an ad-hoc `pip install`, an editable link) is treated as a reproducibility defect to fold back into the declaration, not a reason to preserve a directory

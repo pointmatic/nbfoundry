@@ -1294,7 +1294,7 @@ class AppConfig:
 
 ### WASM Binary Handling
 
-The `sql-wasm.wasm` file is bundled in the SvelteKit template's `static/` directory. It is copied from `node_modules/sql.js/dist/sql-wasm.wasm` during `pnpm install` via a postinstall script. The frontend initializes sql.js with `locateFile: (file) => \`/${file}\`` to load from the static root.
+The `sql-wasm.wasm` file is served from the SvelteKit template's `static/` directory. It is provisioned by `pipeline._ensure_sql_wasm`, which runs on **every** preview/build (regardless of `DepState`) and copies `node_modules/sql.js/dist/sql-wasm.wasm` into `static/sql-wasm.wasm` whenever the destination is missing or content-stale (size comparison). If the source is absent in `node_modules/`, it raises `GenerationError` rather than serving a 404. This Python-side step replaced an earlier pnpm `postinstall` hook (Story I.cc), which only ran on actual installs and was unreliable across pnpm version/configuration combinations. The frontend initializes sql.js with `locateFile: () => '/sql-wasm.wasm'` to load from the static root.
 
 ### Atomic Output
 

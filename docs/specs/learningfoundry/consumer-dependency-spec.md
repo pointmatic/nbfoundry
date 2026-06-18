@@ -1,46 +1,46 @@
-# dependency-spec.md — nbfoundry (as consumed by learningfoundry)
+# consumer-dependency-spec.md — NbFoundry (as consumed by LearningFoundry)
 
-This document defines what learningfoundry **requires** from nbfoundry — the contract between the two projects. nbfoundry does not yet exist as a library; this spec defines the interface that learningfoundry codes against, enabling a stub implementation for v1 and a real integration when nbfoundry is available.
+This document defines what LearningFoundry **requires** from NbFoundry — the contract between the two projects. NbFoundry is published on PyPI; this spec sustains the interface that LearningFoundry supports for its curriculum exercises as NbFoundry (Marimo-based) notebooks.
 
 ---
 
-## Role in learningfoundry
+## Role in LearningFoundry
 
-nbfoundry is the **experiential content provider**. It produces interactive, executable notebook-based exercises that learners complete within the curriculum. In the "Deep Learning Essentials" curriculum, these exercises involve building neural networks, training models, and analyzing results — with nbfoundry handling the scaffolding (data loading, training loops, evaluation) and providing explicit insertion points where the learner writes code.
+NbFoundry is the **experiential content provider**. It produces interactive, executable notebook-based exercises that learners complete within the curriculum. In the "Deep Learning Essentials" curriculum, these exercises involve building neural networks, training models, and analyzing results — with NbFoundry handling the scaffolding (data loading, training loops, evaluation) and providing explicit insertion points where the learner writes code.
 
-nbfoundry depends on **modelfoundry** internally for data preparation, model training, optimization, and evaluation scaffolding. learningfoundry does not interact with modelfoundry directly — it is an implementation detail of nbfoundry.
+NbFoundry depends on **ModelFoundry** internally for data preparation, model training, optimization, and evaluation scaffolding. LearningFoundry does not interact with ModelFoundry directly — it is an implementation detail of NbFoundry.
 
 ### Integration Points
 
-| learningfoundry Stage | nbfoundry Role |
+| LearningFoundry Stage | NbFoundry Role |
 |----------------------|----------------|
 | **Content resolution** (Python, build time) | Compile exercise definition → renderable exercise artifact |
 | **SvelteKit frontend** (TypeScript, runtime) | Render interactive exercise in the browser |
-| **Progress tracking** (runtime) | Report exercise completion event to learningfoundry's progress database |
+| **Progress tracking** (runtime) | Report exercise completion event to LearningFoundry's progress database |
 
 ---
 
 ## Design Decision: Rendering Approach
 
-nbfoundry exercises need to render executable Python code in the browser. Two approaches are viable:
+NbFoundry exercises need to render executable Python code in the browser. Two approaches are viable:
 
 ### Option A: Marimo WASM Embed (Recommended for future)
 
-[Marimo](https://marimo.io) supports [WASM-based browser execution](https://docs.marimo.io/guides/wasm/) — a full Python runtime (via Pyodide) running in the browser with reactive notebook semantics. This would allow learners to write and execute Python code directly within the learningfoundry SvelteKit app with no server.
+[Marimo](https://marimo.io) supports [WASM-based browser execution](https://docs.marimo.io/guides/wasm/) — a full Python runtime (via Pyodide) running in the browser with reactive notebook semantics. This would allow learners to write and execute Python code directly within the LearningFoundry SvelteKit app with no server.
 
 **Pros:** True in-browser code execution, reactive cells, rich output (plots, tables), no server infrastructure.
 **Cons:** Large WASM payload (~40MB Pyodide), cold start latency, limited library support in Pyodide (PyTorch not available in WASM), complexity of embedding.
 
 ### Option B: Static Exercise Display (v1)
 
-For v1, nbfoundry produces a **static exercise artifact** — structured content (instructions, code scaffolding, expected outputs) that learningfoundry renders as read-only content blocks. The learner reads the exercise, works in a separate local environment (JupyterLab, Marimo desktop, VS Code), and marks the exercise as complete in the app.
+For v1, NbFoundry produces a **static exercise artifact** — structured content (instructions, code scaffolding, expected outputs) that LearningFoundry renders as read-only content blocks. The learner reads the exercise, works in a separate local environment (JupyterLab, Marimo desktop, VS Code), and marks the exercise as complete in the app.
 
 **Pros:** Simple, no WASM complexity, works with any Python library (including PyTorch/GPU).
 **Cons:** Breaks the unified experience — learner must context-switch to a separate environment.
 
 ### Decision
 
-**v1: Option B (static exercise display).** The exercises are blackbox content — nbfoundry returns structured data, learningfoundry renders it, no data handoff or code execution in the browser. The exercise content is curated by the author, not auto-generated.
+**v1: Option B (static exercise display).** The exercises are blackbox content — NbFoundry returns structured data, LearningFoundry renders it, no data handoff or code execution in the browser. The exercise content is curated by the author, not auto-generated.
 
 **Future: Option A (Marimo WASM embed)** for exercises that don't require GPU-dependent libraries. The interface is designed to accommodate both approaches — the `ExerciseProvider` protocol returns a dict that can represent either static content or a Marimo WASM bundle.
 
@@ -50,7 +50,7 @@ For v1, nbfoundry produces a **static exercise artifact** — structured content
 
 ### BR-1: Exercise Compilation API
 
-nbfoundry must expose a Python API that learningfoundry can call during content resolution to compile a single exercise definition file into a renderable artifact.
+NbFoundry must expose a Python API that LearningFoundry can call during content resolution to compile a single exercise definition file into a renderable artifact.
 
 **Required interface:**
 
@@ -165,12 +165,12 @@ def compile_exercise(yaml_path: Path, base_dir: Path) -> dict:
 2. Validate required fields (title, instructions, at least one section).
 3. Render markdown fields to HTML.
 4. Resolve any referenced code files or data files.
-5. **Asset references:** for every `expected_outputs[]` entry of `type: image` (and any future binary type), validate that the referenced file exists at `base_dir / <path>` and emit the relative `path` in the compiled dict. **Do not** read the asset bytes, do not base64-encode them, do not embed them in the dict. Asset staging is learningfoundry's responsibility (see "Asset Handling" below).
+5. **Asset references:** for every `expected_outputs[]` entry of `type: image` (and any future binary type), validate that the referenced file exists at `base_dir / <path>` and emit the relative `path` in the compiled dict. **Do not** read the asset bytes, do not base64-encode them, do not embed them in the dict. Asset staging is LearningFoundry's responsibility (see "Asset Handling" below).
 6. Return the compiled exercise dict.
 
 **Constraints:**
 - Synchronous function, importable from the `nbfoundry` package.
-- No side effects beyond reading referenced files (no file writes, no asset copying — learningfoundry owns the build output).
+- No side effects beyond reading referenced files (no file writes, no asset copying — LearningFoundry owns the build output).
 - The returned dict must be JSON-serializable. Asset references travel as relative `path` strings; binary bytes never enter the dict.
 - Image entries in `expected_outputs[]` MUST include an `alt` field for accessibility (WCAG 1.1.1). The validator (BR-2) rejects image outputs without `alt`.
 
@@ -188,7 +188,7 @@ def validate_exercise(yaml_path: Path, base_dir: Path) -> list[str]:
 
 ### BR-3: Error Contract
 
-nbfoundry errors must be catchable as `nbfoundry.ExerciseError` (or similar), carrying:
+NbFoundry errors must be catchable as `nbfoundry.ExerciseError` (or similar), carrying:
 - **file_path**: The exercise file that failed.
 - **message**: Human-readable description.
 - **detail**: Optional structured detail (section index, field name).
@@ -254,14 +254,14 @@ Image (and other binary) assets referenced by an exercise travel as **relative f
 | Concern | Owner | Mechanism |
 |---------|-------|-----------|
 | Author writes asset path in YAML | Curriculum author | `expected_outputs[].reference: references/expected_loss_curve.png` (path relative to the exercise YAML's directory) |
-| Validate asset files exist at compile time | nbfoundry | BR-1 step 5 — `(base_dir / <path>).exists()` check; raise `ExerciseError` if missing |
-| Emit `path` field in compiled dict | nbfoundry | Forward the relative path verbatim — no URL construction, no bytes, no encoding |
-| Stage asset files into the build output | learningfoundry pipeline | Copy `base_dir/<path>` → `output_dir/static/exercises/<exerciseRef>/<path>` |
+| Validate asset files exist at compile time | NbFoundry | BR-1 step 5 — `(base_dir / <path>).exists()` check; raise `ExerciseError` if missing |
+| Emit `path` field in compiled dict | NbFoundry | Forward the relative path verbatim — no URL construction, no bytes, no encoding |
+| Stage asset files into the build output | LearningFoundry pipeline | Copy `base_dir/<path>` → `output_dir/static/exercises/<exerciseRef>/<path>` |
 | Construct runtime URL for `<img src>` | `ExerciseBlock` (runtime) | `` `/exercises/${exerciseRef}/${output.path}` `` |
 
-**Why nbfoundry doesn't construct URLs:** the `exerciseRef` is a curriculum-level concern (set by learningfoundry's curriculum YAML, not by the exercise author), and the `static/exercises/` URL convention is a learningfoundry build-output choice. Pushing URL construction into nbfoundry would couple the library to a host-specific path layout. Relative paths in the dict + runtime URL composition is the loose-coupling design — the same as how QuizBlock manifests carry `quizRef` separately from the rendering host's URL scheme.
+**Why NbFoundry doesn't construct URLs:** the `exerciseRef` is a curriculum-level concern (set by LearningFoundry's curriculum YAML, not by the exercise author), and the `static/exercises/` URL convention is a LearningFoundry build-output choice. Pushing URL construction into NbFoundry would couple the library to a host-specific path layout. Relative paths in the dict + runtime URL composition is the loose-coupling design — the same as how QuizBlock manifests carry `quizRef` separately from the rendering host's URL scheme.
 
-**Asset enumeration for the pipeline:** so learningfoundry doesn't have to traverse the dict hunting for paths, the compiled exercise SHOULD include a top-level `assets: list[str]` field enumerating every relative path the dict references. The pipeline iterates this list to do the copy step. Empty list when there are no binary assets.
+**Asset enumeration for the pipeline:** so LearningFoundry doesn't have to traverse the dict hunting for paths, the compiled exercise SHOULD include a top-level `assets: list[str]` field enumerating every relative path the dict references. The pipeline iterates this list to do the copy step. Empty list when there are no binary assets.
 
 ```python
 {
@@ -275,13 +275,13 @@ Image (and other binary) assets referenced by an exercise travel as **relative f
 }
 ```
 
-**Inline-by-value remains forbidden** — even for tiny images. Premature optimization that costs the points listed in the "why URLs not base64" rationale (HTTP cache loss, JSON bloat, diff noise, no image-pipeline tooling). If a future build optimization wants to inline very-small assets, that's a SvelteKit / Vite layer concern (`assetInlineLimit`) operating on URL-referenced files, not a contract change in nbfoundry's output dict.
+**Inline-by-value remains forbidden** — even for tiny images. Premature optimization that costs the points listed in the "why URLs not base64" rationale (HTTP cache loss, JSON bloat, diff noise, no image-pipeline tooling). If a future build optimization wants to inline very-small assets, that's a SvelteKit / Vite layer concern (`assetInlineLimit`) operating on URL-referenced files, not a contract change in NbFoundry's output dict.
 
 ---
 
 ## Exercise Definition Format (YAML Input)
 
-The curriculum author writes exercise definitions in YAML. This is the input format that nbfoundry consumes:
+The curriculum author writes exercise definitions in YAML. This is the input format that NbFoundry consumes:
 
 ```yaml
 title: "Build a CNN Classifier"
@@ -378,7 +378,7 @@ environment:
 
 ### RR-1: Exercise Display Component
 
-learningfoundry's SvelteKit template includes an `ExerciseBlock` component that renders the compiled exercise artifact.
+LearningFoundry's SvelteKit template includes an `ExerciseBlock` component that renders the compiled exercise artifact.
 
 **For v1 (static display):**
 
@@ -433,7 +433,7 @@ All of the manual-completion rendering above, *plus*:
 11. Render an inline result panel:
     - **Pass** (`passed === true`): a green "Submission accepted" banner with `score / maxScore` shown, a list of which fields passed, and a Resubmit affordance for learners who want to improve.
     - **Fail** (`passed === false`): an amber "Submission below threshold" banner with the same per-field breakdown, the gap to threshold, and a Retry affordance that re-enables the inputs without clearing them.
-12. Fire the `complete` event with the full payload (including `score`, `maxScore`, `passed`, `submittedValues`). The event fires on **every** submit, not only on the first pass — the recording layer is responsible for "best score wins" semantics if it cares (mirrors the QuizBlock convention; see learningfoundry's [`saveQuizScore` upsert](../../src/learningfoundry/sveltekit_template/src/lib/db/progress.ts) for the prior-art pattern).
+12. Fire the `complete` event with the full payload (including `score`, `maxScore`, `passed`, `submittedValues`). The event fires on **every** submit, not only on the first pass — the recording layer is responsible for "best score wins" semantics if it cares (mirrors the QuizBlock convention; see LearningFoundry's [`saveQuizScore` upsert](../../src/learningfoundry/sveltekit_template/src/lib/db/progress.ts) for the prior-art pattern).
 13. Comparison logic runs entirely in the browser. **The component does not POST submission values anywhere.** This preserves the v1 no-server constraint.
 
 **Future (Marimo WASM) Rendering Behavior:**
@@ -456,11 +456,11 @@ In v1, there is no data transfer between the SvelteKit app and the learner's loc
 Build time (Python):
   curriculum.yml
     → content resolution encounters `type: exercise, source: nbfoundry, ref: ...`
-    → learningfoundry calls nbfoundry.compile_exercise(ref, base_dir)
-        → nbfoundry internally uses modelfoundry for scaffolding (opaque to learningfoundry)
-        → nbfoundry validates that every path in `assets[]` exists at base_dir/<path>
+    → LearningFoundry calls nbfoundry.compile_exercise(ref, base_dir)
+        → NbFoundry internally uses ModelFoundry for scaffolding (opaque to LearningFoundry)
+        → NbFoundry validates that every path in `assets[]` exists at base_dir/<path>
     → receives exercise dict (with relative `path`s in expected_outputs[type=image] and a top-level `assets: list[str]`)
-    → learningfoundry pipeline copies each `assets[]` entry from base_dir/<path>
+    → LearningFoundry pipeline copies each `assets[]` entry from base_dir/<path>
         to output_dir/static/exercises/<exerciseRef>/<path> (BR-5 asset staging)
     → serializes the dict to JSON in the generated SvelteKit project; assets are served by the SvelteKit static adapter
 
@@ -470,13 +470,13 @@ Runtime (SvelteKit):
         static display of instructions, code, expected outputs
         → learner works locally, then clicks "Mark as Complete"
         → fires `complete` event with {exerciseRef, status: "completed"}
-        → learningfoundry writes status to exercise_status table
+        → LearningFoundry writes status to exercise_status table
     → v1 graded-submission path (with `submission` block):
         static display + typed input fields per `submission.fields`
         → learner works locally, pastes results into the form, clicks Submit
         → component grades client-side via BR-4 comparison rules
         → fires `complete` event with {exerciseRef, status, score, maxScore, passed, submittedValues}
-        → learningfoundry writes status (+ score/max_score for analytics if desired)
+        → LearningFoundry writes status (+ score/max_score for analytics if desired)
     → Future (Marimo WASM):
         graded path swaps form-fields for cell-output subscription;
         same scoring formula, same `complete` payload, same exercise_status write
@@ -490,14 +490,14 @@ Runtime (SvelteKit):
 | Concern | Value |
 |---------|-------|
 | **Python package** | `nbfoundry` on PyPI (not yet published) |
-| **learningfoundry dependency** | Optional: `pip install learningfoundry[nbfoundry]` (future) |
+| **LearningFoundry dependency** | Optional: `pip install learningfoundry[nbfoundry]` (future) |
 | **v1 stub** | `NbfoundryStub` class in `learningfoundry.integrations.nbfoundry_stub` returns placeholder exercise dicts |
 
 ---
 
-## v1 Stub Behavior
+## Stub Behavior
 
-Until nbfoundry is published, learningfoundry ships a `NbfoundryStub` that implements the `ExerciseProvider` protocol:
+LearningFoundry supports a `stub` status for an exercise block. NbFoundry publishes a stub class that can be inserted into the curriculum structure, and that is useful for curriculum development and testing. Here is the `NbfoundryStub` class that implements the `ExerciseProvider` protocol:
 
 ```python
 class NbfoundryStub:
@@ -526,7 +526,7 @@ The `ExerciseBlock` component detects `status: "stub"` and renders a placeholder
 ## Versioning and Compatibility
 
 - The exercise dict schema is the versioning boundary. The `status` field distinguishes stub content from real content.
-- When nbfoundry is published, learningfoundry adds it as an optional dependency and replaces the stub with a real `NbfoundryProvider` that delegates to `nbfoundry.compile_exercise`.
+- When NbFoundry is published, LearningFoundry adds it as an optional dependency and replaces the stub with a real `NbfoundryProvider` that delegates to `nbfoundry.compile_exercise`.
 - The SvelteKit `ExerciseBlock` component handles both stub and real exercise dicts.
 
 ---
@@ -535,23 +535,23 @@ The `ExerciseBlock` component detects `status: "stub"` and renders a placeholder
 
 | Test | Owner | What is tested |
 |------|-------|----------------|
-| `compile_exercise` returns valid artifact for well-formed YAML | nbfoundry | Unit test in nbfoundry repo (future) |
-| `compile_exercise` raises `ExerciseError` for malformed YAML | nbfoundry | Unit test in nbfoundry repo (future) |
-| learningfoundry's `NbfoundryStub` returns correct placeholder structure | learningfoundry | Unit test |
-| learningfoundry's `ExerciseProvider` protocol matches nbfoundry's API | learningfoundry | Type check (mypy) |
-| `ExerciseBlock` renders stub content with placeholder message | learningfoundry | Component test |
-| `ExerciseBlock` renders real exercise with sections and hints | learningfoundry | Component test (future, with fixture data) |
-| `ExerciseBlock` fires `complete` event on "Mark as Complete" click (manual path) | learningfoundry | Component test |
-| `ExerciseBlock` renders typed input fields when `submission` is present | learningfoundry | Component test |
-| `ExerciseBlock` Submit button is disabled until every field has a parseable value | learningfoundry | Component test |
-| `ExerciseBlock` grades a passing submission and fires `complete` with `passed: true`, correct `score`/`maxScore` | learningfoundry | Component test |
-| `ExerciseBlock` grades a failing submission and fires `complete` with `passed: false`, allows resubmit | learningfoundry | Component test |
-| `range`, `equals`, `contains_all` comparison rules each pass and fail correctly with edge values | learningfoundry | Unit test on the comparison helper |
-| Scoring formula: `score = sum of weights of passing rules`, `maxScore = sum of all weights`, `passed = score / maxScore >= pass_threshold` | learningfoundry | Unit test on the comparison helper |
-| `compile_exercise` validator rejects malformed `submission` blocks (BR-4 validator requirements) | nbfoundry | Unit test in nbfoundry repo (future); stub-side: validator is a no-op |
-| `compile_exercise` rejects an exercise that references a missing asset file (BR-1 step 5) | nbfoundry | Unit test in nbfoundry repo (future) |
-| `compile_exercise` validator rejects `expected_outputs[type=image]` missing the `alt` field (BR-1 constraint) | nbfoundry | Unit test in nbfoundry repo (future) |
-| Compiled dict's `assets[]` enumerates every relative path the dict references (no orphans, no duplicates) | nbfoundry | Unit test in nbfoundry repo (future); stub returns `[]` |
-| learningfoundry pipeline copies every `assets[]` entry from `base_dir/<path>` to `output_dir/static/exercises/<exerciseRef>/<path>` (BR-5 staging) | learningfoundry | Pipeline test |
-| `ExerciseBlock` renders image expected-outputs as `<img>` with `src` composed from `exerciseRef + path` and `alt` from the dict | learningfoundry | Component test |
-| `ExerciseBlock` renders image `<img>` with `loading="lazy"` so off-screen exercise media doesn't block other content | learningfoundry | Component test |
+| `compile_exercise` returns valid artifact for well-formed YAML | NbFoundry | Unit test in NbFoundry repo (future) |
+| `compile_exercise` raises `ExerciseError` for malformed YAML | NbFoundry | Unit test in NbFoundry repo (future) |
+| LearningFoundry's `NbfoundryStub` returns correct placeholder structure | LearningFoundry | Unit test |
+| LearningFoundry's `ExerciseProvider` protocol matches NbFoundry's API | LearningFoundry | Type check (mypy) |
+| `ExerciseBlock` renders stub content with placeholder message | LearningFoundry | Component test |
+| `ExerciseBlock` renders real exercise with sections and hints | LearningFoundry | Component test (future, with fixture data) |
+| `ExerciseBlock` fires `complete` event on "Mark as Complete" click (manual path) | LearningFoundry | Component test |
+| `ExerciseBlock` renders typed input fields when `submission` is present | LearningFoundry | Component test |
+| `ExerciseBlock` Submit button is disabled until every field has a parseable value | LearningFoundry | Component test |
+| `ExerciseBlock` grades a passing submission and fires `complete` with `passed: true`, correct `score`/`maxScore` | LearningFoundry | Component test |
+| `ExerciseBlock` grades a failing submission and fires `complete` with `passed: false`, allows resubmit | LearningFoundry | Component test |
+| `range`, `equals`, `contains_all` comparison rules each pass and fail correctly with edge values | LearningFoundry | Unit test on the comparison helper |
+| Scoring formula: `score = sum of weights of passing rules`, `maxScore = sum of all weights`, `passed = score / maxScore >= pass_threshold` | LearningFoundry | Unit test on the comparison helper |
+| `compile_exercise` validator rejects malformed `submission` blocks (BR-4 validator requirements) | NbFoundry | Unit test in NbFoundry repo (future); stub-side: validator is a no-op |
+| `compile_exercise` rejects an exercise that references a missing asset file (BR-1 step 5) | NbFoundry | Unit test in NbFoundry repo (future) |
+| `compile_exercise` validator rejects `expected_outputs[type=image]` missing the `alt` field (BR-1 constraint) | NbFoundry | Unit test in NbFoundry repo (future) |
+| Compiled dict's `assets[]` enumerates every relative path the dict references (no orphans, no duplicates) | NbFoundry | Unit test in NbFoundry repo (future); stub returns `[]` |
+| LearningFoundry pipeline copies every `assets[]` entry from `base_dir/<path>` to `output_dir/static/exercises/<exerciseRef>/<path>` (BR-5 staging) | LearningFoundry | Pipeline test |
+| `ExerciseBlock` renders image expected-outputs as `<img>` with `src` composed from `exerciseRef + path` and `alt` from the dict | LearningFoundry | Component test |
+| `ExerciseBlock` renders image `<img>` with `loading="lazy"` so off-screen exercise media doesn't block other content | LearningFoundry | Component test |

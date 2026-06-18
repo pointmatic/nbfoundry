@@ -4,7 +4,12 @@
 name: CI
 
 on:
+  # Branch pushes and PRs only — NOT tag pushes. A bare `push:` fires on every
+  # ref (branches AND tags), so pushing a release tag (e.g. `v0.45.0`) re-ran the
+  # whole suite on the identical commit that already passed on its branch.
+  # Naming `branches:` implicitly excludes tags; `publish.yml` handles tag pushes.
   push:
+    branches: ['**']
   pull_request:
 
 # One in-flight run per ref; newer pushes cancel older queued runs.
@@ -93,19 +98,34 @@ jobs:
           pyenv version
           python --version
 
-      # Reuse the materialized environments across runs; invalidated when the
-      # dependency manifests or the pinned pyve change.
+      # Reuse the materialized environments across runs — both the main runtime
+      # venv (.venv) and the pyve testenv (.pyve). They MUST be cached together:
+      # caching only .pyve leaves a warm cache "initialized but with no main
+      # venv", which is exactly the state that makes `pyve init` prompt below.
+      # Invalidated when the interpreter, the pinned pyve, or any dependency / env
+      # manifest changes.
       - name: Cache pyve environments
         uses: actions/cache@v4
         with:
-          path: .pyve
-          key: pyve-${{ matrix.os }}-${{ env.PYVE_REF }}-${{ hashFiles('requirements-dev.txt', 'pyproject.toml') }}
+          path: |
+            .venv
+            .pyve
+          key: pyve-${{ matrix.os }}-${{ env.PYVE_REF }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('requirements-dev.txt', 'pyproject.toml', 'pyve.toml') }}
 
       - name: Bootstrap project + dev environment
         run: |
-          pyve init --backend venv --python-version "$PYTHON_VERSION" --no-project-guide --no-direnv
+          # On a warm cache, `.pyve` and `.venv` are restored together and a bare
+          # `pyve init` would detect the existing init and open an interactive
+          # "Update / Purge / Cancel" menu — with no TTY on the runner it reads
+          # empty input and exits 1 (PYVE_INIT_NONINTERACTIVE does not cover this
+          # branch). So initialize only on a cold cache; reuse the materialized
+          # envs on a warm one. The editable installs are idempotent and always
+          # run so the envs track the checked-out source.
+          if [ ! -d .pyve ]; then
+            pyve init --backend venv --python-version "$PYTHON_VERSION" --no-project-guide --no-direnv
+            pyve env init
+          fi
           pyve run pip install -e .
-          pyve env init
           pyve env run pip install -e .
           pyve env install -r requirements-dev.txt
 
