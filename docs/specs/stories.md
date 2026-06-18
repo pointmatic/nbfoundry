@@ -52,16 +52,18 @@ Throwaway architectural/integration spike proving the one genuinely unproven pie
 - [ ] Throwaway: delete prototype scratch once the pattern is captured (regression coverage lands in I.e) — **deferred until after the developer-hardware marimo round-trip below; delete in a follow-up turn once that verify lands**
 - [ ] Verify: the captured pattern round-trips through marimo on developer hardware (no nbfoundry code ships this story) — **deferred to developer hardware.** Procedure: `pyve run python scripts/spike_codegen.py` prints a tempfile path; run `marimo run <path>` and `marimo edit <path>` and confirm both load without error
 
-### Story I.b: Option C schema — definition input + notebook/banner output [Planned]
+### Story I.b: Option C schema — definition input + notebook/banner output [Done]
 
 Replace the static-display data models with the Option-C shapes.
 
-- [ ] New input models in `schema.py`: `ExerciseDefinition` (`title`, `description`, `sections[]`, optional `hints[]`, `environment`) + `SectionModel` (`title`, `description`, `code` XOR `code_file`)
-- [ ] New output `TypedDict` `CompiledExercise` = `{type, source, ref, title, description, hints, environment, notebook_source}`
-- [ ] **Delete** the retired models: `SubmissionModel`, `SubmissionFieldModel`, `ExpectedRule`, `RawExpectedOutputModel`, and the `CompiledSubmission*` / `CompiledExpected*` / static `CompiledExercise` fields
-- [ ] Drop the `editable` flag (editability is LF's `ExerciseBlock` concern per the contract) and `expected_outputs` from the input
-- [ ] `mypy --strict` clean on the new shapes
-- [ ] Verify: schema unit tests (added in I.e) accept the new definition and reject malformed input; the old submission/asset models are gone
+- [x] New input models in `schema.py`: `ExerciseDefinition` (`title`, `description`, `sections[]`, optional `hints[]`, `environment`) + `SectionModel` (`title`, `description`, `code` XOR `code_file`)
+- [x] New output `TypedDict` `CompiledExercise` = `{type, source, ref, title, description, hints, environment, notebook_source}`
+- [x] **Delete** the retired models: `SubmissionModel`, `SubmissionFieldModel`, `ExpectedRule`, `RawExpectedOutputModel`, and the `CompiledSubmission*` / `CompiledExpected*` / static `CompiledExercise` fields — also removed `RawSectionModel`, `RawExerciseModel`, `CompiledSection`
+- [x] Drop the `editable` flag (editability is LF's `ExerciseBlock` concern per the contract) and `expected_outputs` from the input
+- [x] `mypy --strict` clean on the new shapes — `schema.py` + the I.b transition stub `compiler.py` both pass strict
+- [x] Verify: schema unit tests (added in I.e) accept the new definition and reject malformed input; the old submission/asset models are gone — covered now by `tests/unit/test_schema_option_c.py` (21 tests, all green) as TDD red-green for I.b; the authoritative sweep still lands in I.e
+
+**Transition state (a-pragmatic — see Phase I plan doc).** `compiler.py` is stubbed: `compile_exercise` and `validate_exercise` raise `NotImplementedError` so the package still imports. Two test files import retired schema names at module top and are temporarily collect-ignored via `tests/conftest.py`: `tests/unit/test_schema.py`, `tests/unit/test_errors.py`. **Suite baseline:** 99 pass / 30 fail / 2 collect-ignored / 7 deselected — every failure is a call into the stubbed compiler/validator. Story I.d restores the entry points; Story I.e removes the collect_ignore and replaces the legacy test files.
 
 ### Story I.c: Marimo notebook generator (`codegen.py`) [Planned]
 

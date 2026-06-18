@@ -21,6 +21,18 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures"
 EXERCISES_DIR = FIXTURES_DIR / "exercises"
 GOLDEN_DIR = FIXTURES_DIR / "golden"
 
+# --- Phase I Option-C transition (Stories I.b → I.e) ---------------------
+# Tests written against the retired Option-B static-display schema/compiler
+# contract import names that no longer exist (Story I.b deleted the models,
+# Story I.b stubbed compiler.py to NotImplementedError). They are scheduled
+# for removal in Story I.e. Until then, collect_ignore keeps pytest from
+# aborting at collection time on their top-level ImportErrors so the rest
+# of the suite continues to run.
+collect_ignore = [
+    "unit/test_schema.py",
+    "unit/test_errors.py",
+]
+
 
 @pytest.fixture
 def fixtures_dir() -> Path:
