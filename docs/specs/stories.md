@@ -65,17 +65,19 @@ Replace the static-display data models with the Option-C shapes.
 
 **Transition state (a-pragmatic — see Phase I plan doc).** `compiler.py` is stubbed: `compile_exercise` and `validate_exercise` raise `NotImplementedError` so the package still imports. Two test files import retired schema names at module top and are temporarily collect-ignored via `tests/conftest.py`: `tests/unit/test_schema.py`, `tests/unit/test_errors.py`. **Suite baseline:** 99 pass / 30 fail / 2 collect-ignored / 7 deselected — every failure is a call into the stubbed compiler/validator. Story I.d restores the entry points; Story I.e removes the collect_ignore and replaces the legacy test files.
 
-### Story I.c: Marimo notebook generator (`codegen.py`) [Planned]
+### Story I.c: Marimo notebook generator (`codegen.py`) [Done]
 
 New module that turns an `ExerciseDefinition` into `notebook_source`, per the I.a pattern.
 
-- [ ] New `src/nbfoundry/codegen.py` (Apache-2.0 / Pointmatic header): `generate(defn) -> str` emits a self-contained `marimo.App()` module — header cell, one `mo.md(...)` cell per section description, one code cell per section's `code` / inlined `code_file`
-- [ ] Imports emitted as **source text** only; `codegen.py` imports no ML framework
-- [ ] Byte-stable output (fixed cell order, deterministic formatting)
-- [ ] `environment.dependencies` guarantees `marimo` is present (add if the author omitted it); surface the target marimo version
-- [ ] Reuse marimo-module conventions from `notebooks.py` / `standalone.py` where they fit
-- [ ] `ruff` + `mypy --strict` clean
-- [ ] Verify: a generated sample opens under `marimo edit` (full smoke lands in I.e)
+- [x] New `src/nbfoundry/codegen.py` (Apache-2.0 / Pointmatic header): `generate(defn, *, base_dir) -> str` emits a self-contained `marimo.App()` module — header cell, one `mo.md(...)` cell per section description, one code cell per section's `code` / inlined `code_file` (signature includes `base_dir` per the developer-chosen approach **A**: generator owns path resolution via `paths.resolve_under`)
+- [x] Imports emitted as **source text** only; `codegen.py` imports no ML framework — covered by a build-time AST self-scan test against the forbidden set (`torch`, `tensorflow`, `keras`, `transformers`, `datasets`, `peft`, `sentencepiece`, `tiktoken`, `optuna`, `modelfoundry`, `datarefinery`)
+- [x] Byte-stable output (fixed cell order, deterministic formatting) — covered by a same-input-twice equality test
+- [x] `environment.dependencies` guarantees `marimo` is present (add if the author omitted it); surface the target marimo version — `ensure_marimo_pinned(env)` helper appends `marimo>=<importlib.metadata.version("marimo")>` when absent, preserves existing marimo entries (including `marimo[lsp]>=…`), does not misidentify `marimo-extension` / `marimo_helper`, and passes through `None` when the author opted out of declaring an environment
+- [x] Reuse marimo-module conventions from `notebooks.py` / `standalone.py` where they fit — the shape mirrors the existing template `data_exploration/notebook.py` (decorator form, header cell exports `(mo,)`, `__generated_with` from installed marimo, footer `app.run()` guarded by `__main__`)
+- [x] `ruff` + `mypy --strict` clean
+- [ ] Verify: a generated sample opens under `marimo edit` (full smoke lands in I.e) — **deferred to developer hardware / Story I.e.** The hardware-side `marimo run|edit` round-trip is covered by the I.e smoke (light, no ML deps); the codegen unit suite proves the generated module is valid Python (`ast.parse` clean) and shape-correct.
+
+**Cycle impact.** New file: `src/nbfoundry/codegen.py`. New tests: `tests/unit/test_codegen_option_c.py` (17 tests, all green). Suite baseline now **116 pass / 30 fail / 2 collect-ignored / 7 deselected** — the 30 failures are unchanged (still the I.d-stubbed `compile_exercise` / `validate_exercise` call sites). No regressions in the green surface.
 
 ### Story I.d: Rewire compile_exercise/validate_exercise → Option C; retire the static path [Planned]
 
