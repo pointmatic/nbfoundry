@@ -150,14 +150,16 @@ Reconcile the implementation-level spec with the shipped Option-C code.
 
 **Cycle impact.** Pure documentation story; no code or test changes. Suite + ruff + mypy unchanged from I.f.1 baseline (149 pass / 0 fail / 7 deselected / coverage 93.02%).
 
-### Story I.f.4: `concept.md` → two-surface framing [Planned]
+### Story I.f.4: `concept.md` → two-surface framing [Done]
 
 Reframe the LF embed surface from static display to banner + launch.
 
-- [ ] Rewrite the LearningFoundry embed surface description: banner + `learningfoundry launch <id>` instead of static-display render
-- [ ] Note the Option-C contract revision and reference `learningfoundry/consumer-dependency-spec.md`
-- [ ] Sweep `concept.md` for stray Option-B framing (e.g., "in-browser static render", "graded submission inline")
-- [ ] Verify: `concept.md` internally consistent; the two surfaces (standalone marimo notebook + LF embed banner) are clearly delineated
+- [x] Rewrite the LearningFoundry embed surface description: banner + `learningfoundry launch <id>` instead of static-display render — Solution Statement reframes the second artifact as the Option-C exercise dict whose `notebook_source` field is itself a runnable marimo notebook; the SvelteKit `<ExerciseBlock>` renders the banner (title / description / hints / environment) and the launch CLI materializes the notebook on the learner's machine
+- [x] Note the Option-C contract revision and reference `learningfoundry/consumer-dependency-spec.md` — Solution Statement, In-Scope Option-C bullet, and Constraints "v1 embed contract" entry all repoint to the consumer-dependency-spec filename
+- [x] Sweep `concept.md` for stray Option-B framing (e.g., "in-browser static render", "graded submission inline") — also rewrote the In-Scope Option-B bullet to Option-C and dropped the now-obsolete "aggregate completion event back to learningfoundry" bullet; updated three Pain-Point→Solution rows (infrastructure_bias, no_embeddable_modularity, modeling_content_conflation) and the steep_newcomer_ramp row (dropped "expected outputs" Option-B field name in favor of "banner metadata")
+- [x] Verify: `concept.md` internally consistent; the two surfaces (standalone marimo notebook + LF embed banner) are clearly delineated — both surfaces named consistently across Solution Statement, In-Scope bullets, and the Pain-Point mapping
+
+**Cycle impact.** Pure documentation story; no code or test changes. Suite + ruff + mypy unchanged from I.f.1 baseline (149 pass / 0 fail / 7 deselected / coverage 93.02%).
 
 ### Story I.f.5: `README.md` → `compile-exercise` + `notebook_source` [Planned]
 
