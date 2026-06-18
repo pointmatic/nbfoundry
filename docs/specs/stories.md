@@ -161,15 +161,17 @@ Reframe the LF embed surface from static display to banner + launch.
 
 **Cycle impact.** Pure documentation story; no code or test changes. Suite + ruff + mypy unchanged from I.f.1 baseline (149 pass / 0 fail / 7 deselected / coverage 93.02%).
 
-### Story I.f.5: `README.md` → `compile-exercise` + `notebook_source` [Planned]
+### Story I.f.5: `README.md` → `compile-exercise` + `notebook_source` [Done]
 
 Update the user-facing README to show Option-C output.
 
-- [ ] Update the `compile-exercise` example block to show the Option-C JSON output (8 keys including `notebook_source`)
-- [ ] Update any "embed into learningfoundry" language to match the banner-and-launch flow
-- [ ] Remove `--allow-large-assets` mentions
-- [ ] Sweep for stray Option-B references (assets, expected outputs, graded submission)
-- [ ] Verify: README accurately reflects the public API on `main`
+- [x] Update the `compile-exercise` example block to show the Option-C JSON output (8 keys including `notebook_source`) — section 3 retitled "Compile to a learningfoundry exercise (Option C) — `compile-exercise`"; YAML example now shows a top-level `hints` block; the output section now includes a JSON sample showing all 8 keys with realistic values (rendered-HTML `description`/`hints`, null `environment`, and a snippet of `notebook_source`)
+- [x] Update any "embed into learningfoundry" language to match the banner-and-launch flow — README header reframed to describe the Option-C exercise dict and the launch-CLI materialization; section 3 explains the SvelteKit `<ExerciseBlock>` banner + `learningfoundry launch <id>` flow; "Two surfaces from one source" section softened from "embeddable curriculum exercise" to "Option-C exercise dict whose `notebook_source` is itself a marimo notebook the learner runs locally"
+- [x] Remove `--allow-large-assets` mentions — README never referenced the flag (already clean from I.d-era changes)
+- [x] Sweep for stray Option-B references (assets, expected outputs, graded submission) — section 3's old "instructions, hints, expected outputs, and the BR-4 `submission` block with client-side grading" replaced with the Option-C banner-metadata description; "Further reading" link repointed from `dependency-spec.md` → `consumer-dependency-spec.md`
+- [x] Verify: README accurately reflects the public API on `main` — `compile-exercise` synopsis matches the I.d CLI (no `--allow-large-assets`); output dict shape matches the I.b `CompiledExercise` TypedDict; linked spec file (`docs/specs/learningfoundry/consumer-dependency-spec.md`) exists on disk
+
+**Cycle impact.** Pure documentation story; no code or test changes. Suite + ruff + mypy unchanged from I.f.1 baseline (149 pass / 0 fail / 7 deselected / coverage 93.02%).
 
 ### Story I.f.6: v0.46.0 release — version bump + CHANGELOG + dogfood [Planned]
 
