@@ -171,3 +171,56 @@ above: the **published-surface / PyPI-install** convention applies specifically
 to the **template** smokes F.h–F.j (`test_e2e_template_*.py`), which actually
 invoke `nbfoundry init` and thus exercise the packaged wheel + entry points.
 The framework smokes F.c–F.g neither need nor install the published nbfoundry.
+
+### The LearningFoundry contract is Option C (notebook-emit) — `compile_exercise` returns generated marimo source, not a static dict
+
+The consumer contract (`docs/specs/learningfoundry/consumer-dependency-spec.md`)
+was revised from **Option B** (static display) to **Option C** (notebook-emit).
+Under Option C, `compile_exercise(yaml_path, base_dir)` returns banner metadata
+plus a generated notebook:
+
+```
+{type, source, ref, title, description (HTML), hints, environment, notebook_source}
+```
+
+where `notebook_source` is a complete, self-contained `marimo.App()` module **as
+a string** — the `.py` notebook the learner runs locally via `marimo edit|run`.
+**Retired and removed from the contract:** the static-display fields `sections` /
+`expected_outputs` / `instructions` / `assets` / `status` and the `submission`
+block — i.e. **BR-4 (submission/grading) and BR-5 (image assets) are no longer
+implemented.** Graded submission is parked in `## Future` as a marimo-cell-output
+concern.
+
+**Status:** Phase I (`stories.md`) performs this migration — story I.c adds
+`src/nbfoundry/codegen.py` (the generator), I.d flips `compile_exercise` and
+**deletes `src/nbfoundry/assets.py`**. Until I.d lands, the shipped code still
+emits the old Option-B dict; author all new integration work to Option C.
+
+### Build-time purity is load-bearing under Option C — emit ML imports as TEXT, never import them
+
+The whole reason for the Option-C revision: `compile_exercise` runs inside
+**LearningFoundry's build process**, which must not pull a multi-hundred-MB ML
+framework. So the generator emits `import torch` (and any framework, and
+`modelfoundry`) as **source text in generated cells** — it must **never**
+`import torch` / `import modelfoundry` at build time. ML frameworks are a
+**learner-runtime** dependency only, surfaced in `environment.dependencies` and
+imported when marimo actually runs the notebook on the learner's machine.
+
+This extends the existing FR-7 / AC-10 "the compiler core is ML-free" rule to
+the new `codegen.py`. **How to apply:** the no-ML-import AST scan (extended in
+story I.e) covers `codegen.py` and the compile path — if it fires, you've added a
+build-time ML import; move it into generated cell *text* instead.
+
+### `editable` and the launch lifecycle are LearningFoundry's, not NbFoundry's
+
+Two boundary facts under Option C:
+
+- **`editable` / `mode` (edit vs run) are NOT NbFoundry's to emit** — cell
+  editability is a pedagogical choice the curriculum author makes on
+  LearningFoundry's `ExerciseBlock`. The generated notebook is just a notebook;
+  insertion points are plain `# YOUR CODE HERE` comments (pass-through text).
+- **The `learningfoundry launch <id>` CLI, the `exercises-manifest.json`
+  sidecar, marimo process lifecycle, and the SvelteKit banner live in
+  LearningFoundry's repo** — NbFoundry's contract surface is only the
+  BR-1/BR-2/BR-3 Python API (`compile_exercise` / `validate_exercise` /
+  `ExerciseError`).

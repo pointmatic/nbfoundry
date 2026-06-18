@@ -22,27 +22,27 @@ NbFoundry depends on **ModelFoundry** internally for data preparation, model tra
 
 ## Design Decision: Rendering Approach
 
-NbFoundry exercises need to render executable Python code in the browser. Two approaches are viable:
+NbFoundry exercises are runnable Python (model-building/training). Three approaches were considered:
 
-### Option A: Marimo WASM Embed (Recommended for future)
+### Option A: Marimo WASM Embed (future, blocked for GPU/PyTorch)
 
-[Marimo](https://marimo.io) supports [WASM-based browser execution](https://docs.marimo.io/guides/wasm/) — a full Python runtime (via Pyodide) running in the browser with reactive notebook semantics. This would allow learners to write and execute Python code directly within the LearningFoundry SvelteKit app with no server.
+[Marimo](https://marimo.io) supports [WASM-based browser execution](https://docs.marimo.io/guides/wasm/) — a full Python runtime (via Pyodide) in the browser. **Cons:** ~40MB Pyodide payload, cold-start latency, and **PyTorch is not available under Pyodide** — which rules it out for the model-training exercises that motivate this integration. Revisit for non-GPU exercises.
 
-**Pros:** True in-browser code execution, reactive cells, rich output (plots, tables), no server infrastructure.
-**Cons:** Large WASM payload (~40MB Pyodide), cold start latency, limited library support in Pyodide (PyTorch not available in WASM), complexity of embedding.
+### Option B: Static Exercise Display — **SUPERSEDED**
 
-### Option B: Static Exercise Display (v1)
+NbFoundry compiled the exercise to a static dict (`sections`/`expected_outputs`) that LearningFoundry rendered as read-only blocks. **This failed in practice:** a model-building exercise rendered as static text is just the notebook's *source code* in a `<pre>` block — no executed cells, no plots, no metrics. The pedagogical value only exists when the notebook **runs**.
 
-For v1, NbFoundry produces a **static exercise artifact** — structured content (instructions, code scaffolding, expected outputs) that LearningFoundry renders as read-only content blocks. The learner reads the exercise, works in a separate local environment (JupyterLab, Marimo desktop, VS Code), and marks the exercise as complete in the app.
+### Option C: Locally-hosted live marimo + banner/launch (v1)
 
-**Pros:** Simple, no WASM complexity, works with any Python library (including PyTorch/GPU).
-**Cons:** Breaks the unified experience — learner must context-switch to a separate environment.
+NbFoundry's `compile_exercise` builds a runnable **marimo `.py`** and returns it (as source) alongside banner metadata. LearningFoundry stages the notebook and an `exercises-manifest.json` sidecar. The learner runs `learningfoundry launch <id>` — a CLI that owns marimo's lifecycle (port check, pidfile, spawn `marimo edit|run … --headless`) — and the SvelteKit app renders a **banner** (title/description + a 4-state button) that opens the live marimo page in a new tab and records completion.
+
+**Why this shape:** the generated SvelteKit app is **static** — a browser page cannot spawn or kill an OS process. So the lifecycle lives in a CLI the *learner* runs, not the page. PyTorch never enters the LearningFoundry build or the browser; it is a **learner-runtime** dependency only, present when marimo actually executes the notebook locally.
 
 ### Decision
 
-**v1: Option B (static exercise display).** The exercises are blackbox content — NbFoundry returns structured data, LearningFoundry renders it, no data handoff or code execution in the browser. The exercise content is curated by the author, not auto-generated.
+**v1: Option C.** `compile_exercise` emits notebook source + metadata (no static render); the learner runs the notebook via `learningfoundry launch`; the app is a banner that links to it. **Future: Option A** (Marimo WASM) for non-GPU exercises — the banner/launch contract is forward-compatible (a future `marimo_wasm_bundle` field would let the banner embed instead of link).
 
-**Future: Option A (Marimo WASM embed)** for exercises that don't require GPU-dependent libraries. The interface is designed to accommodate both approaches — the `ExerciseProvider` protocol returns a dict that can represent either static content or a Marimo WASM bundle.
+> **Contract history.** The Option-B static-display API (`compile_exercise → {sections, expected_outputs, submission, …}`) was the prior version of this contract; it is replaced by the notebook-emit API in BR-1. LearningFoundry tracks its own migration internally (its `stories.md`); NbFoundry only needs the current BR-* contract below.
 
 ---
 
@@ -52,106 +52,40 @@ For v1, NbFoundry produces a **static exercise artifact** — structured content
 
 NbFoundry must expose a Python API that LearningFoundry can call during content resolution to compile a single exercise definition file into a renderable artifact.
 
-**Required interface:**
+**Required interface (Option C):**
 
 ```python
 def compile_exercise(yaml_path: Path, base_dir: Path) -> dict:
     """
-    Compile an exercise definition file into a renderable exercise artifact.
+    Compile an exercise definition file into (a) a runnable marimo notebook
+    and (b) banner metadata. LearningFoundry stages the notebook source and
+    renders the metadata as a banner that links to the locally-run notebook.
 
     Args:
         yaml_path: Path to the exercise definition YAML file (relative to base_dir).
         base_dir: Root directory for resolving relative paths within the YAML.
 
     Returns:
-        A dict representing the compiled exercise, suitable for JSON serialization
-        and consumption by the exercise frontend component. Structure:
+        A JSON-serializable dict. Structure:
 
         {
             "type": "exercise",
             "source": "nbfoundry",
             "ref": "<original ref path>",
-            "status": "ready",           # "ready" | "stub"
             "title": "Build a CNN Classifier",
-            "instructions": "<HTML string>",    # Rendered from markdown
-            "sections": [
-                {
-                    "title": "Data Loading",
-                    "description": "<HTML>",
-                    "code": "import torch\\n...",     # Pre-filled code
-                    "editable": false                  # Scaffold (read-only)
-                },
-                {
-                    "title": "Define Your Model",
-                    "description": "<HTML>",
-                    "code": "# YOUR CODE HERE\\n...", # Insertion point
-                    "editable": true                   # Learner writes here
-                },
-                {
-                    "title": "Training Loop",
-                    "description": "<HTML>",
-                    "code": "for epoch in range(...)...",
-                    "editable": false
-                },
-                {
-                    "title": "Evaluate Results",
-                    "description": "<HTML>",
-                    "code": "",
-                    "editable": true
-                }
+            "description": "<HTML string>",      # banner body (rendered from markdown)
+            "hints": [                            # optional, shown on the banner
+                "Start with nn.Conv2d for the first layer."
             ],
-            "expected_outputs": [
-                {
-                    "description": "Training loss curve",
-                    "type": "image",               # "image" | "text" | "table"
-                    "path": "expected_loss_curve.png",   # relative to base_dir; staged by learningfoundry
-                    "alt": "Training loss decreasing across 20 epochs"   # required for type=image, accessibility
-                },
-                {
-                    "description": "Test accuracy threshold",
-                    "type": "text",
-                    "content": "Expected: accuracy >= 0.65"
-                }
-            ],
-            "assets": [                              # See BR-5. Enumerates every relative path the dict references.
-                "expected_loss_curve.png"
-            ],
-            "hints": [
-                "Start with nn.Conv2d for the first layer.",
-                "Remember to flatten before the fully connected layer."
-            ],
-            "submission": {                          # Optional. None for manual-completion exercises.
-                "pass_threshold": 0.65,              # Optional float in [0.0, 1.0]; default 0.0 (= manual / self-attest)
-                "fields": [
-                    {
-                        "name": "test_accuracy",
-                        "type": "number",            # "number" | "text"
-                        "label": "Test set accuracy",
-                        "placeholder": "0.65",
-                        "expected": {
-                            "type": "range",         # "range" | "equals" | "contains_all"
-                            "min": 0.65,
-                            "max": 1.0,
-                            "weight": 1
-                        }
-                    },
-                    {
-                        "name": "model_summary",
-                        "type": "text",
-                        "label": "Paste your model architecture",
-                        "expected": {
-                            "type": "contains_all",
-                            "values": ["Conv2d", "Linear", "ReLU"],
-                            "weight": 1
-                        }
-                    }
-                ]
-            },
-            "environment": {
+            "environment": {                      # what the learner needs to run it locally
                 "python_version": "3.12",
-                "dependencies": ["torch", "torchvision", "matplotlib"],
-                "setup_instructions": "Run `pip install -r requirements.txt` in your local environment."
-            }
+                "dependencies": ["marimo", "torch", "torchvision", "matplotlib"],
+                "setup_instructions": "pip install -r requirements.txt"
+            },
+            "notebook_source": "import marimo\\napp = marimo.App()\\n@app.cell\\ndef _():\\n    ..."
+                                                  # the full marimo notebook as a STRING — a
+                                                  # self-contained `marimo.App()` module (see
+                                                  # "notebook_source requirements" below).
         }
 
     Raises:
@@ -160,19 +94,31 @@ def compile_exercise(yaml_path: Path, base_dir: Path) -> dict:
     """
 ```
 
+**`notebook_source` requirements:**
+- A complete, self-contained **marimo notebook module** — the same text marimo writes to a `.py` file: a top-level `app = marimo.App()` with `@app.cell` functions, runnable by `marimo edit <file>` and `marimo run <file>` with no further codegen.
+- All third-party imports (`torch`, `torchvision`, …) appear **as source text in cells**. `compile_exercise` itself must not import them (see Constraints).
+- Self-contained relative to the learner's working directory: any data/asset paths it reads are resolvable from where the learner runs `learningfoundry launch` (the curriculum repo root).
+- Target a marimo version compatible with the learner runtime; surface that version (and other run deps) in `environment.dependencies`.
+
+**Not returned (owned elsewhere):**
+- **`mode`** (`edit` | `run`) is **not** NbFoundry's to set — the same notebook serves either way, and the choice is a pedagogical one the *curriculum author* makes on LearningFoundry's `ExerciseBlock`. Do not emit it.
+- **`id`**, the staging path, and the `exercises-manifest.json` sidecar are LearningFoundry's — it keys the notebook by an `id` NbFoundry doesn't know.
+
 **Behavior:**
 1. Read the exercise YAML at `base_dir / yaml_path`.
-2. Validate required fields (title, instructions, at least one section).
-3. Render markdown fields to HTML.
-4. Resolve any referenced code files or data files.
-5. **Asset references:** for every `expected_outputs[]` entry of `type: image` (and any future binary type), validate that the referenced file exists at `base_dir / <path>` and emit the relative `path` in the compiled dict. **Do not** read the asset bytes, do not base64-encode them, do not embed them in the dict. Asset staging is LearningFoundry's responsibility (see "Asset Handling" below).
-6. Return the compiled exercise dict.
+2. Validate required fields (title, description).
+3. Render markdown banner fields (`description`, `hints`) to HTML.
+4. **Generate the marimo notebook as source** and return it in `notebook_source`. This is *code generation* — emit `import torch …` as text; do **not** execute it.
+5. Return the dict. LearningFoundry does all I/O (writes the notebook to a runnable path keyed by the exercise `id`, and writes the `exercises-manifest.json` sidecar).
 
 **Constraints:**
 - Synchronous function, importable from the `nbfoundry` package.
-- No side effects beyond reading referenced files (no file writes, no asset copying — LearningFoundry owns the build output).
-- The returned dict must be JSON-serializable. Asset references travel as relative `path` strings; binary bytes never enter the dict.
-- Image entries in `expected_outputs[]` MUST include an `alt` field for accessibility (WCAG 1.1.1). The validator (BR-2) rejects image outputs without `alt`.
+- **The codegen path MUST NOT import `torch` / `modelfoundry` (or any GPU/ML framework).** `compile_exercise` runs in LearningFoundry's *build* process; importing a multi-hundred-MB framework there is the failure this contract revision exists to avoid. Torch is a **learner-runtime** dependency only — named in `environment.dependencies`, imported when marimo runs the notebook on the learner's machine, never at build time.
+- No side effects: no file writes, no process spawning (`compile_exercise` returns source as a string; LearningFoundry does all I/O).
+- The returned dict must be JSON-serializable. `notebook_source` is a plain string.
+- **Removed from the contract** (do not emit): `sections`, `expected_outputs`, `submission`, `instructions`, and the inline image-asset list — the prior static-display fields. The notebook now carries the cells, scaffolding, and rendered outputs. Graded submission is parked in `## Future` as a marimo-cell-output concern, not a returned field.
+
+> **Removed from the contract (Option C).** **BR-4** (submission schema) and **BR-5** (inline image-asset handling) describe the retired static-display path — NbFoundry does **not** implement them under Option C; the notebook carries its own cells, rendered outputs, and any grading. The **RR-** "Runtime Requirements" sections spec LearningFoundry's *own* SvelteKit frontend (the banner that links to the locally-run notebook) and are **not part of NbFoundry's contract** at all. Graded submission is parked in `## Future`. The sections below are retained for design rationale only.
 
 ### BR-2: Exercise Validation API
 
@@ -194,6 +140,8 @@ NbFoundry errors must be catchable as `nbfoundry.ExerciseError` (or similar), ca
 - **detail**: Optional structured detail (section index, field name).
 
 ### BR-4: Submission Schema and Evaluation Contract
+
+> ⛔ **Removed from the Option-C contract — do not implement.** Retained for design rationale (the future graded-submission path). Under Option C grading happens in the notebook's own cells; `compile_exercise` does not emit `submission`.
 
 `compile_exercise` may emit an optional `submission` block describing how the learner's outcome is captured and graded. This is the contract that lets `ExerciseBlock` produce a `score / maxScore` payload analogous to QuizBlock, with a configurable `pass_threshold` for completion.
 
@@ -247,6 +195,8 @@ This is the same shape QuizBlock uses (see [features.md FR-4 quiz block](../feat
 
 ### BR-5: Asset Handling
 
+> ⛔ **Removed from the Option-C contract — do not implement.** This covered the inline image-asset list of the static-display path. Under Option C the marimo notebook renders its own outputs (plots, tables) at run time, so there is no separate asset list to emit or stage. Retained for rationale.
+
 Image (and other binary) assets referenced by an exercise travel as **relative file paths**, not as inline bytes. This matches how SvelteKit, Vite, and the broader web platform handle media — HTTP-cacheable, lazy-loadable, image-pipeline-friendly, diff-readable.
 
 **Division of responsibilities:**
@@ -281,7 +231,9 @@ Image (and other binary) assets referenced by an exercise travel as **relative f
 
 ## Exercise Definition Format (YAML Input)
 
-The curriculum author writes exercise definitions in YAML. This is the input format that NbFoundry consumes:
+The curriculum author writes exercise definitions in YAML. This is the input format that NbFoundry consumes. NbFoundry owns this format's exact schema; the example below is illustrative.
+
+> Under Option C, the definition's content compiles into the marimo **notebook** rather than static `sections`/`expected_outputs`. The **`submission:` block is deferred** (see `## Future`) — omit it; graded submission will be a marimo-cell-output concern, not a returned field.
 
 ```yaml
 title: "Build a CNN Classifier"
@@ -375,6 +327,8 @@ environment:
 ---
 
 ## Runtime Requirements (SvelteKit Component)
+
+> ℹ️ **Not part of NbFoundry's contract.** The RR-* sections spec LearningFoundry's *own* SvelteKit frontend, included here for end-to-end context. NbFoundry implements only the BR-* (Python API) above. Under Option C, `ExerciseBlock` is a **banner** linking to the locally-run marimo notebook; the static-render details below are historical (the prior Option-B display).
 
 ### RR-1: Exercise Display Component
 
@@ -489,9 +443,10 @@ Runtime (SvelteKit):
 
 | Concern | Value |
 |---------|-------|
-| **Python package** | `nbfoundry` on PyPI (not yet published) |
-| **LearningFoundry dependency** | Optional: `pip install learningfoundry[nbfoundry]` (future) |
-| **v1 stub** | `NbfoundryStub` class in `learningfoundry.integrations.nbfoundry_stub` returns placeholder exercise dicts |
+| **Python package** | `nbfoundry` on PyPI |
+| **LearningFoundry dependency** | Optional extra: `pip install learningfoundry[nbfoundry]` (`nbfoundry>=0.1`); the provider lazy-imports it and raises an install hint when absent |
+| **Real provider** | `NbfoundryProvider` in `learningfoundry.integrations.nbfoundry` delegates to `nbfoundry.compile_exercise` — the default for `status: ready` blocks |
+| **Stub** | `stub_exercise()` factory + `NbfoundryStub` test-double in `learningfoundry.integrations.nbfoundry_stub`; the resolver emits the placeholder directly for `status: stub` blocks (no provider call, no nbfoundry import). `NbfoundryStub` is retained only as a test double / "no-notebooks" injectable |
 
 ---
 
@@ -526,7 +481,7 @@ The `ExerciseBlock` component detects `status: "stub"` and renders a placeholder
 ## Versioning and Compatibility
 
 - The exercise dict schema is the versioning boundary. The `status` field distinguishes stub content from real content.
-- When NbFoundry is published, LearningFoundry adds it as an optional dependency and replaces the stub with a real `NbfoundryProvider` that delegates to `nbfoundry.compile_exercise`.
+- NbFoundry is published; LearningFoundry consumes it through the optional `[nbfoundry]` extra and the real `NbfoundryProvider`. The `status` switch is resolver-owned: `ready` (the default) compiles via `NbfoundryProvider`; `stub` emits the placeholder directly. `NbfoundryStub` is no longer the routing target — it survives as a test double only.
 - The SvelteKit `ExerciseBlock` component handles both stub and real exercise dicts.
 
 ---
@@ -537,8 +492,11 @@ The `ExerciseBlock` component detects `status: "stub"` and renders a placeholder
 |------|-------|----------------|
 | `compile_exercise` returns valid artifact for well-formed YAML | NbFoundry | Unit test in NbFoundry repo (future) |
 | `compile_exercise` raises `ExerciseError` for malformed YAML | NbFoundry | Unit test in NbFoundry repo (future) |
-| LearningFoundry's `NbfoundryStub` returns correct placeholder structure | LearningFoundry | Unit test |
-| LearningFoundry's `ExerciseProvider` protocol matches NbFoundry's API | LearningFoundry | Type check (mypy) |
+| LearningFoundry's `stub_exercise()` / `NbfoundryStub` return correct placeholder structure | LearningFoundry | Unit test |
+| `NbfoundryProvider.compile_exercise` delegates to `nbfoundry.compile_exercise` and returns its dict unchanged | LearningFoundry | Unit test (mocked) |
+| `NbfoundryProvider` wraps nbfoundry errors in `IntegrationError` citing `ref_path`; missing package raises `ImportError` with `learningfoundry[nbfoundry]` hint | LearningFoundry | Unit test (mocked) |
+| Resolver routes `status: stub` to `stub_exercise()` (no provider call, no nbfoundry import) and `status: ready`/default to the provider, failing loud on a bad ref | LearningFoundry | Unit test |
+| LearningFoundry's `ExerciseProvider` protocol matches NbFoundry's API | LearningFoundry | Type check (mypy) + runtime `isinstance` (protocols are `@runtime_checkable`) |
 | `ExerciseBlock` renders stub content with placeholder message | LearningFoundry | Component test |
 | `ExerciseBlock` renders real exercise with sections and hints | LearningFoundry | Component test (future, with fixture data) |
 | `ExerciseBlock` fires `complete` event on "Mark as Complete" click (manual path) | LearningFoundry | Component test |
