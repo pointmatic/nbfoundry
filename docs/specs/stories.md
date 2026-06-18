@@ -136,17 +136,19 @@ Rewrite the static-display passages in `docs/specs/features.md` to the notebook-
 
 **Cycle impact.** Pure documentation story; no code changes. No new tests; full suite + ruff + mypy unchanged from I.f.1 baseline (149 pass / 0 fail / 7 deselected / coverage 93.02%).
 
-### Story I.f.3: `tech-spec.md` → Option C [Planned]
+### Story I.f.3: `tech-spec.md` → Option C [Done]
 
 Reconcile the implementation-level spec with the shipped Option-C code.
 
-- [ ] Rewrite Compiler design section: pipeline shape, no asset enumeration, banner-markdown render, codegen handoff
-- [ ] Rewrite Data Models section to mirror `src/nbfoundry/schema.py` (post-I.b)
-- [ ] Update Package structure: drop `assets.py`, add `codegen.py`, note `AssetsConfig` removed (per I.f.1)
-- [ ] Update CLI output section: `compile-exercise` JSON shape (8 keys including `notebook_source`); `--allow-large-assets` flag gone
-- [ ] Update Testing Strategy: remove Option-B fixture / golden references; reflect the I.e suite (Option-C fixtures, marimo-loads-generated smoke, authoritative build-time purity AST scan)
-- [ ] Sweep `tech-spec.md` for stray Option-B vocabulary (asset enumeration, submission validators, expected-output handling, etc.) and reconcile
-- [ ] Verify: `tech-spec.md` internally consistent with `src/nbfoundry/`'s current code
+- [x] Rewrite Compiler design section: pipeline shape, no asset enumeration, banner-markdown render, codegen handoff — `compile_exercise` rewritten as a 9-step Option-C pipeline (path-resolve → YAML → `ExerciseDefinition.model_validate` → code_file path-escape → render `description` + `hints` markdown → `codegen.generate()` → `codegen.ensure_marimo_pinned()` → assemble 8-key dict); `validate_exercise` notes single-`_validate` core and explicitly debunks the `validator.py` myth
+- [x] Rewrite Data Models section to mirror `src/nbfoundry/schema.py` (post-I.b) — input now `_StrictModel` + `SectionModel` (code XOR code_file) + `EnvironmentModel` + `ExerciseDefinition`; output now `CompiledEnvironment` + 8-key `CompiledExercise`; retired-name list cited with link to features.md Retired section
+- [x] Update Package structure: drop `assets.py`, add `codegen.py`, note `AssetsConfig` removed (per I.f.1) — package tree updated; `assets.py` and `validator.py` gone; `codegen.py` added with one-liner; `compiler.py` one-liner reframed for Option C
+- [x] Update CLI output section: `compile-exercise` JSON shape (8 keys including `notebook_source`); `--allow-large-assets` flag gone — subcommand row updated; exit-code row updated to drop "asset oversize" trigger
+- [x] Update Testing Strategy: remove Option-B fixture / golden references; reflect the I.e suite (Option-C fixtures, marimo-loads-generated smoke, authoritative build-time purity AST scan) — Testing Strategy table fully rewritten; new "Unit — codegen" + "Unit — build-time purity" + "Integration — marimo loads the generated module" rows; "Unit — schema" / "Unit — compiler core" / "Integration — determinism" rewritten for Option C; Option-B-only rows dropped ("Unit — assets" / "Unit — validator" / "Integration — schema fidelity" / "Integration — tree"); fixture-organization paragraph rewritten for the smaller Option-C corpus
+- [x] Sweep `tech-spec.md` for stray Option-B vocabulary (asset enumeration, submission validators, expected-output handling, etc.) and reconcile — also caught and updated: Dependencies table (`markdown-it-py` no longer renders `instructions`; `pydantic` no longer cited for BR-4 errors); Cross-Cutting Concerns table (added "Build-time purity" row; added "Codegen byte-stability" row; rewrote "No code execution at compile time" for Option C; dropped "Asset size policy"); Modelfoundry-adapter section (`(compiler.py, validator.py)` → build-time compile path with link to test_build_time_purity); ErrorDetail example pointer; Performance Implementation I/O row; Public API line (`learningfoundry-dependency-spec.md` → `learningfoundry/consumer-dependency-spec.md`); Configuration section retains an explicit "AssetsConfig retired in v0.46.0" note
+- [x] Verify: `tech-spec.md` internally consistent with `src/nbfoundry/`'s current code — package-tree and test-tree listings match the actual files post-I.e + I.f.1; retired-name set matches features.md's Retired section
+
+**Cycle impact.** Pure documentation story; no code or test changes. Suite + ruff + mypy unchanged from I.f.1 baseline (149 pass / 0 fail / 7 deselected / coverage 93.02%).
 
 ### Story I.f.4: `concept.md` → two-surface framing [Planned]
 
