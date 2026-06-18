@@ -38,7 +38,7 @@ See [consumer-dependency-spec.md](./learningfoundry/consumer-dependency-spec.md)
 
 ---
 
-> **Versioning — phase-bundled.** The contract only becomes Option-C-compliant once I.d flips `compile_exercise`, so intermediate stories (spike, schema, generator) land unversioned; the phase ships a single **v0.46.0** at I.f (minor — pre-1.0, breaking output-shape change). See `phase-i-learningfoundry-integration-refactoring-plan.md`.
+> **Versioning — phase-bundled.** The contract only becomes Option-C-compliant once I.d flips `compile_exercise`, so intermediate stories (spike, schema, generator) land unversioned; the phase ships a single **v0.46.0** at I.f.6 (minor — pre-1.0, breaking output-shape change). See `phase-i-learningfoundry-integration-refactoring-plan.md`.
 
 ### Story I.a: Codegen spike — runnable marimo module from a definition [Done]
 
@@ -110,16 +110,71 @@ Replace the static-path suite with codegen coverage.
 
 **Cycle impact.** **150 passed / 0 failed / 7 deselected — coverage 93.13%** (gate ≥85% satisfied; per-module coverage: `schema.py` 100%, `compiler.py` 92%, `codegen.py` 94%, `cli.py` 85%). Ruff clean across `src/` and `tests/`. Mypy strict clean on `src/nbfoundry/` (the configured scope). All Phase I (a-pragmatic) baseline failures resolved: the 16 stub-related failures inherited from I.d, the 3 collect-ignored files, and the Option-B fixture corpus are all gone. Also re-added new test files: `tests/integration/test_cli_validate.py`, `tests/integration/test_no_network.py`, `tests/integration/test_determinism.py`.
 
-### Story I.f: v0.46.0 — Spec + docs reconciliation to Option C [Planned]
+### Story I.f: v0.46.0 — Spec + docs reconciliation to Option C
 
-Reconcile nbfoundry's own specs (still Option B) and ship the phase release.
+Reconcile nbfoundry's own specs (still Option B) and ship the phase release. Split into six sub-stories — five small documentation/code reconciliations followed by the v0.46.0 release at I.f.6 — so each lands as its own commit and gates independently.
 
-- [ ] `features.md`: rewrite CR-3 / CR-6 + FR-3 / FR-5 + data models + AC-2 / AC-3 from static-display to notebook-emit; remove BR-4 / BR-5 references; move graded-submission to a deferred note
-- [ ] `tech-spec.md`: compiler design, data models, package structure (drop `assets.py`, add `codegen.py`), CLI output
-- [ ] `concept.md`: two-surface framing — the LF embed surface is now banner + launch, not static render
-- [ ] `README.md`: `compile-exercise` usage + example reflect `notebook_source` output
-- [ ] Bump version to **v0.46.0** (`_version.py`); update `CHANGELOG.md` (note the breaking output-shape change)
-- [ ] Verify: dogfood `compile-exercise` against a sample definition → runnable notebook; full suite + mypy + ruff + coverage green
+### Story I.f.1: Prune dormant `AssetsConfig` (BR-5 follow-through) [Done]
+
+I.d removed `assets.py` and the `--allow-large-assets` kwarg/CLI flag, but `config.py`'s `AssetsConfig` (with `max_single_asset_mb` / `warn_single_asset_mb` / `allow_large_assets`) and its `merge_cli(...)` plumbing survived as dormant state. Removing it now keeps the v0.46.0 ship internally consistent with the tech-spec rewrite (I.f.3), which will say assets are gone.
+
+- [x] Remove `AssetsConfig` from `src/nbfoundry/config.py` (the dataclass, the `Config.assets` field, the `[assets]` TOML section parse, and the related `merge_cli(...)` keyword arguments) — also updated `merge_cli` docstring's recognized-keys list to drop the assets group
+- [x] Update `tests/unit/test_config.py`: remove the lines exercising `allow_large_assets` / `max_single_asset_mb` (currently 2 assertions) — also deleted `test_merge_cli_assets_group` (the dedicated test for the assets branch of `merge_cli`)
+- [x] Verify: `pyve test` green, ruff clean, mypy strict clean (`src/nbfoundry/` scope) — **149 passed / 0 failed / 7 deselected**; coverage 93.02%; mypy and ruff both clean
+
+### Story I.f.2: `features.md` → Option C [Done]
+
+Rewrite the static-display passages in `docs/specs/features.md` to the notebook-emit contract; document BR-4/BR-5 retirement without renumbering the surviving BR-1/BR-2/BR-3.
+
+- [x] Rewrite CR-3 / CR-6 from static-display rendering to notebook-emit (banner + `notebook_source`) — CR-3 now describes the 8-key Option-C wire shape; CR-6 retheme to "Generated marimo notebook (Option C)" describing the codegen contract (byte-stable, framework imports as text, cell layout)
+- [x] Rewrite FR-3 / FR-5 to describe the Option-C `compile_exercise` pipeline (read YAML → validate → render banner markdown → `codegen.generate()` → assemble 8-key dict) — FR-3 rewritten end-to-end as a 7-step Option-C pipeline; FR-5 retheme from "Submission schema validation (BR-4)" to "Notebook source generation (Option C)" describing `codegen.generate()` + `ensure_marimo_pinned()` with explicit invariants (byte-stable / build-time pure / valid Python)
+- [x] Rewrite the Data Models section: remove static `CompiledExercise` / `CompiledSection` / `CompiledSubmission*` / `CompiledExpected*` rows; add `ExerciseDefinition` / `SectionModel` / `CompiledExercise` (8 keys) / `CompiledEnvironment` — the Inputs / Outputs sections (which serve as the features-level data-model surface) now describe `ExerciseDefinition` + `SectionModel` (with code XOR code_file) and the 8-key `CompiledExercise`. The detailed model code lives in `tech-spec.md` (rewritten in I.f.3) and `src/nbfoundry/schema.py`
+- [x] Rewrite AC-2 / AC-3 acceptance criteria for the new wire shape — AC-2 now "Generated notebook is marimo-loadable" (importlib.util smoke); AC-3 reframed for the two-surface compile under Option C
+- [x] Add a short "Retired in v0.46.0" subsection recording BR-4 (graded submission) and BR-5 (image assets) as retired with the LF Option-C contract revision as the reason — preserves BR-1/BR-2/BR-3 numbering and AC-* / CR-* cross-references — added at lines 254-263 with four bullets (BR-4, BR-5, the retired wire fields, the `editable` per-section flag) plus a note that BR-1/BR-2/BR-3 are intentionally not renumbered
+- [x] Sweep `features.md` for stray `expected_outputs` / `submission` / `editable` mentions and reconcile — all hits accounted for: NG-2 + the Retired section + TR-2's explanatory note are the only surviving references, each explicitly framed as retired-context
+- [x] Verify: `features.md` internally consistent; no surviving Option-B vocabulary in normative passages — also caught and updated 4 cross-section refs (Project Goal, CR-1, QR-5, UR-4) that referenced `learningfoundry-dependency-spec.md` / "ExerciseBlock-compatible dict" / "byte-for-byte" — repointed to `learningfoundry/consumer-dependency-spec.md` and reframed for Option C
+
+**Cycle impact.** Pure documentation story; no code changes. No new tests; full suite + ruff + mypy unchanged from I.f.1 baseline (149 pass / 0 fail / 7 deselected / coverage 93.02%).
+
+### Story I.f.3: `tech-spec.md` → Option C [Planned]
+
+Reconcile the implementation-level spec with the shipped Option-C code.
+
+- [ ] Rewrite Compiler design section: pipeline shape, no asset enumeration, banner-markdown render, codegen handoff
+- [ ] Rewrite Data Models section to mirror `src/nbfoundry/schema.py` (post-I.b)
+- [ ] Update Package structure: drop `assets.py`, add `codegen.py`, note `AssetsConfig` removed (per I.f.1)
+- [ ] Update CLI output section: `compile-exercise` JSON shape (8 keys including `notebook_source`); `--allow-large-assets` flag gone
+- [ ] Update Testing Strategy: remove Option-B fixture / golden references; reflect the I.e suite (Option-C fixtures, marimo-loads-generated smoke, authoritative build-time purity AST scan)
+- [ ] Sweep `tech-spec.md` for stray Option-B vocabulary (asset enumeration, submission validators, expected-output handling, etc.) and reconcile
+- [ ] Verify: `tech-spec.md` internally consistent with `src/nbfoundry/`'s current code
+
+### Story I.f.4: `concept.md` → two-surface framing [Planned]
+
+Reframe the LF embed surface from static display to banner + launch.
+
+- [ ] Rewrite the LearningFoundry embed surface description: banner + `learningfoundry launch <id>` instead of static-display render
+- [ ] Note the Option-C contract revision and reference `learningfoundry/consumer-dependency-spec.md`
+- [ ] Sweep `concept.md` for stray Option-B framing (e.g., "in-browser static render", "graded submission inline")
+- [ ] Verify: `concept.md` internally consistent; the two surfaces (standalone marimo notebook + LF embed banner) are clearly delineated
+
+### Story I.f.5: `README.md` → `compile-exercise` + `notebook_source` [Planned]
+
+Update the user-facing README to show Option-C output.
+
+- [ ] Update the `compile-exercise` example block to show the Option-C JSON output (8 keys including `notebook_source`)
+- [ ] Update any "embed into learningfoundry" language to match the banner-and-launch flow
+- [ ] Remove `--allow-large-assets` mentions
+- [ ] Sweep for stray Option-B references (assets, expected outputs, graded submission)
+- [ ] Verify: README accurately reflects the public API on `main`
+
+### Story I.f.6: v0.46.0 release — version bump + CHANGELOG + dogfood [Planned]
+
+Ship the Phase I bundle. **This story carries the v0.46.0 version bump for the entire phase.**
+
+- [ ] Bump version to **v0.46.0** in `src/nbfoundry/_version.py`
+- [ ] Add `CHANGELOG.md` v0.46.0 entry: breaking output-shape change (8-key Option-C dict with `notebook_source`); `compile_exercise` lost `allow_large_assets` kwarg + `--allow-large-assets` CLI flag; `assets.py` removed; `AssetsConfig` removed; BR-4 (graded submission) + BR-5 (image assets) retired
+- [ ] Dogfood: `pyve run nbfoundry compile-exercise tests/fixtures/exercises/valid_minimal.yaml` succeeds and prints a JSON dict with `notebook_source` (the marimo-loads-the-generated-module smoke from I.e already covers runtime validity)
+- [ ] Verify: full suite green; coverage gate (≥85%) satisfied; mypy strict clean; ruff clean
 
 ---
 

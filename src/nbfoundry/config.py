@@ -27,18 +27,10 @@ class EnvironmentConfig:
 
 
 @dataclass(frozen=True, slots=True)
-class AssetsConfig:
-    max_single_asset_mb: int = 10
-    warn_single_asset_mb: int = 5
-    allow_large_assets: bool = False
-
-
-@dataclass(frozen=True, slots=True)
 class Config:
     compile: CompileConfig = CompileConfig()
     exercise: ExerciseConfig = ExerciseConfig()
     environment: EnvironmentConfig = EnvironmentConfig()
-    assets: AssetsConfig = AssetsConfig()
 
 
 CONFIG_FILENAME = "nbfoundry.toml"
@@ -61,7 +53,6 @@ def _from_dict(data: dict[str, Any]) -> Config:
         compile=_section(CompileConfig, defaults.compile, data.get("compile")),
         exercise=_section(ExerciseConfig, defaults.exercise, data.get("exercise")),
         environment=_section(EnvironmentConfig, defaults.environment, data.get("environment")),
-        assets=_section(AssetsConfig, defaults.assets, data.get("assets")),
     )
 
 
@@ -74,11 +65,10 @@ def _section[T](cls: type[T], default: T, raw: dict[str, Any] | None) -> T:
 
 
 def merge_cli(config: Config, **overrides: Any) -> Config:
-    """CLI-flag merge stub. Phase D wires actual flags through this.
+    """CLI-flag merge stub.
 
-    Recognized keys: `default_out`, `markdown_flavor`, `spec_path`,
-    `max_single_asset_mb`, `warn_single_asset_mb`, `allow_large_assets`.
-    Values that are `None` are treated as "flag not provided" and skipped.
+    Recognized keys: `default_out`, `markdown_flavor`, `spec_path`. Values
+    that are `None` are treated as "flag not provided" and skipped.
     """
 
     def _picked(*keys: str) -> dict[str, Any]:
@@ -91,6 +81,4 @@ def merge_cli(config: Config, **overrides: Any) -> Config:
         out = replace(out, exercise=replace(out.exercise, **exercise_o))
     if env_o := _picked("spec_path"):
         out = replace(out, environment=replace(out.environment, **env_o))
-    if assets_o := _picked("max_single_asset_mb", "warn_single_asset_mb", "allow_large_assets"):
-        out = replace(out, assets=replace(out.assets, **assets_o))
     return out

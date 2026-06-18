@@ -15,20 +15,16 @@ def test_missing_toml_returns_defaults(tmp_path: Path) -> None:
     assert cfg.compile.default_out == "dist/"
     assert cfg.exercise.markdown_flavor == "commonmark"
     assert cfg.environment.spec_path == "requirements-base.txt"
-    assert cfg.assets.max_single_asset_mb == 10
 
 
 def test_toml_overrides_defaults(tmp_path: Path) -> None:
     (tmp_path / "nbfoundry.toml").write_text(
-        '[compile]\ndefault_out = "build/"\n'
-        '[exercise]\nmarkdown_flavor = "gfm"\n'
-        "[assets]\nmax_single_asset_mb = 25\n",
+        '[compile]\ndefault_out = "build/"\n[exercise]\nmarkdown_flavor = "gfm"\n',
         encoding="utf-8",
     )
     cfg = load(tmp_path)
     assert cfg.compile.default_out == "build/"
     assert cfg.exercise.markdown_flavor == "gfm"
-    assert cfg.assets.max_single_asset_mb == 25
     # untouched sections keep defaults
     assert cfg.environment.spec_path == "requirements-base.txt"
 
@@ -54,12 +50,6 @@ def test_merge_cli_ignores_none_values() -> None:
     base = merge_cli(Config(), default_out="x/")
     merged = merge_cli(base, default_out=None, markdown_flavor=None)
     assert merged.compile.default_out == "x/"  # unchanged by None
-
-
-def test_merge_cli_assets_group() -> None:
-    merged = merge_cli(Config(), max_single_asset_mb=50, allow_large_assets=True)
-    assert merged.assets.max_single_asset_mb == 50
-    assert merged.assets.allow_large_assets is True
 
 
 def test_precedence_cli_over_toml_over_defaults(tmp_path: Path) -> None:
