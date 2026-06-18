@@ -1,13 +1,15 @@
 # Copyright (c) 2026 Pointmatic
 # SPDX-License-Identifier: Apache-2.0
-# Multi-notebook tree fixture (FR-6): sections pull code from tree-internal
-# marimo notebooks via code_file. Compile with base_dir = this tree/ directory.
-title: Tree exercise
-description: An exercise assembled from a tree of notebooks.
+#
+# Option-C exercise definition fixture exercising the `code_file` flavor —
+# the section bodies live in sibling `.py` files referenced by relative
+# path. The codegen inlines each file's contents into a marimo code cell.
+title: Pipeline drill
+description: "Two-step pipeline with code in sibling files."
 sections:
-  - title: Step 1 — load
-    description: Load the data.
-    code_file: notebooks/step1.py
-  - title: Step 2 — summarize
-    description: Summarize the data.
-    code_file: notebooks/step2.py
+  - title: Load data
+    description: "Read a CSV and inspect the head."
+    code_file: sections/load.py
+  - title: Summarize
+    description: "Compute a summary table."
+    code_file: sections/summarize.py

@@ -1,9 +1,0 @@
-# Copyright (c) 2026 Pointmatic
-# SPDX-License-Identifier: Apache-2.0
-# Rejection: required top-level `title` is missing.
-description: An exercise with no title.
-sections:
-  - title: Step one
-    description: Do the thing.
-    code: |
-      print("hello")

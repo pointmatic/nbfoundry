@@ -96,17 +96,19 @@ Flip the public API to Option C and remove the static-display machinery. **This 
 
 **Cycle impact.** New file: `tests/unit/test_compiler_option_c.py` (18 tests, all green). Deleted: `src/nbfoundry/assets.py`. Updated: `src/nbfoundry/compiler.py` (full Option-C pipeline replacing the I.b stub), `src/nbfoundry/cli.py` (drop `--allow-large-assets`), `tests/conftest.py` (collect-ignore extended to `tests/unit/test_assets.py`). Suite baseline now **138 pass / 16 fail / 3 collect-ignored / 7 deselected** — 14 tests went red → green (validators / CLI-validate / no-network validate, etc.), no regressions. The 16 remaining failures are all integration tests using the Option-B fixture corpus (`valid_graded.yaml` etc. still carry `editable`/`expected_outputs`/`submission`), which Story I.e replaces with Option-C fixtures.
 
-### Story I.e: Test-suite rebuild for Option C [Planned]
+### Story I.e: Test-suite rebuild for Option C [Done]
 
 Replace the static-path suite with codegen coverage.
 
-- [ ] **Remove** the retired static-path tests (submission matrix, assets, expected-output / image, static-dict fidelity) and the `tests/fixtures/golden/valid_graded.json` golden + submission/asset fixtures
-- [ ] Unit: `schema` accept/reject for the new definition; `codegen.generate()` produces a parseable marimo module; determinism (byte-stable); banner markdown → HTML
-- [ ] Integration: `compile-exercise` CLI end-to-end → dict with `notebook_source`; **marimo-loads-the-generated-module smoke** (load the generated `marimo.App()` — light, no ML deps)
-- [ ] Extend the no-ML-import AST scan to cover `codegen.py` and the compile path (AC-10 carried forward)
-- [ ] New fixtures: a minimal Option-C definition YAML + a `sections`-with-`code_file` tree
-- [ ] Apache-2.0 / Pointmatic header on new test files
-- [ ] Verify: `pyve test` green; coverage gate (≥85%) satisfied on the new surface; `ruff` clean
+- [x] **Remove** the retired static-path tests (submission matrix, assets, expected-output / image, static-dict fidelity) and the `tests/fixtures/golden/valid_graded.json` golden + submission/asset fixtures — deleted 11 test files (unit: `test_schema.py`/`test_assets.py`/`test_compiler.py`/`test_validator.py`/`test_fixtures_corpus.py`; integration: `test_aggregate_tree.py`/`test_cli_compile_exercise.py`/`test_cli_validate.py`/`test_determinism.py`/`test_no_network.py`/`test_schema_fidelity.py`) and the entire `tests/fixtures/golden/` directory plus 14 retired `*.yaml` corpus files + `assets/` + old `tree/notebooks/` (Option-B FR-6 tree). Also dropped the `collect_ignore` from `tests/conftest.py` and rewrote `test_errors.py` against `ExerciseDefinition` (Option-C-clean)
+- [x] Unit: `schema` accept/reject for the new definition; `codegen.generate()` produces a parseable marimo module; determinism (byte-stable); banner markdown → HTML — covered by renamed `test_schema.py` (21), `test_codegen.py` (16), `test_compiler.py` (18, includes `description`/`hints` HTML rendering)
+- [x] Integration: `compile-exercise` CLI end-to-end → dict with `notebook_source`; **marimo-loads-the-generated-module smoke** (load the generated `marimo.App()` — light, no ML deps) — new `tests/integration/test_cli_compile_exercise.py` (stdout, `--out`, tree fixture) and `tests/integration/test_marimo_loads_generated.py` (loads via `importlib.util.spec_from_file_location`, asserts `module.app` is `marimo.App`)
+- [x] Extend the no-ML-import AST scan to cover `codegen.py` and the compile path (AC-10 carried forward) — new authoritative `tests/unit/test_build_time_purity.py` parametrizes the scan over 12 modules on the build-time compile path (`__init__.py`, `schema.py`, `compiler.py`, `codegen.py`, `cli.py`, `config.py`, `errors.py`, `logging_setup.py`, `markdown.py`, `notebooks.py`, `paths.py`, `standalone.py`) against the full forbidden set, plus a sibling test asserting none of those modules import the `_modelfoundry` lazy-import boundary. Per-file scans removed from `test_codegen.py` and `test_compiler.py`
+- [x] New fixtures: a minimal Option-C definition YAML + a `sections`-with-`code_file` tree — `tests/fixtures/exercises/valid_minimal.yaml` (Option-C) and `tests/fixtures/exercises/tree/exercise.yaml` + `tree/sections/{load,summarize}.py`. Tests/fixtures excluded from ruff via `pyproject.toml`'s `[tool.ruff] extend-exclude` (fixture files are code-snippet inlines for marimo cells, not stand-alone modules — `df` is intentionally cross-cell)
+- [x] Apache-2.0 / Pointmatic header on new test files
+- [x] Verify: `pyve test` green; coverage gate (≥85%) satisfied on the new surface; `ruff` clean
+
+**Cycle impact.** **150 passed / 0 failed / 7 deselected — coverage 93.13%** (gate ≥85% satisfied; per-module coverage: `schema.py` 100%, `compiler.py` 92%, `codegen.py` 94%, `cli.py` 85%). Ruff clean across `src/` and `tests/`. Mypy strict clean on `src/nbfoundry/` (the configured scope). All Phase I (a-pragmatic) baseline failures resolved: the 16 stub-related failures inherited from I.d, the 3 collect-ignored files, and the Option-B fixture corpus are all gone. Also re-added new test files: `tests/integration/test_cli_validate.py`, `tests/integration/test_no_network.py`, `tests/integration/test_determinism.py`.
 
 ### Story I.f: v0.46.0 — Spec + docs reconciliation to Option C [Planned]
 

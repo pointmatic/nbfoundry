@@ -1,10 +1,13 @@
 # Copyright (c) 2026 Pointmatic
 # SPDX-License-Identifier: Apache-2.0
-# Smallest passing exercise: required keys only (title, description, one section).
-title: Minimal exercise
-description: A minimal exercise.
+#
+# Minimal Option-C exercise definition fixture (Story I.e).
+title: MPS smoke
+description: "Confirm torch sees Apple Metal."
 sections:
-  - title: Step one
-    description: Do the thing.
+  - title: Detect device
+    description: "Pick MPS if available, else CPU."
     code: |
-      print("hello")
+      import torch
+      device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+      device

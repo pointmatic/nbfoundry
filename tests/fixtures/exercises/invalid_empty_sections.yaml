@@ -1,6 +1,0 @@
-# Copyright (c) 2026 Pointmatic
-# SPDX-License-Identifier: Apache-2.0
-# Rejection: `sections` must have at least one entry (min_length=1).
-title: Empty sections exercise
-description: Has no sections.
-sections: []

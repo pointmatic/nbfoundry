@@ -1,6 +1,6 @@
 # Copyright (c) 2026 Pointmatic
 # SPDX-License-Identifier: Apache-2.0
-"""Errors unit sweep (Story G.b) — ExerciseError shape + Pydantic mapping."""
+"""Errors unit sweep — `ExerciseError` shape and Pydantic → ExerciseError mapping."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import pytest
 from pydantic import ValidationError
 
 from nbfoundry.errors import ErrorDetail, ExerciseError, from_pydantic
-from nbfoundry.schema import RawExerciseModel
+from nbfoundry.schema import ExerciseDefinition
 
 
 def test_exercise_error_str_without_detail() -> None:
@@ -41,10 +41,11 @@ def test_from_pydantic_maps_section_index_and_pointer() -> None:
     bad = {
         "title": "T",
         "description": "d",
-        "sections": [{"title": "S", "description": "b"}],  # missing code xor
+        # section is missing the code XOR code_file constraint
+        "sections": [{"title": "S", "description": "b"}],
     }
     try:
-        RawExerciseModel.model_validate(bad)
+        ExerciseDefinition.model_validate(bad)
     except ValidationError as ve:
         errors = from_pydantic(Path("ex.yaml"), ve)
     else:  # pragma: no cover - must raise
@@ -53,7 +54,6 @@ def test_from_pydantic_maps_section_index_and_pointer() -> None:
     assert errors
     assert all(isinstance(e, ExerciseError) for e in errors)
     assert all(e.file_path == Path("ex.yaml") for e in errors)
-    # the failing section is index 0
     assert any(e.detail is not None and e.detail.section_index == 0 for e in errors)
 
 
@@ -61,24 +61,23 @@ def test_from_pydantic_augments_scalar_input() -> None:
     bad = {
         "title": "T",
         "description": "d",
-        "sections": [{"title": "S", "description": "b", "code": "x"}],
-        "submission": {
-            "pass_threshold": 1.5,
-            "fields": [
-                {
-                    "name": "f",
-                    "type": "number",
-                    "label": "L",
-                    "expected": {"type": "equals", "value": 1},
-                }
-            ],
-        },
+        # `editable` is a retired Option-B field; Pydantic rejects under
+        # extra="forbid" and the rejection should surface the offending
+        # input value in the error message.
+        "sections": [
+            {
+                "title": "S",
+                "description": "b",
+                "code": "x = 1",
+                "editable": True,
+            }
+        ],
     }
     try:
-        RawExerciseModel.model_validate(bad)
+        ExerciseDefinition.model_validate(bad)
     except ValidationError as ve:
         errors = from_pydantic(Path("ex.yaml"), ve)
     else:  # pragma: no cover
         raise AssertionError("expected ValidationError")
 
-    assert any("1.5" in e.message for e in errors)
+    assert any("True" in e.message for e in errors)

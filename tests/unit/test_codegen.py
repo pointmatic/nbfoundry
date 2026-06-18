@@ -147,46 +147,11 @@ def test_generate_emits_one_markdown_and_one_code_cell_per_section(tmp_path: Pat
 
 
 # --------------------------------------------------------------------------- #
-# Build-time purity
-# --------------------------------------------------------------------------- #
-
-_FORBIDDEN_BUILD_TIME_IMPORTS = frozenset(
-    {
-        "torch",
-        "tensorflow",
-        "keras",
-        "transformers",
-        "datasets",
-        "peft",
-        "sentencepiece",
-        "tiktoken",
-        "optuna",
-        "modelfoundry",
-        "datarefinery",
-    }
-)
-
-
-def test_codegen_module_has_no_build_time_ml_imports() -> None:
-    src = Path(codegen.__file__).read_text(encoding="utf-8")
-    tree = ast.parse(src)
-    offenders: list[str] = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            for alias in node.names:
-                root = alias.name.split(".")[0]
-                if root in _FORBIDDEN_BUILD_TIME_IMPORTS:
-                    offenders.append(alias.name)
-        elif isinstance(node, ast.ImportFrom):
-            root = (node.module or "").split(".")[0]
-            if root in _FORBIDDEN_BUILD_TIME_IMPORTS:
-                offenders.append(node.module or "")
-    assert offenders == [], f"codegen.py imports ML framework(s) at build time: {offenders}"
-
-
-# --------------------------------------------------------------------------- #
 # ensure_marimo_pinned()
 # --------------------------------------------------------------------------- #
+#
+# Build-time purity for codegen.py is covered authoritatively by
+# tests/unit/test_build_time_purity.py.
 
 
 def _env(**over: object) -> EnvironmentModel:
