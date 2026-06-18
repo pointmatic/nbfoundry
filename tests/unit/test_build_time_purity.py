@@ -109,9 +109,7 @@ def test_modelfoundry_boundary_module_is_not_imported_by_compile_path() -> None:
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 for alias in node.names:
-                    if alias.name.endswith("_modelfoundry") or alias.name.endswith(
-                        ".modelfoundry"
-                    ):
+                    if alias.name.endswith("_modelfoundry") or alias.name.endswith(".modelfoundry"):
                         bad.append(alias.name)
             elif isinstance(node, ast.ImportFrom):
                 mod = node.module or ""

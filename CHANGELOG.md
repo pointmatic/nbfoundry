@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.46.0] - 2026-06-18
+
+**Phase I — LearningFoundry Integration Refactoring.** Migrates `compile_exercise` from the LearningFoundry Option-B (static-display) contract to Option C (banner + `learningfoundry launch` + notebook-emit). The compiled exercise dict is now an 8-key wire shape whose `notebook_source` field is itself a self-contained `marimo.App()` module the learner runs locally; the previous static-display fields (sections / expected_outputs / submission / assets / status / instructions) are gone. **This is a breaking output-shape change** — any consumer reading the v0.45.0 dict will see different keys after upgrading.
+
+### Added
+- `src/nbfoundry/codegen.py` (Story I.c): `generate(defn, base_dir) -> str` emits a self-contained `marimo.App()` module string from an `ExerciseDefinition`. Cell layout: one header cell + per-section `mo.md(...)` markdown cell + code cell. Framework imports (`import torch`, etc.) appear only as **source text** inside emitted cells; `codegen.py` imports no ML framework. Sibling helper `ensure_marimo_pinned(env)` appends `marimo>=<importlib.metadata.version("marimo")>` to `environment.dependencies` when the author omitted it, preserves existing marimo entries (including `marimo[lsp]>=…`), and does not misidentify lookalike package names. Byte-stable output (cross-process SHA-identical).
+- `notebook_source` field in the `compile_exercise` dict — a complete `marimo.App()` module as a string; `learningfoundry launch <id>` materializes it on the learner's machine and spawns `marimo edit` against it.
+- Option-C input schema (Story I.b): `ExerciseDefinition` (`title`, `description`, `sections[]`, optional `hints[]` markdown, optional `environment`) and `SectionModel` (`title`, `description`, `code` XOR `code_file`); Pydantic v2 with `extra="forbid"` rejects unknown fields including the retired Option-B keys.
+- `tests/unit/test_build_time_purity.py` (Story I.e): authoritative parametrized AST scan over every module on the build-time compile path (`__init__.py`, `schema.py`, `compiler.py`, `codegen.py`, `cli.py`, `config.py`, `errors.py`, `logging_setup.py`, `markdown.py`, `notebooks.py`, `paths.py`, `standalone.py`) asserting that none imports `torch`, `tensorflow`, `keras`, `transformers`, `datasets`, `peft`, `sentencepiece`, `tiktoken`, `optuna`, `modelfoundry`, or `datarefinery`. Sibling test asserts none of those modules imports the `_modelfoundry.py` lazy-import boundary either.
+- `tests/integration/test_marimo_loads_generated.py` (Story I.e): loads the compiled `notebook_source` via `importlib.util.spec_from_file_location` and asserts a top-level `marimo.App` instance — no subprocess, no marimo server, no ML deps.
+- Option-C test fixtures: `tests/fixtures/exercises/valid_minimal.yaml` and `tests/fixtures/exercises/tree/exercise.yaml` + `tree/sections/{load,summarize}.py` (exercises `code_file` inlining). `tests/fixtures` excluded from `ruff` (`[tool.ruff] extend-exclude`) — the snippet files are intentionally cross-cell-stateful for marimo.
+- "Retired in v0.46.0" subsection in [features.md](docs/specs/features.md) documenting BR-4 (graded submission), BR-5 (image assets), the retired wire fields, and the `editable` per-section flag, with a note that BR-1/BR-2/BR-3 are intentionally not renumbered.
+
+### Changed (BREAKING)
+- **`compile_exercise(yaml_path, base_dir) -> dict` returns the Option-C wire shape** (Story I.d): exactly 8 keys — `{type: "exercise", source: "nbfoundry", ref, title, description, hints, environment, notebook_source}`. `description` and each `hints[i]` are rendered HTML (markdown source from the YAML run through `markdown-it-py` per the `markdown_flavor` toggle). `environment` is `None` when the author omitted it; otherwise a `CompiledEnvironment` TypedDict with a guaranteed `marimo` pin in `dependencies`.
+- **`compile_exercise` signature dropped the `allow_large_assets` kwarg** — the gate is meaningless once assets are gone.
+- **`nbfoundry compile-exercise` CLI dropped the `--allow-large-assets` flag** — same reason.
+- `validate_exercise(yaml_path, base_dir) -> list[str]` now validates against `ExerciseDefinition` (Option-C shape) and returns all errors with collect-all semantics; YAML parse / missing-file / non-mapping-top-level short-circuits unchanged. `validate_exercise` lives in `compiler.py` (no separate `validator.py`).
+- The compile path no longer runs `notebooks.parse_all` on `code_file` references — under Option C those are plain code snippets inlined into a marimo cell, not whole marimo notebooks. Python / marimo syntax is evaluated at notebook run time on the learner's machine.
+- All four specs reconciled to Option C: [features.md](docs/specs/features.md) (Stories I.f.2), [tech-spec.md](docs/specs/tech-spec.md) (I.f.3), [concept.md](docs/specs/concept.md) (I.f.4), [README.md](README.md) (I.f.5). The LearningFoundry consumer dependency-spec link target moved from `docs/specs/learningfoundry/dependency-spec.md` to `docs/specs/learningfoundry/consumer-dependency-spec.md` in all four places.
+
+### Removed (BREAKING)
+- `src/nbfoundry/assets.py` (Story I.d) — image-asset enumeration, existence checks, size policy. The notebook renders its own outputs at run time; LearningFoundry no longer stages binary assets.
+- `AssetsConfig` from `src/nbfoundry/config.py` (Story I.f.1) — `max_single_asset_mb`, `warn_single_asset_mb`, `allow_large_assets`. Also dropped the `[assets]` TOML section parse and the assets-group `merge_cli(...)` branch.
+- Option-B schema models from `src/nbfoundry/schema.py` (Story I.b): `RawSectionModel`, `RawExerciseModel`, `RawExpectedOutputModel`, `ExpectedRule`, `SubmissionFieldModel`, `SubmissionModel`, `CompiledSection`, `CompiledExpectedImage`, `CompiledExpectedTextOrTable`, `CompiledExpectedOutput`, `CompiledSubmissionField`, `CompiledSubmission`. The per-section `editable` flag is gone — cell editability is LearningFoundry's `ExerciseBlock` concern under Option C.
+- Wire-shape fields retired from the `compile_exercise` dict: `status`, `instructions`, `sections[]`, `expected_outputs[]`, `assets[]`, `submission`. The new shape has `description` (HTML) + `hints` (HTML list) + `notebook_source` (marimo module string) instead.
+- BR-4 (graded submission schema with `pass_threshold` / `fields[]` / `expected` rules) and BR-5 (image-asset enumeration with `expected_outputs[i] of type: image`) are retired in the consumer dependency spec; see [features.md § "Retired in v0.46.0"](docs/specs/features.md). Graded submission is parked as a future marimo-cell-output concern in [stories.md § Future](docs/specs/stories.md).
+- Option-B test files and fixtures (Story I.e): 11 retired test files under `tests/unit/` and `tests/integration/` (`test_assets.py`, `test_fixtures_corpus.py`, `test_aggregate_tree.py`, `test_schema_fidelity.py`, the legacy `test_compiler.py` / `test_validator.py` / `test_schema.py` / etc.); the `tests/fixtures/golden/` directory; 14 retired `*.yaml` corpus files; `tests/fixtures/exercises/assets/`; the Option-B `tree/notebooks/` (FR-6 multi-notebook tree).
+
+### Documentation
+- All four specs (features / tech-spec / concept / README) now describe the Option-C contract end-to-end with consistent vocabulary and a single shared link target (`learningfoundry/consumer-dependency-spec.md`).
+- [Phase I plan](docs/specs/phase-i-learningfoundry-integration-refactoring-plan.md) carries a "Story I.a — Spike Findings" section documenting the cell-emission pattern, the marimo-version sourcing strategy, and one open design question for downstream codegen work (reactive dataflow between author-supplied code cells, intentionally deferred to a future story).
+
+### Migration notes (for v0.45.0 consumers)
+- The `compile_exercise` return-dict shape is **different**. Code reading `dict["sections"]`, `dict["expected_outputs"]`, `dict["assets"]`, `dict["submission"]`, `dict["status"]`, or `dict["instructions"]` will see `KeyError` after upgrading. Read `dict["notebook_source"]` (the marimo module to run) and the banner metadata (`title` / `description` / `hints` / `environment`) instead.
+- Exercise YAML inputs must use the new `ExerciseDefinition` shape: drop top-level `expected_outputs`, `submission`, and the per-section `editable` flag. `ExerciseDefinition`'s `extra="forbid"` will reject the legacy keys with a clear error.
+- The `compile_exercise(...)` Python call drops `allow_large_assets=True`; the CLI's `--allow-large-assets` flag is gone. Existing YAMLs that referenced large images via the retired `expected_outputs[i]` of `type: image` should remove those entries — the learner notebook now renders its own outputs at run time.
+
 ## [0.45.0] - 2026-06-15
 
 ### Added

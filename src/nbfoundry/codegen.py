@@ -83,12 +83,7 @@ def _header_cell(banner_md: str) -> str:
 
 
 def _markdown_cell(md_source: str) -> str:
-    return (
-        "@app.cell\n"
-        "def _(mo):\n"
-        f"    mo.md({md_source!r})\n"
-        "    return\n"
-    )
+    return f"@app.cell\ndef _(mo):\n    mo.md({md_source!r})\n    return\n"
 
 
 def _code_cell(code: str) -> str:
@@ -121,12 +116,7 @@ def generate(defn: ExerciseDefinition, *, base_dir: Path) -> str:
         cells.append(_markdown_cell(_section_markdown(section)))
         cells.append(_code_cell(_section_code(section, base_dir)))
 
-    header = (
-        "import marimo\n"
-        "\n"
-        f"__generated_with = {_marimo_version()!r}\n"
-        "app = marimo.App()\n"
-    )
+    header = f"import marimo\n\n__generated_with = {_marimo_version()!r}\napp = marimo.App()\n"
     footer = 'if __name__ == "__main__":\n    app.run()\n'
     return header + "\n\n" + "\n\n".join(cells) + "\n\n" + footer
 

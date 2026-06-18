@@ -173,14 +173,16 @@ Update the user-facing README to show Option-C output.
 
 **Cycle impact.** Pure documentation story; no code or test changes. Suite + ruff + mypy unchanged from I.f.1 baseline (149 pass / 0 fail / 7 deselected / coverage 93.02%).
 
-### Story I.f.6: v0.46.0 release — version bump + CHANGELOG + dogfood [Planned]
+### Story I.f.6: v0.46.0 release — version bump + CHANGELOG + dogfood [Done]
 
 Ship the Phase I bundle. **This story carries the v0.46.0 version bump for the entire phase.**
 
-- [ ] Bump version to **v0.46.0** in `src/nbfoundry/_version.py`
-- [ ] Add `CHANGELOG.md` v0.46.0 entry: breaking output-shape change (8-key Option-C dict with `notebook_source`); `compile_exercise` lost `allow_large_assets` kwarg + `--allow-large-assets` CLI flag; `assets.py` removed; `AssetsConfig` removed; BR-4 (graded submission) + BR-5 (image assets) retired
-- [ ] Dogfood: `pyve run nbfoundry compile-exercise tests/fixtures/exercises/valid_minimal.yaml` succeeds and prints a JSON dict with `notebook_source` (the marimo-loads-the-generated-module smoke from I.e already covers runtime validity)
-- [ ] Verify: full suite green; coverage gate (≥85%) satisfied; mypy strict clean; ruff clean
+- [x] Bump version to **v0.46.0** in `src/nbfoundry/_version.py` — confirmed via `pyve run nbfoundry --version` → `nbfoundry 0.46.0`
+- [x] Add `CHANGELOG.md` v0.46.0 entry: breaking output-shape change (8-key Option-C dict with `notebook_source`); `compile_exercise` lost `allow_large_assets` kwarg + `--allow-large-assets` CLI flag; `assets.py` removed; `AssetsConfig` removed; BR-4 (graded submission) + BR-5 (image assets) retired — entry organized per Keep-a-Changelog with Added / Changed (BREAKING) / Removed (BREAKING) / Documentation / Migration notes sections; dated 2026-06-18
+- [x] Dogfood: `pyve run nbfoundry compile-exercise tests/fixtures/exercises/valid_minimal.yaml` succeeds and prints a JSON dict with `notebook_source` (the marimo-loads-the-generated-module smoke from I.e already covers runtime validity) — verified end-to-end; output is the expected 8-key dict (`type: "exercise"`, `source: "nbfoundry"`, `ref: "valid_minimal.yaml"`, HTML-rendered `description`, empty `hints`, `null` environment, and a `notebook_source` that begins `import marimo\n...` and ends `if __name__ == "__main__": app.run()`)
+- [x] Verify: full suite green; coverage gate (≥85%) satisfied; mypy strict clean; ruff clean — **149 passed / 0 failed / 7 deselected**; coverage 93.02%; `mypy --strict` clean on 14 source files; `ruff check` and **`ruff format --check`** both clean across `src/` and `tests/`
+
+**Post-release amend.** CI flagged `ruff format --check` violations on three files committed earlier in Phase I (`scripts/spike_codegen.py`, `src/nbfoundry/codegen.py`, `tests/unit/test_build_time_purity.py`) — they passed `ruff check` (lint) but not `ruff format --check` (formatter). The formatter is a separate CI gate from the linter and I missed it during the I.a / I.c / I.e cycles. Applied `ruff format` to the three files (behavior-preserving whitespace / line-joining changes only); re-verified the full gate set (149 passed, mypy strict clean, ruff check clean, ruff format --check clean across 46 files, coverage 93.02%). Per developer direction, folded into the v0.46.0 commit via `git commit --amend` rather than spawning an I.f.7 patch story.
 
 ---
 
