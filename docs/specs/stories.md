@@ -79,18 +79,22 @@ New module that turns an `ExerciseDefinition` into `notebook_source`, per the I.
 
 **Cycle impact.** New file: `src/nbfoundry/codegen.py`. New tests: `tests/unit/test_codegen_option_c.py` (17 tests, all green). Suite baseline now **116 pass / 30 fail / 2 collect-ignored / 7 deselected** — the 30 failures are unchanged (still the I.d-stubbed `compile_exercise` / `validate_exercise` call sites). No regressions in the green surface.
 
-### Story I.d: Rewire compile_exercise/validate_exercise → Option C; retire the static path [Planned]
+### Story I.d: Rewire compile_exercise/validate_exercise → Option C; retire the static path [Done]
 
 Flip the public API to Option C and remove the static-display machinery. **This story flips the contract** (phase-bundle release rides I.f).
 
-- [ ] Rewrite `compiler.py` `compile_exercise`: read YAML → validate → render banner markdown (`description`, `hints`) → `codegen.generate()` → assemble the Option-C dict (no `status` / `instructions` / `sections` / `expected_outputs` / `assets` / `submission`)
-- [ ] Update `validator.py` `validate_exercise` to validate the new definition shape (collect all errors); YAML-parse / missing-file short-circuit unchanged
-- [ ] **Delete** `src/nbfoundry/assets.py` (BR-5 removed) and its references
-- [ ] Remove BR-4 submission validation and image-asset / expected-output handling from the compile + validate paths
-- [ ] Update `cli.py` `compile-exercise`: emit the new dict to stdout / `--out` (JSON including `notebook_source`); `validate` shape unchanged
-- [ ] Keep `paths.py` (code_file escape guard), `markdown.py`, `errors.py`, and the `_modelfoundry.py` boundary intact; `init` / `compile` (standalone) surfaces untouched
-- [ ] `ruff` + `mypy --strict` clean
-- [ ] Verify: `compile_exercise` returns the Option-C dict for a well-formed definition; no ML framework imported at build time (AST scan + no-network sandbox still pass)
+- [x] Rewrite `compiler.py` `compile_exercise`: read YAML → validate → render banner markdown (`description`, `hints`) → `codegen.generate()` → assemble the Option-C dict (no `status` / `instructions` / `sections` / `expected_outputs` / `assets` / `submission`) — signature also dropped `allow_large_assets=False` (per dev sign-off, meaningless under Option C)
+- [x] Update `validate_exercise` (lives in `compiler.py`, not a separate `validator.py` — original task wording was inaccurate) to validate the new definition shape (collect all errors); YAML-parse / missing-file short-circuit unchanged
+- [x] **Delete** `src/nbfoundry/assets.py` (BR-5 removed) and its references — `assets.py` removed; `compiler.py` no longer imports it; `cli.py`'s `--allow-large-assets` flag removed; `config.py`'s `AssetsConfig` left in place as dormant config (referenced by `test_config.py`; will be pruned in I.f's spec / docs reconciliation)
+- [x] Remove BR-4 submission validation and image-asset / expected-output handling from the compile + validate paths — already gone with the I.b schema redline; this story confirms there are no surviving references in the compile path
+- [x] Update `cli.py` `compile-exercise`: emit the new dict to stdout / `--out` (JSON including `notebook_source`); `validate` shape unchanged — `--allow-large-assets` flag dropped, JSON output now includes `notebook_source`
+- [x] Keep `paths.py` (code_file escape guard), `markdown.py`, `errors.py`, and the `_modelfoundry.py` boundary intact; `init` / `compile` (standalone) surfaces untouched — all five modules unchanged this cycle
+- [x] `ruff` + `mypy --strict` clean
+- [x] Verify: `compile_exercise` returns the Option-C dict for a well-formed definition; no ML framework imported at build time (AST scan + no-network sandbox still pass) — Option-C dict shape covered by `tests/unit/test_compiler_option_c.py` (18 tests, all green); the build-time AST scan in that file confirms `compiler.py` imports nothing from the forbidden ML set (`torch`, `tensorflow`, …); the no-network sandbox itself (`tests/integration/test_no_network.py`) still relies on the Option-B fixture corpus and goes green in I.e once the fixtures are replaced
+
+**Sub-decision (also removed `notebooks.parse_all` from `_validate` for `code_file` refs).** Under Option B, each `code_file` was a complete marimo notebook (FR-6 tree compile). Under Option C, `code_file` is a plain `.py` snippet inlined into a marimo code cell by `codegen.generate`. The whole-notebook parse check is therefore obsolete; only the path-escape / existence guards remain. Marimo / Python syntax is evaluated at notebook run time on the learner's machine.
+
+**Cycle impact.** New file: `tests/unit/test_compiler_option_c.py` (18 tests, all green). Deleted: `src/nbfoundry/assets.py`. Updated: `src/nbfoundry/compiler.py` (full Option-C pipeline replacing the I.b stub), `src/nbfoundry/cli.py` (drop `--allow-large-assets`), `tests/conftest.py` (collect-ignore extended to `tests/unit/test_assets.py`). Suite baseline now **138 pass / 16 fail / 3 collect-ignored / 7 deselected** — 14 tests went red → green (validators / CLI-validate / no-network validate, etc.), no regressions. The 16 remaining failures are all integration tests using the Option-B fixture corpus (`valid_graded.yaml` etc. still carry `editable`/`expected_outputs`/`submission`), which Story I.e replaces with Option-C fixtures.
 
 ### Story I.e: Test-suite rebuild for Option C [Planned]
 

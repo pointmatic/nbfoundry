@@ -31,6 +31,7 @@ GOLDEN_DIR = FIXTURES_DIR / "golden"
 collect_ignore = [
     "unit/test_schema.py",
     "unit/test_errors.py",
+    "unit/test_assets.py",
 ]
 
 

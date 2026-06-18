@@ -166,14 +166,11 @@ def cmd_compile_exercise(
     out: Annotated[
         Path | None, typer.Option("--out", help="Write JSON to this path instead of stdout.")
     ] = None,
-    allow_large_assets: Annotated[
-        bool, typer.Option("--allow-large-assets", help="Bypass max_single_asset_mb gate.")
-    ] = False,
 ) -> None:
-    """Compile an exercise YAML to its BR-1 JSON artifact."""
+    """Compile an exercise YAML to its Option-C JSON artifact (includes `notebook_source`)."""
     effective_base = (base_dir or yaml_path.parent).resolve()
     relative = yaml_path.resolve().relative_to(effective_base)
-    compiled = compile_exercise(relative, effective_base, allow_large_assets=allow_large_assets)
+    compiled = compile_exercise(relative, effective_base)
     rendered = json.dumps(
         compiled, sort_keys=False, ensure_ascii=False, separators=(",", ": "), indent=2
     )
