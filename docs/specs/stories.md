@@ -203,6 +203,21 @@ Add an optional `hide_code` flag to a section so its generated marimo code cell 
 
 ---
 
+### Story I.h: v0.47.1 — banner cell emitted with hidden code [Done]
+
+The banner/header cell that `codegen.generate` puts at the top of every `compile-exercise` notebook is emitted as a visible-code `@app.cell`, so every generated notebook shows the `import marimo as mo` / `mo.md(...)` boilerplate above the rendered title+description. It should be a hidden-code cell (`@app.cell(hide_code=True)`) — the banner is pure presentation. Bugfix → patch bump. **Scope: the banner (header) cell only** — per-section markdown description cells are unchanged, and code cells remain governed by the I.g per-section `hide_code` flag.
+
+- [x] Codegen: `_header_cell` in `src/nbfoundry/codegen.py` emits `@app.cell(hide_code=True)` instead of `@app.cell`; `mo` is still defined/exported so dataflow is unchanged (`hide_code` is display-only)
+- [x] New unit test: the banner/header cell carries `@app.cell(hide_code=True)` (anchored to its `import marimo as mo` body) — `test_generate_banner_cell_has_hidden_code`, plus `test_generate_unflagged_section_leaves_only_banner_hidden`
+- [x] Update the 3 I.g codegen tests whose bare-cell counts assume a visible banner (baseline intentionally changes — not regressions): bare-cell count 5→4; the default-section test now sees exactly 1 hidden cell (the banner); the flagged-section test sees 2 hidden (banner + flagged) / 3 bare
+- [x] `ruff` + `ruff format --check` + `mypy --strict` clean
+- [x] Mark tasks `[x]`, flip suffix to `[Done]`; bump version to **v0.47.1** in `src/nbfoundry/_version.py`; add `CHANGELOG.md` v0.47.1 entry
+- [x] Verify: `pyve test` green; coverage gate (≥85%) satisfied
+
+**Cycle impact.** Code: one-line `_header_cell` change in `src/nbfoundry/codegen.py`. Tests: +1 net in `tests/unit/test_codegen.py` (added `test_generate_banner_cell_has_hidden_code`; renamed the I.g default-section test to `test_generate_unflagged_section_leaves_only_banner_hidden`; updated the bare-cell counts in two more I.g tests for the new banner baseline). Docs: features.md FR-5 step 2 notes the hidden banner. Suite **157 passed / 0 failed / 7 deselected — coverage 93.05%**; ruff check + `ruff format --check` clean across 45 files; mypy strict clean on 14 source files.
+
+---
+
 ## Future
 
 <!--

@@ -72,8 +72,12 @@ def _section_code(section: SectionModel, base_dir: Path) -> str:
 
 
 def _header_cell(banner_md: str) -> str:
+    # The banner is pure presentation: hide its code (Story I.h) so the learner
+    # sees the rendered title+description, not the `import marimo as mo` /
+    # `mo.md(...)` boilerplate. `mo` is still defined and exported, so the
+    # markdown cells' dataflow is unchanged — `hide_code` is display-only.
     return (
-        "@app.cell\n"
+        "@app.cell(hide_code=True)\n"
         "def _():\n"
         "    import marimo as mo\n"
         "\n"

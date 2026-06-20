@@ -194,7 +194,7 @@ The compiled dict is **the entire LearningFoundry handoff**: the SvelteKit banne
 
 **Behavior:**
 1. Emit a module-level prelude: `import marimo`, `__generated_with = "<installed marimo version>"`, `app = marimo.App()`.
-2. Emit one header cell that does `import marimo as mo` and renders `# {title}\n\n{description}` via `mo.md(...)`. The cell exports `mo` so subsequent markdown cells reuse it via marimo's reactive arg-injection.
+2. Emit one header cell that does `import marimo as mo` and renders `# {title}\n\n{description}` via `mo.md(...)`. The cell exports `mo` so subsequent markdown cells reuse it via marimo's reactive arg-injection. The header cell is emitted with hidden code (`@app.cell(hide_code=True)`) — it is pure presentation, so the learner sees the rendered banner, not the boilerplate (Story I.h).
 3. For each section, emit two cells in order: a markdown cell (`mo.md('## {section.title}\n\n{section.description}')`) and a code cell whose body is the section's code (read from `code` inline or from `code_file` via `paths.resolve_under`).
 4. Emit a footer: `if __name__ == "__main__": app.run()`.
 5. The marimo version (for `__generated_with` and the `marimo>=...` pin) is sourced at gen time via `importlib.metadata.version("marimo")`; never hard-coded.

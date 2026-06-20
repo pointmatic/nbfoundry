@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.47.1] - 2026-06-20
+
+### Fixed
+- The banner/header cell that `codegen.generate` puts at the top of every `compile-exercise` notebook is now emitted as `@app.cell(hide_code=True)` instead of a visible-code `@app.cell` (Story I.h). Previously every generated notebook showed the `import marimo as mo` / `mo.md(...)` boilerplate above the rendered title+description; the banner is pure presentation, so its code is now hidden. `mo` is still defined and exported, so the markdown cells' dataflow is unchanged — `hide_code` is display-only. Per-section markdown cells are unchanged; section *code* cells remain governed by the per-section `hide_code` flag added in 0.47.0.
+
 ## [0.47.0] - 2026-06-20
 
 ### Added

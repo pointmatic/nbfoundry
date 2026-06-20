@@ -142,18 +142,29 @@ def test_generate_emits_one_markdown_and_one_code_cell_per_section(tmp_path: Pat
         ]
     )
     src = codegen.generate(defn, base_dir=tmp_path)
-    # 1 header cell + 2 sections * (1 md cell + 1 code cell) = 5 @app.cell decorators
-    assert src.count("@app.cell\n") == 5
+    # The banner/header cell is hidden (Story I.h), so the bare `@app.cell`
+    # decorators are: 2 sections * (1 md cell + 1 code cell) = 4.
+    assert src.count("@app.cell\n") == 4
 
 
 # --------------------------------------------------------------------------- #
-# hide_code (Story I.g)
+# hide_code (Story I.g) + hidden banner (Story I.h)
 # --------------------------------------------------------------------------- #
 
 
-def test_generate_default_section_has_no_hide_code(tmp_path: Path) -> None:
+def test_generate_banner_cell_has_hidden_code(tmp_path: Path) -> None:
+    # Story I.h: the banner/header cell is pure presentation — its code
+    # (`import marimo as mo` + `mo.md(...)`) must be hidden so the learner sees
+    # the rendered title+description, not the boilerplate.
     src = codegen.generate(_defn(), base_dir=tmp_path)
-    assert "@app.cell(hide_code=True)" not in src
+    assert "@app.cell(hide_code=True)\ndef _():\n    import marimo as mo\n" in src
+
+
+def test_generate_unflagged_section_leaves_only_banner_hidden(tmp_path: Path) -> None:
+    # With no section flagged, the lone hidden cell is the banner (Story I.h);
+    # an unflagged section's code cell stays bare (Story I.g default).
+    src = codegen.generate(_defn(), base_dir=tmp_path)
+    assert src.count("@app.cell(hide_code=True)\n") == 1
 
 
 def test_generate_emits_hide_code_decorator_when_set(tmp_path: Path) -> None:
@@ -185,11 +196,11 @@ def test_generate_hide_code_only_affects_flagged_section(tmp_path: Path) -> None
         ]
     )
     src = codegen.generate(defn, base_dir=tmp_path)
-    # Exactly one section's code cell is hidden.
-    assert src.count("@app.cell(hide_code=True)\n") == 1
-    # Markdown cells (both sections) and the visible section's code cell + the
-    # header cell stay bare: 1 header + 2 md cells + 1 visible code cell = 4.
-    assert src.count("@app.cell\n") == 4
+    # Two hidden cells: the banner (Story I.h) + the one flagged section.
+    assert src.count("@app.cell(hide_code=True)\n") == 2
+    # Bare cells: 2 md cells + the visible section's code cell = 3 (the banner
+    # is no longer bare).
+    assert src.count("@app.cell\n") == 3
 
 
 # --------------------------------------------------------------------------- #
