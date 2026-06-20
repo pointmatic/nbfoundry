@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.47.2] - 2026-06-20
+
+### Fixed
+- Per-section markdown (header) cells in the generated notebook are now emitted as `@app.cell(hide_code=True)` instead of visible-code `@app.cell` (Story I.i), completing the hidden-banner fix from 0.47.1. Like the banner, these cells are pure presentation (`mo.md('## …')`), so their boilerplate is now hidden. `mo` is still injected via marimo's reactive args — `hide_code` is display-only. The result is a consistent model: every auto-generated markdown cell (banner + section headers) is hidden, while section *code* cells stay visible by default and are hideable per-section via the `hide_code` flag (0.47.0).
+
 ## [0.47.1] - 2026-06-20
 
 ### Fixed

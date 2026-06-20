@@ -218,6 +218,22 @@ The banner/header cell that `codegen.generate` puts at the top of every `compile
 
 ---
 
+### Story I.i: v0.47.2 — per-section markdown (header) cells emitted with hidden code [Done]
+
+Like the banner (I.h), the per-section markdown cells `codegen.generate` emits (`@app.cell` → `mo.md('## {title}\n\n{description}')`) are pure presentation but currently show their `mo.md(...)` boilerplate. Emit them as `@app.cell(hide_code=True)` too. This completes a consistent model: **every auto-generated markdown cell (banner + section descriptions) is hidden**, while section *code* cells stay visible-by-default and hideable via the I.g per-section `hide_code` flag. The module prelude and footer are marimo file scaffolding (not rendered cells), so they're out of scope — there are no other decorative emissions. Bugfix → patch bump.
+
+- [x] Codegen: `_markdown_cell` in `src/nbfoundry/codegen.py` emits `@app.cell(hide_code=True)` instead of `@app.cell`; the cell still takes `mo` via reactive arg-injection (`hide_code` is display-only)
+- [x] New unit test: per-section markdown cells are hidden (`@app.cell(hide_code=True)\ndef _(mo):` present; no bare `@app.cell\ndef _(mo):`) — `test_generate_section_markdown_cells_are_hidden`
+- [x] Update the I.g/I.h codegen count tests for the new baseline (markdown cells now hidden); refactored toward role-based assertions (markdown cells take `def _(mo):`, code cells `def _():`) — `…one_markdown_and_one_code_cell_per_section`, renamed `…unflagged_section_code_cell_stays_visible`, and `…hide_code_only_affects_flagged_section`
+- [x] Docs: update features.md FR-5 step 3 / CR-6 cell-layout note to reflect hidden markdown cells
+- [x] `ruff` + `ruff format --check` + `mypy --strict` clean
+- [x] Mark tasks `[x]`, flip suffix to `[Done]`; bump version to **v0.47.2** in `src/nbfoundry/_version.py`; add `CHANGELOG.md` v0.47.2 entry
+- [x] Verify: `pyve test` green; coverage gate (≥85%) satisfied
+
+**Cycle impact.** Code: one-line `_markdown_cell` change in `src/nbfoundry/codegen.py`. Tests: +1 net in `tests/unit/test_codegen.py` (added `test_generate_section_markdown_cells_are_hidden`; refactored three I.g/I.h count tests to role-based assertions). Docs: features.md CR-6 + FR-5 step 3 note the hidden markdown cells. Suite **158 passed / 0 failed / 7 deselected — coverage 93.05%**; ruff check + `ruff format --check` clean across 45 files; mypy strict clean on 14 source files.
+
+---
+
 ## Future
 
 <!--

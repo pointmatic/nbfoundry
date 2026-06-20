@@ -87,7 +87,10 @@ def _header_cell(banner_md: str) -> str:
 
 
 def _markdown_cell(md_source: str) -> str:
-    return f"@app.cell\ndef _(mo):\n    mo.md({md_source!r})\n    return\n"
+    # Per-section markdown (header) cells are pure presentation, like the banner
+    # (Story I.i): hide their `mo.md(...)` code. `mo` is still injected via
+    # marimo's reactive args — `hide_code` is display-only.
+    return f"@app.cell(hide_code=True)\ndef _(mo):\n    mo.md({md_source!r})\n    return\n"
 
 
 def _code_cell(code: str, *, hide_code: bool = False) -> str:

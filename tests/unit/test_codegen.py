@@ -142,13 +142,15 @@ def test_generate_emits_one_markdown_and_one_code_cell_per_section(tmp_path: Pat
         ]
     )
     src = codegen.generate(defn, base_dir=tmp_path)
-    # The banner/header cell is hidden (Story I.h), so the bare `@app.cell`
-    # decorators are: 2 sections * (1 md cell + 1 code cell) = 4.
-    assert src.count("@app.cell\n") == 4
+    # One markdown cell + one code cell per section. Markdown cells take `mo`
+    # via reactive injection and are hidden (Story I.i); the code cells here
+    # are unflagged, so they stay bare.
+    assert src.count("def _(mo):\n") == 2  # 2 section markdown cells
+    assert src.count("@app.cell\n") == 2  # 2 bare (unflagged code) cells
 
 
 # --------------------------------------------------------------------------- #
-# hide_code (Story I.g) + hidden banner (Story I.h)
+# hide_code (Story I.g) + hidden banner (I.h) + hidden section markdown (I.i)
 # --------------------------------------------------------------------------- #
 
 
@@ -160,11 +162,26 @@ def test_generate_banner_cell_has_hidden_code(tmp_path: Path) -> None:
     assert "@app.cell(hide_code=True)\ndef _():\n    import marimo as mo\n" in src
 
 
-def test_generate_unflagged_section_leaves_only_banner_hidden(tmp_path: Path) -> None:
-    # With no section flagged, the lone hidden cell is the banner (Story I.h);
-    # an unflagged section's code cell stays bare (Story I.g default).
+def test_generate_section_markdown_cells_are_hidden(tmp_path: Path) -> None:
+    # Story I.i: per-section markdown (header) cells are pure presentation, like
+    # the banner — emit them hidden. They still take `mo` via reactive injection.
+    defn = _defn(
+        sections=[
+            {"title": "A", "description": "Da.", "code": "a = 1\n"},
+            {"title": "B", "description": "Db.", "code": "b = 2\n"},
+        ]
+    )
+    src = codegen.generate(defn, base_dir=tmp_path)
+    assert "@app.cell(hide_code=True)\ndef _(mo):\n" in src
+    assert "@app.cell\ndef _(mo):\n" not in src  # no bare markdown cell remains
+
+
+def test_generate_unflagged_section_code_cell_stays_visible(tmp_path: Path) -> None:
+    # The banner and the section markdown cell are hidden (Stories I.h/I.i);
+    # an unflagged section's *code* cell stays bare (Story I.g default).
     src = codegen.generate(_defn(), base_dir=tmp_path)
-    assert src.count("@app.cell(hide_code=True)\n") == 1
+    assert "@app.cell\ndef _():\n    import torch" in src  # code cell is bare
+    assert src.count("@app.cell(hide_code=True)\n") == 2  # banner + section md
 
 
 def test_generate_emits_hide_code_decorator_when_set(tmp_path: Path) -> None:
@@ -196,11 +213,12 @@ def test_generate_hide_code_only_affects_flagged_section(tmp_path: Path) -> None
         ]
     )
     src = codegen.generate(defn, base_dir=tmp_path)
-    # Two hidden cells: the banner (Story I.h) + the one flagged section.
-    assert src.count("@app.cell(hide_code=True)\n") == 2
-    # Bare cells: 2 md cells + the visible section's code cell = 3 (the banner
-    # is no longer bare).
-    assert src.count("@app.cell\n") == 3
+    # The unflagged section's code cell stays bare; the flagged one is hidden.
+    assert "@app.cell\ndef _():\n    a = 1" in src
+    assert "@app.cell(hide_code=True)\ndef _():\n    b = 2" in src
+    # Exactly one *code* cell is bare (the unflagged section); every markdown
+    # cell (banner + 2 section headers) and the flagged code cell are hidden.
+    assert src.count("@app.cell\n") == 1
 
 
 # --------------------------------------------------------------------------- #
