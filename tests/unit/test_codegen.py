@@ -147,6 +147,52 @@ def test_generate_emits_one_markdown_and_one_code_cell_per_section(tmp_path: Pat
 
 
 # --------------------------------------------------------------------------- #
+# hide_code (Story I.g)
+# --------------------------------------------------------------------------- #
+
+
+def test_generate_default_section_has_no_hide_code(tmp_path: Path) -> None:
+    src = codegen.generate(_defn(), base_dir=tmp_path)
+    assert "@app.cell(hide_code=True)" not in src
+
+
+def test_generate_emits_hide_code_decorator_when_set(tmp_path: Path) -> None:
+    defn = _defn(
+        sections=[
+            {
+                "title": "Hidden",
+                "description": "Output only.",
+                "code": "x = 1\n",
+                "hide_code": True,
+            }
+        ]
+    )
+    src = codegen.generate(defn, base_dir=tmp_path)
+    assert "@app.cell(hide_code=True)\n" in src
+    ast.parse(src)  # decorator-with-kwarg must stay valid Python
+
+
+def test_generate_hide_code_only_affects_flagged_section(tmp_path: Path) -> None:
+    defn = _defn(
+        sections=[
+            {"title": "Shown", "description": "Visible.", "code": "a = 1\n"},
+            {
+                "title": "Hidden",
+                "description": "Hidden.",
+                "code": "b = 2\n",
+                "hide_code": True,
+            },
+        ]
+    )
+    src = codegen.generate(defn, base_dir=tmp_path)
+    # Exactly one section's code cell is hidden.
+    assert src.count("@app.cell(hide_code=True)\n") == 1
+    # Markdown cells (both sections) and the visible section's code cell + the
+    # header cell stay bare: 1 header + 2 md cells + 1 visible code cell = 4.
+    assert src.count("@app.cell\n") == 4
+
+
+# --------------------------------------------------------------------------- #
 # ensure_marimo_pinned()
 # --------------------------------------------------------------------------- #
 #

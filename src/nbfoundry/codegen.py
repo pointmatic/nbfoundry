@@ -86,8 +86,9 @@ def _markdown_cell(md_source: str) -> str:
     return f"@app.cell\ndef _(mo):\n    mo.md({md_source!r})\n    return\n"
 
 
-def _code_cell(code: str) -> str:
-    return "@app.cell\ndef _():\n" + _indent(code) + "\n    return\n"
+def _code_cell(code: str, *, hide_code: bool = False) -> str:
+    decorator = "@app.cell(hide_code=True)" if hide_code else "@app.cell"
+    return decorator + "\ndef _():\n" + _indent(code) + "\n    return\n"
 
 
 def _banner_markdown(defn: ExerciseDefinition) -> str:
@@ -114,7 +115,7 @@ def generate(defn: ExerciseDefinition, *, base_dir: Path) -> str:
     cells = [_header_cell(_banner_markdown(defn))]
     for section in defn.sections:
         cells.append(_markdown_cell(_section_markdown(section)))
-        cells.append(_code_cell(_section_code(section, base_dir)))
+        cells.append(_code_cell(_section_code(section, base_dir), hide_code=section.hide_code))
 
     header = f"import marimo\n\n__generated_with = {_marimo_version()!r}\napp = marimo.App()\n"
     footer = 'if __name__ == "__main__":\n    app.run()\n'

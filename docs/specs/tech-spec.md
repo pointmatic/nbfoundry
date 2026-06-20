@@ -320,12 +320,14 @@ class SectionModel(_StrictModel):
     Exactly one of `code` or `code_file` must be present. The chosen body
     lands inside one marimo code cell at compile time (codegen.py). The
     legacy `editable` flag is gone — cell editability is LearningFoundry's
-    `ExerciseBlock` concern.
+    `ExerciseBlock` concern. `hide_code` (default False) opts the section's
+    code cell into marimo's hidden-code state (`@app.cell(hide_code=True)`).
     """
     title: str
     description: str
     code: str | None = None
     code_file: Path | None = None
+    hide_code: bool = False
 
     @model_validator(mode="after")
     def code_xor_code_file(self) -> Self:

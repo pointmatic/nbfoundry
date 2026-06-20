@@ -119,6 +119,43 @@ def test_section_rejects_legacy_editable_field() -> None:
         )
 
 
+def test_section_hide_code_defaults_to_false() -> None:
+    m = schema.ExerciseDefinition.model_validate(_definition())
+    assert m.sections[0].hide_code is False
+
+
+def test_section_accepts_hide_code_true() -> None:
+    m = schema.ExerciseDefinition.model_validate(
+        _definition(
+            sections=[
+                {
+                    "title": "s",
+                    "description": "d",
+                    "code": "x = 1",
+                    "hide_code": True,
+                }
+            ]
+        )
+    )
+    assert m.sections[0].hide_code is True
+
+
+def test_section_rejects_non_bool_hide_code() -> None:
+    with pytest.raises(ValidationError):
+        schema.ExerciseDefinition.model_validate(
+            _definition(
+                sections=[
+                    {
+                        "title": "s",
+                        "description": "d",
+                        "code": "x = 1",
+                        "hide_code": {"not": "a bool"},
+                    }
+                ]
+            )
+        )
+
+
 # --------------------------------------------------------------------------- #
 # Retired names are gone
 # --------------------------------------------------------------------------- #

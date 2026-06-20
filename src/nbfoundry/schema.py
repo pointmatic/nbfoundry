@@ -41,12 +41,18 @@ class SectionModel(_StrictModel):
     lands inside one marimo code cell at compile time (Story I.c). The
     legacy `editable` flag is gone — cell editability is LearningFoundry's
     `ExerciseBlock` concern.
+
+    `hide_code` (Story I.g) opts the section's code cell into marimo's
+    hidden-code state (`@app.cell(hide_code=True)`): the learner sees the
+    cell's output but not its source. It does not affect the markdown
+    description cell. Default `False` (code visible).
     """
 
     title: str
     description: str
     code: str | None = None
     code_file: Path | None = None
+    hide_code: bool = False
 
     @model_validator(mode="after")
     def code_xor_code_file(self) -> Self:

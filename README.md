@@ -124,7 +124,16 @@ sections:
     code: |
       import pandas as pd
       df = pd.read_csv("data.csv")
+  - title: Plot
+    description: Show the distribution.
+    hide_code: true          # learner sees the chart, not the plotting code
+    code: |
+      df.hist()
 ```
+
+A section may set `hide_code: true` (default `false`) to emit its code cell as
+`@app.cell(hide_code=True)`, so the learner sees the cell's output but not its
+source.
 
 ```bash
 nbfoundry compile-exercise exercise.yaml --out exercise.json   # or omit --out for stdout

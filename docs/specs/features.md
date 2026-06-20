@@ -70,7 +70,7 @@ nbfoundry is a Marimo-based ML/DS notebook framework that lets practitioners aut
 
 **Exercise definition (curriculum mode only):**
 - A YAML file conforming to the Option-C `ExerciseDefinition` shape. Required top-level keys: `title`, `description`, `sections` (≥ 1). Optional: `hints` (markdown strings), `environment` (`{python_version, dependencies, setup_instructions}`).
-- Each `sections[i]` has `title`, `description`, and **exactly one** of `code` (inline Python snippet) or `code_file` (relative path).
+- Each `sections[i]` has `title`, `description`, and **exactly one** of `code` (inline Python snippet) or `code_file` (relative path). Optional `hide_code: true` emits that section's code cell as `@app.cell(hide_code=True)` so the learner sees the cell's output but not its source (default `false`).
 - `sections[].code_file` paths are resolved relative to `base_dir` (path-escape guarded; SC-3).
 
 **Environment manifest:**

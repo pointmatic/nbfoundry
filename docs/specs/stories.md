@@ -186,6 +186,23 @@ Ship the Phase I bundle. **This story carries the v0.46.0 version bump for the e
 
 ---
 
+### Story I.g: v0.47.0 — per-section `hide_code` for generated cells [Done]
+
+Add an optional `hide_code` flag to a section so its generated marimo code cell is emitted with the code hidden (`@app.cell(hide_code=True)`) — for exercises that want the learner to see a cell's *output* without its implementation. Default behavior is unchanged (code visible). Additive, backward-compatible feature → minor bump.
+
+- [x] Schema: add `hide_code: bool = False` to `SectionModel` in `src/nbfoundry/schema.py` (snake_case, matching `code_file`); `extra="forbid"` still rejects unknown keys, and the new field accepts only booleans
+- [x] Codegen: `_code_cell` in `src/nbfoundry/codegen.py` emits `@app.cell(hide_code=True)` when the section's flag is set, bare `@app.cell` otherwise; `generate()` threads `section.hide_code` through. Markdown/banner cells and byte-stable output for unflagged sections unchanged
+- [x] Unit tests: schema (default `False`, accepts `True`, rejects non-bool); codegen (default emits no `hide_code`, emits `@app.cell(hide_code=True)` only for the flagged section, generated module stays `ast.parse`-clean and deterministic) — 3 schema + 3 codegen tests added
+- [x] Integration test: a generated module containing a `hide_code` cell imports cleanly and exposes a `marimo.App` (proves marimo's decorator accepts the kwarg) — extends `tests/integration/test_marimo_loads_generated.py`
+- [x] Docs: note the optional `hide_code` field in the README `compile-exercise` section and the `SectionModel` descriptions in `features.md` / `tech-spec.md`
+- [x] `ruff` + `ruff format --check` + `mypy --strict` clean
+- [x] Mark tasks `[x]`, flip suffix to `[Done]`; bump version to **v0.47.0** in `src/nbfoundry/_version.py`; add `CHANGELOG.md` v0.47.0 entry
+- [x] Verify: `pyve test` green; coverage gate (≥85%) satisfied
+
+**Cycle impact.** New tests: 3 in `tests/unit/test_schema.py`, 3 in `tests/unit/test_codegen.py`, 1 in `tests/integration/test_marimo_loads_generated.py` (with a shared `_load_module` helper extracted from the existing smoke). Code: `SectionModel.hide_code` field; `codegen._code_cell` gains a `hide_code` kwarg threaded from `generate()`. Suite **156 passed / 0 failed / 7 deselected — coverage 93.05%**; ruff check + `ruff format --check` clean across 45 files; mypy strict clean on 14 source files.
+
+---
+
 ## Future
 
 <!--

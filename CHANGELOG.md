@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.47.0] - 2026-06-20
+
+### Added
+- Optional per-section `hide_code` flag in the `ExerciseDefinition` schema (Story I.g). When a section sets `hide_code: true`, `codegen.generate` emits that section's code cell as `@app.cell(hide_code=True)` instead of `@app.cell` — marimo's hidden-code state, so the learner sees the cell's output but not its source. Default `false` (code visible); the markdown description cell and byte-stable output for unflagged sections are unchanged. Additive and backward-compatible: existing definitions without `hide_code` produce identical `notebook_source`.
+
+### Documentation
+- Documented `hide_code` in [README.md](README.md) (`compile-exercise` section), [features.md](docs/specs/features.md) (Inputs), and [tech-spec.md](docs/specs/tech-spec.md) (`SectionModel`).
+
 ## [0.46.0] - 2026-06-18
 
 **Phase I — LearningFoundry Integration Refactoring.** Migrates `compile_exercise` from the LearningFoundry Option-B (static-display) contract to Option C (banner + `learningfoundry launch` + notebook-emit). The compiled exercise dict is now an 8-key wire shape whose `notebook_source` field is itself a self-contained `marimo.App()` module the learner runs locally; the previous static-display fields (sections / expected_outputs / submission / assets / status / instructions) are gone. **This is a breaking output-shape change** — any consumer reading the v0.45.0 dict will see different keys after upgrading.
